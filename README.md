@@ -8,5 +8,5 @@ A web application that serves as an interface between a user and EnzyHTP's workf
   * This is the only package we have to install as of now, but when we integrate EnzyHTP, we will need to install many more.
 * To run the website, open two terminals on VSCode.
   * On one, cd into the `flask-server` folder and run `python server.py` to start the backend.
-  * On the other, run `npm start` in the `client` folder.
+  * On the other, run `npm i` and `npm start` in the `client` folder.
 * That's it! The website should begin running on `localhost:3000`.
