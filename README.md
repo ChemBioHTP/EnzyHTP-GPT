@@ -6,7 +6,7 @@ A web application that serves as an interface between a user and EnzyHTP's workf
 * We will then need to create a conda environment to run the website.
   * `conda env create -f environment.yml`
 * To run the website run:
-  * `npm run start-backend&;npm run start-frontend&`
+  * `npm run start-frontend & npm run start-backend && bg`
 * To stop the website run:
   * `kill %1;kill %2`
 * That's it! The website should begin running on `localhost:3000`.
