@@ -18,11 +18,11 @@ def generate_pattern():
     # TODO: how to improve prompt in config.py?
     try:
         completions = openai.Completion.create(
-            engine="text-davinci-003",
+            engine="gpt-3.5-turbo-instruct",
             prompt=prompt,
             max_tokens=70,
             frequency_penalty=-0.5,
-            temperature=0.2,
+            temperature=0.01,
         )
         message = completions.choices[0].text
     except Exception as e:
