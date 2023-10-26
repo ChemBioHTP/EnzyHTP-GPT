@@ -1,6 +1,9 @@
 from flask import Flask, request, jsonify
 import openai
 import config
+import enzy_htp.structure
+import enzy_htp.mutation.api as mapi
+import enzy_htp.mutation.mutation_pattern.api as pattern_api
 
 app = Flask(__name__)
 
@@ -8,6 +11,7 @@ app = Flask(__name__)
 def generate_pattern():
     mutation_request = request.json['mut_request']
     api_key = request.json['api_key']
+    file = request.json['file']
 
     prompt = ""
     prompt += config.prompt_skeleton
@@ -27,9 +31,36 @@ def generate_pattern():
         message = completions.choices[0].text
     except Exception as e:
         raise Exception(f'API Error: {str(e)}')
+    
+    mutant_files = generate_muts(file, message)
 
-    #TODO: pass this response into EnzyHTP for further processing rather than returning it
-    return jsonify({"mutations": message})
+    return jsonify({"mutations": message, "mutant_files": mutant_files})
+
+def generate_muts(file, pattern):
+    sp = enzy_htp.structure.PDBParser()
+    stru = sp.get_structure(file.name)
+
+        # checks to make sure mutation is valid before continuing
+    try:
+        mutations = pattern_api.decode_mutation_pattern(stru, pattern)
+    except pattern_api.InvalidMutationPatternSyntax as e:
+        raise Exception(f'Invalid mutation: {str(e)}')
+
+    res = []
+    # mutates the PDB file with PyMOL
+    for mut in mutations:
+        try:
+            mutant_stru = mapi.mutate_stru(stru, mut, engine="pymol")
+            res_file = sp.get_file_str(mutant_stru)
+        except Exception as e:
+            raise Exception(f'API Error: {str(e)}')
+        name_tag = ""
+        for single_mut in mut:
+            name_tag += str(single_mut) + "_"
+        name_tag = name_tag[:-1]
+        res.append((res_file, name_tag))
+
+    return res
 
 if __name__ == "__main__":
     app.run(debug=True)
