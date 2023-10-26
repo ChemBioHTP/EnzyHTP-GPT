@@ -12,5 +12,9 @@ def members():
 def home():
     return render_template("../client/public/index.html")
 
+@app.route("/key")
+def api_key():
+    return {'foo': 'bar'}
+
 if __name__ == "__main__":
     app.run(debug=True)
