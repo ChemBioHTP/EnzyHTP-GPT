@@ -1,0 +1,14 @@
+# environment.yaml
+# Author  : Zhong, Yinjie
+# Contact : yinjie.zhong@vanderbilt.edu
+
+name: enzyhtp-gpt
+channels:
+  - anaconda
+  - defaults
+dependencies:
+  - python>=3.7
+  - flask
+  - flask-login
+  - flask-sqlalchemy
+  - flask-wtf
