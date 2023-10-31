@@ -40,7 +40,7 @@ def generate_muts(file, pattern):
     sp = enzy_htp.structure.PDBParser()
     stru = sp.get_structure(file.name)
 
-        # checks to make sure mutation is valid before continuing
+    # checks to make sure mutation is valid before continuing
     try:
         mutations = pattern_api.decode_mutation_pattern(stru, pattern)
     except pattern_api.InvalidMutationPatternSyntax as e:
