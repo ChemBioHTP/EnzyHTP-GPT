@@ -1,12 +1,35 @@
-from flask import Flask
+from flask import Flask, request, jsonify
+import openai
+import config
 
 app = Flask(__name__)
 
-# Example API route - to start server, run "python server.py"
+@app.route("/api/generate_pattern", methods=["POST"])
+def generate_pattern():
+    mutation_request = request.json['mut_request']
+    api_key = request.json['api_key']
 
-@app.route("/members")
-def members():
-    return {"members": ["Member1", "Member2"]}
+    prompt = ""
+    prompt += config.prompt_skeleton
+    prompt += f"Query:{mutation_request}\nAnswer:"
+    
+    openai.api_key = api_key
+
+    # TODO: how to improve prompt in config.py?
+    try:
+        completions = openai.Completion.create(
+            engine="gpt-3.5-turbo-instruct",
+            prompt=prompt,
+            max_tokens=70,
+            frequency_penalty=-0.5,
+            temperature=0.01,
+        )
+        message = completions.choices[0].text
+    except Exception as e:
+        raise Exception(f'API Error: {str(e)}')
+
+    #TODO: pass this response into EnzyHTP for further processing rather than returning it
+    return jsonify({"mutations": message})
 
 if __name__ == "__main__":
     app.run(debug=True)
