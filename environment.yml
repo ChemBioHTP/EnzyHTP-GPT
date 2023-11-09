@@ -12,3 +12,6 @@ dependencies:
   - flask-login
   - flask-sqlalchemy
   - flask-wtf
+  - openai
+  - dataclasses
+  - libcxx

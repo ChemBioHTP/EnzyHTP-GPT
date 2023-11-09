@@ -1,6 +1,6 @@
 # Authentication Module.
 
-Author: Zhong, Yinjie.
+Author: Zhong, Yinjie.  
 Email: yinjie.zhong@vanderbilt.edu
 
 [TOC]

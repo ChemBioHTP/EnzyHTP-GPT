@@ -26,28 +26,12 @@ A web application that serves as an interface between a user and EnzyHTP's workf
 
 * To run the website, open two terminals on VSCode.
   * On one, `cd` into the `flask-server` folder and run `python server.py` to start the backend.
+    * Before launching the backend, please check the configuration (see [Flask-server Configuration](./flask-server/README.md#2-configuration)).
   * On the other, run `npm start` in the `client` folder.
     * If you are faced with `sh: 1: react-scripts: Permission denied` error, use `sudo npm start`.
     * If you are faced with `sh: 1: react-scripts: not found` error:
       * Use `npm install react-scripts`.
-
+* To stop the website run:
+  * kill %1;kill %2
 * That's it! The website should begin running on `localhost:3000`.
   * If you use WSL or virtual machine, the address should be `<ip.to.your.vm>:3000`.
-
-# 2. Configuration
-
-The `settings.py` and `context.py` files in the `/flask-server` directory are to support database and user authentication.
-
-## 2.1 Settings
-
-- Filepath: `/flask-server/settings.py`
-
-This file is cited as an object to inject the runtime configurations of the flask server so as to protect the main file `/flask-server/server.py` from getting 'contaminated'.
-
-## 2.2 Context
-
-- Filepath: `/flask-server/context.py`
-
-This file is to declare the `SQLAlchemy` database instance (named `db`) and the `LoginManager` instance (named `login_manager`) for the whole flask server.
-
-Those instances can only be declared in an individual file and imported into the main file and anywhere else in the server. Otherwise, a number of "Exception(s)", and a "Warning" prompt which will be set to "Exception" in the next version, will be triggered.
