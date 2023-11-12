@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import openai
 import config
 
@@ -30,6 +30,14 @@ def generate_pattern():
 
     #TODO: pass this response into EnzyHTP for further processing rather than returning it
     return jsonify({"mutations": message})
+
+@app.route("/")
+def home():
+    return render_template("../client/public/index.html")
+
+@app.route("/key")
+def api_key():
+    return {'foo': 'bar'}
 
 if __name__ == "__main__":
     app.run(debug=True)

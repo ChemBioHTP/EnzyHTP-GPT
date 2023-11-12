@@ -1,0 +1,776 @@
+.text-input-default {
+  align-items: flex-start;
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 288px;
+}
+
+.text-input-default .label-character {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  position: relative;
+  width: 100%;
+}
+
+.text-input-default .label-margin {
+  align-items: flex-start;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  flex-grow: 1;
+  padding: 0px 0px 8px;
+  position: relative;
+}
+
+.text-input-default .label-text {
+  align-self: stretch;
+  font-family: var(--utility-styles-label-01-font-family);
+  font-size: var(--utility-styles-label-01-font-size);
+  font-style: var(--utility-styles-label-01-font-style);
+  font-weight: var(--utility-styles-label-01-font-weight);
+  letter-spacing: var(--utility-styles-label-01-letter-spacing);
+  line-height: var(--utility-styles-label-01-line-height);
+  margin-top: -1px;
+  position: relative;
+}
+
+.text-input-default .spacer {
+  height: 1px;
+  margin-right: -1px;
+  opacity: 0;
+  position: relative;
+  width: 1px;
+}
+
+.text-input-default .text-input {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  gap: 16px;
+  position: relative;
+  width: 100%;
+}
+
+.text-input-default .text-overflow {
+  align-items: flex-start;
+  display: flex;
+  flex: 1;
+  flex-grow: 1;
+  gap: 16px;
+  height: 18px;
+  overflow-x: scroll;
+  position: relative;
+  z-index: 1;
+}
+
+.text-input-default .optional-placeholder {
+  font-family: var(--body-styles-body-compact-01-font-family);
+  font-size: var(--body-styles-body-compact-01-font-size);
+  font-style: var(--body-styles-body-compact-01-font-style);
+  font-weight: var(--body-styles-body-compact-01-font-weight);
+  letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+  line-height: var(--body-styles-body-compact-01-line-height);
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.text-input-default .background {
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  height: 48px;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 288px;
+  z-index: 0;
+}
+
+.text-input-default .placeholder-text-wrapper {
+  align-items: flex-start;
+  display: flex;
+  flex: 1;
+  flex-grow: 1;
+  gap: 16px;
+  height: 18px;
+  overflow-x: scroll;
+  position: relative;
+}
+
+.text-input-default .placeholder-text {
+  font-family: var(--body-styles-body-compact-01-font-family);
+  font-size: var(--body-styles-body-compact-01-font-size);
+  font-style: var(--body-styles-body-compact-01-font-style);
+  font-weight: var(--body-styles-body-compact-01-font-weight);
+  letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+  line-height: var(--body-styles-body-compact-01-line-height);
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.text-input-default .label-skeleton {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  padding: 0px 0px 8px;
+  position: relative;
+  width: 100%;
+}
+
+.text-input-default .label-text-line {
+  background-color: var(--skeletonskeleton-background);
+  height: 8px;
+  position: relative;
+  width: 40px;
+}
+
+.text-input-default .text-input-box {
+  align-self: stretch;
+  background-color: var(--skeletonskeleton-background);
+  position: relative;
+  width: 100%;
+}
+
+.text-input-default .helper-text-margin {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  padding: 4px 0px 0px;
+  position: relative;
+  width: 100%;
+}
+
+.text-input-default .optional-helper-text {
+  position: relative;
+}
+
+.text-input-default .div {
+  align-items: flex-start;
+  align-self: stretch;
+  background-color: var(--fieldfield-01);
+  display: flex;
+  position: relative;
+  width: 100%;
+}
+
+.text-input-default .status-icon {
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  height: 16px;
+  left: 256px;
+  position: absolute;
+  width: 16px;
+  z-index: 2;
+}
+
+.text-input-default .overlap-group {
+  height: 16px;
+  position: relative;
+}
+
+.text-input-default .fill {
+  position: absolute;
+}
+
+.text-input-default .instance-node {
+  background-blend-mode: multiply !important;
+  height: 16px !important;
+  left: 0 !important;
+  position: absolute !important;
+  top: 0 !important;
+  width: 16px !important;
+}
+
+.text-input-default .input {
+  background: none;
+  border: none;
+  flex-grow: 1;
+  font-family: var(--body-styles-body-compact-01-font-family);
+  font-size: var(--body-styles-body-compact-01-font-size);
+  font-style: var(--body-styles-body-compact-01-font-style);
+  font-weight: var(--body-styles-body-compact-01-font-weight);
+  height: 18px;
+  letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+  line-height: var(--body-styles-body-compact-01-line-height);
+  margin-top: -1px;
+  overflow-x: scroll;
+  padding: 0;
+  position: relative;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.text-input-default .spacer-2 {
+  align-self: stretch;
+  position: relative;
+  width: 32px;
+  z-index: 0;
+}
+
+.text-input-default .warning-message-goes {
+  align-self: stretch;
+  font-family: var(--utility-styles-label-01-font-family);
+  font-size: var(--utility-styles-label-01-font-size);
+  font-style: var(--utility-styles-label-01-font-style);
+  font-weight: var(--utility-styles-label-01-font-weight);
+  letter-spacing: var(--utility-styles-label-01-letter-spacing);
+  line-height: var(--utility-styles-label-01-line-height);
+  margin-top: -1px;
+  position: relative;
+}
+
+.text-input-default.active {
+  min-width: var(--spacing-64px-4rem-spacing-10);
+}
+
+.text-input-default.disabled {
+  min-width: var(--spacing-64px-4rem-spacing-10);
+}
+
+.text-input-default.focus {
+  min-width: var(--spacing-64px-4rem-spacing-10);
+}
+
+.text-input-default.read-only {
+  min-width: var(--spacing-64px-4rem-spacing-10);
+}
+
+.text-input-default.warning {
+  min-width: var(--spacing-96px-6rem-spacing-12);
+}
+
+.text-input-default.skeleton {
+  min-width: var(--spacing-64px-4rem-spacing-10);
+}
+
+.text-input-default.enabled {
+  min-width: var(--spacing-64px-4rem-spacing-10);
+}
+
+.text-input-default.error {
+  min-width: var(--spacing-96px-6rem-spacing-12);
+}
+
+.text-input-default .state-0-active {
+  background-color: var(--fieldfield-01);
+  border: 2px solid;
+  border-color: var(--focusfocus);
+}
+
+.text-input-default .large {
+  background-color: var(--fieldfield-01);
+  height: 48px;
+  padding: 15px 16px;
+}
+
+.text-input-default .state-0-disabled {
+  background-color: var(--fieldfield-01);
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-color: var(--transparenttransparent);
+}
+
+.text-input-default .small {
+  height: 32px;
+  padding: 7px 16px;
+}
+
+.text-input-default .state-0-focus {
+  background-color: var(--fieldfield-01);
+  border: 2px solid;
+  border-color: var(--focusfocus);
+}
+
+.text-input-default .medium {
+  height: 40px;
+  padding: 11px 16px;
+}
+
+.text-input-default .state-0-warning {
+  background-color: var(--fieldfield-01);
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .state-0-skeleton {
+  background-color: var(--fieldfield-01);
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .state-0-enabled {
+  background-color: var(--fieldfield-01);
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .state-0-error {
+  background-color: var(--fieldfield-01);
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .state-0-enabled.small {
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+}
+
+.text-input-default .state-0-read-only.large {
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .state-0-enabled.medium {
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+}
+
+.text-input-default .state-0-enabled.text-filled-true {
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+}
+
+.text-input-default .state-0-read-only.small {
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-color: var(--borderborder-subtle-01);
+}
+
+.text-input-default .state-0-read-only.medium {
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-color: var(--borderborder-subtle-01);
+}
+
+.text-input-default .size-large {
+  height: 48px;
+}
+
+.text-input-default .size-medium {
+  height: 40px;
+}
+
+.text-input-default .size-small {
+  height: 32px;
+}
+
+.text-input-default .state-5-active {
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .size-0-large {
+  height: 48px;
+  padding: 15px 16px;
+}
+
+.text-input-default .state-5-disabled {
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .size-0-small {
+  height: 32px;
+  padding: 7px 16px;
+}
+
+.text-input-default .state-5-focus {
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .state-5-read-only {
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .size-0-medium {
+  height: 40px;
+  padding: 11px 16px;
+}
+
+.text-input-default .state-5-warning {
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .state-5-skeleton {
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .state-5-enabled {
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .state-5-error {
+  border: 2px solid;
+  border-color: var(--supportsupport-error);
+}
+
+.text-input-default .text-filled-2-false {
+  color: var(--texttext-placeholder);
+}
+
+.text-input-default .text-filled-2-true {
+  color: var(--texttext-primary);
+}
+
+.text-input-default.active .label-text {
+  color: var(--texttext-secondary);
+}
+
+.text-input-default.disabled .label-text {
+  color: var(--texttext-disabled);
+}
+
+.text-input-default.focus .label-text {
+  color: var(--texttext-secondary);
+}
+
+.text-input-default.read-only .label-text {
+  color: var(--texttext-secondary);
+}
+
+.text-input-default.warning .label-text {
+  color: var(--texttext-secondary);
+}
+
+.text-input-default.skeleton .label-text {
+  color: var(--texttext-secondary);
+}
+
+.text-input-default.enabled .label-text {
+  color: var(--texttext-secondary);
+}
+
+.text-input-default.error .label-text {
+  color: var(--texttext-secondary);
+}
+
+.text-input-default .text-input.state-0-enabled .optional-placeholder {
+  color: var(--texttext-placeholder);
+}
+
+.text-input-default .text-input.state-0-error.text-filled-true .optional-placeholder {
+  color: var(--texttext-primary);
+}
+
+.text-input-default .text-input.text-filled-false.state-0-focus .optional-placeholder {
+  color: var(--texttext-secondary);
+}
+
+.text-input-default .text-input.state-0-read-only.text-filled-true .optional-placeholder {
+  color: var(--texttext-primary);
+}
+
+.text-input-default .text-input.state-0-active.text-filled-true .optional-placeholder {
+  color: var(--texttext-primary);
+}
+
+.text-input-default .text-input.text-filled-false.state-0-error .optional-placeholder {
+  color: var(--texttext-secondary);
+}
+
+.text-input-default .text-input.text-filled-false.state-0-disabled .optional-placeholder {
+  color: var(--texttext-secondary);
+}
+
+.text-input-default .text-input.state-0-active.text-filled-false .optional-placeholder {
+  color: var(--texttext-secondary);
+}
+
+.text-input-default .text-input.state-0-disabled.text-filled-true .optional-placeholder {
+  color: var(--texttext-primary);
+}
+
+.text-input-default .text-input.text-filled-true.state-0-focus .optional-placeholder {
+  color: var(--texttext-primary);
+}
+
+.text-input-default .text-input.state-0-warning.text-filled-false .optional-placeholder {
+  color: var(--texttext-secondary);
+}
+
+.text-input-default .text-input.state-0-skeleton.text-filled-false .optional-placeholder {
+  color: var(--texttext-secondary);
+}
+
+.text-input-default .text-input.state-0-read-only.text-filled-false .optional-placeholder {
+  color: var(--texttext-secondary);
+}
+
+.text-input-default .text-input.state-0-warning.text-filled-true .optional-placeholder {
+  color: var(--texttext-primary);
+}
+
+.text-input-default .text-input.state-0-skeleton.text-filled-true .optional-placeholder {
+  color: var(--texttext-primary);
+}
+
+.text-input-default .text-input.state-0-active .background {
+  background-color: var(--fieldfield-01);
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .text-input.state-0-disabled .background {
+  background-color: var(--fieldfield-01);
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .text-input.state-0-focus .background {
+  background-color: var(--fieldfield-01);
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .text-input.state-0-read-only .background {
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  border-color: var(--borderborder-subtle-01);
+}
+
+.text-input-default .text-input.state-0-warning .background {
+  background-color: var(--fieldfield-01);
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .text-input.state-0-skeleton .background {
+  background-color: var(--fieldfield-01);
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .text-input.state-0-enabled .background {
+  background-color: var(--fieldfield-01);
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .text-input.state-0-error .background {
+  background-color: var(--fieldfield-01);
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .text-input.text-filled-true .placeholder-text {
+  color: var(--texttext-primary);
+}
+
+.text-input-default .text-input.text-filled-false.state-0-focus .placeholder-text {
+  color: var(--texttext-placeholder);
+}
+
+.text-input-default .text-input.text-filled-false.state-0-error .placeholder-text {
+  color: var(--texttext-placeholder);
+}
+
+.text-input-default .text-input.text-filled-false.state-0-disabled .placeholder-text {
+  color: var(--texttext-disabled);
+}
+
+.text-input-default .text-input.state-0-enabled.text-filled-false .placeholder-text {
+  color: var(--texttext-placeholder);
+}
+
+.text-input-default .text-input.state-0-active.text-filled-false .placeholder-text {
+  color: var(--texttext-placeholder);
+}
+
+.text-input-default .text-input.state-0-warning.text-filled-false .placeholder-text {
+  color: var(--texttext-placeholder);
+}
+
+.text-input-default .text-input.state-0-skeleton.text-filled-false .placeholder-text {
+  color: var(--texttext-placeholder);
+}
+
+.text-input-default .text-input.state-0-read-only.text-filled-false .placeholder-text {
+  color: var(--texttext-secondary);
+}
+
+.text-input-default.active .optional-helper-text {
+  align-self: stretch;
+  color: var(--texttext-helper);
+  font-family: var(--utility-styles-helper-text-01-font-family);
+  font-size: var(--utility-styles-helper-text-01-font-size);
+  font-style: var(--utility-styles-helper-text-01-font-style);
+  font-weight: var(--utility-styles-helper-text-01-font-weight);
+  letter-spacing: var(--utility-styles-helper-text-01-letter-spacing);
+  line-height: var(--utility-styles-helper-text-01-line-height);
+  margin-top: -1px;
+}
+
+.text-input-default.disabled .optional-helper-text {
+  align-self: stretch;
+  color: var(--texttext-disabled);
+  font-family: var(--utility-styles-helper-text-01-font-family);
+  font-size: var(--utility-styles-helper-text-01-font-size);
+  font-style: var(--utility-styles-helper-text-01-font-style);
+  font-weight: var(--utility-styles-helper-text-01-font-weight);
+  letter-spacing: var(--utility-styles-helper-text-01-letter-spacing);
+  line-height: var(--utility-styles-helper-text-01-line-height);
+  margin-top: -1px;
+}
+
+.text-input-default.focus .optional-helper-text {
+  align-self: stretch;
+  color: var(--texttext-helper);
+  font-family: var(--utility-styles-helper-text-01-font-family);
+  font-size: var(--utility-styles-helper-text-01-font-size);
+  font-style: var(--utility-styles-helper-text-01-font-style);
+  font-weight: var(--utility-styles-helper-text-01-font-weight);
+  letter-spacing: var(--utility-styles-helper-text-01-letter-spacing);
+  line-height: var(--utility-styles-helper-text-01-line-height);
+  margin-top: -1px;
+}
+
+.text-input-default.read-only .optional-helper-text {
+  align-self: stretch;
+  color: var(--texttext-helper);
+  font-family: var(--utility-styles-helper-text-01-font-family);
+  font-size: var(--utility-styles-helper-text-01-font-size);
+  font-style: var(--utility-styles-helper-text-01-font-style);
+  font-weight: var(--utility-styles-helper-text-01-font-weight);
+  letter-spacing: var(--utility-styles-helper-text-01-letter-spacing);
+  line-height: var(--utility-styles-helper-text-01-line-height);
+  margin-top: -1px;
+}
+
+.text-input-default.warning .optional-helper-text {
+  color: var(--texttext-helper);
+}
+
+.text-input-default.skeleton .optional-helper-text {
+  background-color: var(--skeletonskeleton-background);
+  color: var(--texttext-helper);
+  height: 8px;
+  width: 120px;
+}
+
+.text-input-default.enabled .optional-helper-text {
+  align-self: stretch;
+  color: var(--texttext-helper);
+  font-family: var(--utility-styles-helper-text-01-font-family);
+  font-size: var(--utility-styles-helper-text-01-font-size);
+  font-style: var(--utility-styles-helper-text-01-font-style);
+  font-weight: var(--utility-styles-helper-text-01-font-weight);
+  letter-spacing: var(--utility-styles-helper-text-01-letter-spacing);
+  line-height: var(--utility-styles-helper-text-01-line-height);
+  margin-top: -1px;
+}
+
+.text-input-default.error .optional-helper-text {
+  color: var(--texttext-helper);
+}
+
+.text-input-default .div.size-0-large .status-icon {
+  top: 15px;
+}
+
+.text-input-default .div.size-0-medium .status-icon {
+  top: 11px;
+}
+
+.text-input-default .div.size-0-small .status-icon {
+  top: 7px;
+}
+
+.text-input-default .div.state-5-active .fill {
+  background-color: var(--theme-inverse-white-black-white-in-light-themes);
+  height: 10px;
+  left: 4px;
+  top: 3px;
+  width: 8px;
+}
+
+.text-input-default .div.state-5-disabled .fill {
+  background-color: var(--theme-inverse-white-black-white-in-light-themes);
+  height: 10px;
+  left: 4px;
+  top: 3px;
+  width: 8px;
+}
+
+.text-input-default .div.state-5-focus .fill {
+  background-color: var(--theme-inverse-white-black-white-in-light-themes);
+  height: 10px;
+  left: 4px;
+  top: 3px;
+  width: 8px;
+}
+
+.text-input-default .div.state-5-read-only .fill {
+  background-color: var(--theme-inverse-white-black-white-in-light-themes);
+  height: 10px;
+  left: 4px;
+  top: 3px;
+  width: 8px;
+}
+
+.text-input-default .div.state-5-warning .fill {
+  background-color: var(--accessibilityblack);
+  height: 9px;
+  left: 6px;
+  top: 5px;
+  width: 4px;
+}
+
+.text-input-default .div.state-5-skeleton .fill {
+  background-color: var(--theme-inverse-white-black-white-in-light-themes);
+  height: 10px;
+  left: 4px;
+  top: 3px;
+  width: 8px;
+}
+
+.text-input-default .div.state-5-enabled .fill {
+  background-color: var(--theme-inverse-white-black-white-in-light-themes);
+  height: 10px;
+  left: 4px;
+  top: 3px;
+  width: 8px;
+}
+
+.text-input-default .div.state-5-error .fill {
+  background-color: var(--theme-inverse-white-black-white-in-light-themes);
+  height: 10px;
+  left: 4px;
+  top: 3px;
+  width: 8px;
+}
+
+.text-input-default.active .warning-message-goes {
+  color: var(--texttext-primary);
+}
+
+.text-input-default.disabled .warning-message-goes {
+  color: var(--texttext-primary);
+}
+
+.text-input-default.focus .warning-message-goes {
+  color: var(--texttext-primary);
+}
+
+.text-input-default.read-only .warning-message-goes {
+  color: var(--texttext-primary);
+}
+
+.text-input-default.warning .warning-message-goes {
+  color: var(--texttext-primary);
+}
+
+.text-input-default.skeleton .warning-message-goes {
+  color: var(--texttext-primary);
+}
+
+.text-input-default.enabled .warning-message-goes {
+  color: var(--texttext-primary);
+}
+
+.text-input-default.error .warning-message-goes {
+  color: var(--texttext-error);
+}

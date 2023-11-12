@@ -1,0 +1,232 @@
+.element-landing-screen {
+    background-color: #f4f4f4;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    width: 100%;
+}
+
+.element-landing-screen .overlap-group-wrapper {
+    background-color: var(--theme-layer-layer-01);
+    height: 900px;
+    width: 1584px;
+}
+
+.element-landing-screen .overlap-group {
+    height: 900px;
+    position: relative;
+}
+
+.element-landing-screen .rectangle {
+    background-color: #d9d9d9;
+    height: 627px;
+    left: 808px;
+    position: absolute;
+    top: 157px;
+    width: 480px;
+}
+
+.element-landing-screen .ellipse {
+    height: 804px;
+    left: 587px;
+    position: absolute;
+    top: 0;
+    width: 997px;
+}
+
+.element-landing-screen .hexagon-dotted {
+    height: 900px;
+    left: 0;
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    width: 1584px;
+}
+
+.element-landing-screen .img {
+    height: 850px;
+    left: 0;
+    position: absolute;
+    top: 50px;
+    width: 1122px;
+}
+
+.element-landing-screen .frame {
+    align-items: center;
+    display: inline-flex;
+    gap: 16px;
+    left: 345px;
+    position: absolute;
+    top: 300px;
+}
+
+.element-landing-screen .union {
+    height: 73.51px;
+    position: relative;
+    width: 71.04px;
+}
+
+.element-landing-screen .div {
+    color: var(--theme-text-text-primary);
+    font-family: "Lexend Tera-Bold", Helvetica;
+    font-size: 48px;
+    font-weight: 700;
+    letter-spacing: 0.16px;
+    line-height: 48px;
+    position: relative;
+    width: 305px;
+}
+
+.element-landing-screen .p {
+    color: #000000;
+    font-family: "IBM Plex Sans-Regular", Helvetica;
+    font-size: 14px;
+    font-weight: 400;
+    left: 345px;
+    letter-spacing: 0.16px;
+    line-height: 18px;
+    position: absolute;
+    top: 549px;
+    white-space: nowrap;
+}
+
+.element-landing-screen .text-wrapper-2 {
+    color: #000000;
+    font-family: "IBM Plex Sans-Regular", Helvetica;
+    font-size: 20px;
+    font-weight: 400;
+    left: 345px;
+    letter-spacing: 0.16px;
+    line-height: 30px;
+    position: absolute;
+    top: 410px;
+    width: 485px;
+}
+
+.element-landing-screen .frame-2 {
+    align-items: flex-start;
+    background-color: var(--theme-background-background);
+    display: flex;
+    flex-direction: column;
+    gap: 64px;
+    height: 900px;
+    justify-content: center;
+    left: 1104px;
+    padding: 84px 48px;
+    position: absolute;
+    top: 0;
+    width: 480px;
+}
+
+.element-landing-screen .frame-3 {
+    align-items: flex-start;
+    display: inline-flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 16px;
+    position: relative;
+}
+
+.element-landing-screen .text-wrapper-3 {
+    color: #000000;
+    font-family: var(--heading-fluid-heading-05-font-family);
+    font-size: var(--heading-fluid-heading-05-font-size);
+    font-style: var(--heading-fluid-heading-05-font-style);
+    font-weight: var(--heading-fluid-heading-05-font-weight);
+    letter-spacing: var(--heading-fluid-heading-05-letter-spacing);
+    line-height: var(--heading-fluid-heading-05-line-height);
+    margin-top: -1px;
+    position: relative;
+    white-space: nowrap;
+    width: fit-content;
+}
+
+.element-landing-screen .frame-4 {
+    align-items: flex-start;
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 8px;
+    position: relative;
+}
+
+.element-landing-screen .text-wrapper-4 {
+    color: #000000;
+    font-family: var(--body-body-02-font-family);
+    font-size: var(--body-body-02-font-size);
+    font-style: var(--body-body-02-font-style);
+    font-weight: var(--body-body-02-font-weight);
+    letter-spacing: var(--body-body-02-letter-spacing);
+    line-height: var(--body-body-02-line-height);
+    margin-top: -1px;
+    position: relative;
+    white-space: nowrap;
+    width: fit-content;
+}
+
+.element-landing-screen .text-wrapper-5 {
+    color: var(--theme-link-link-primary);
+    font-family: var(--body-body-02-font-family);
+    font-size: var(--body-body-02-font-size);
+    font-style: var(--body-body-02-font-style);
+    font-weight: var(--body-body-02-font-weight);
+    letter-spacing: var(--body-body-02-letter-spacing);
+    line-height: var(--body-body-02-line-height);
+    margin-top: -1px;
+    position: relative;
+    white-space: nowrap;
+    width: fit-content;
+}
+
+.element-landing-screen .frame-5 {
+    align-items: flex-start;
+    align-self: stretch;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 24px;
+    position: relative;
+    width: 100%;
+}
+
+.element-landing-screen .frame-6 {
+    align-items: flex-start;
+    align-self: stretch;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 16px;
+    position: relative;
+    width: 100%;
+}
+
+.element-landing-screen .text-input-default-instance {
+    align-self: stretch !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+}
+
+.element-landing-screen .design-component-instance-node {
+    margin-right: unset !important;
+}
+
+.element-landing-screen .text-input-default-2 {
+    width: 384px !important;
+}
+
+.element-landing-screen .button-instance {
+    align-self: stretch !important;
+    display: flex !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+}
+
+.element-landing-screen .button-2 {
+    left: 352px !important;
+}
+
+.element-landing-screen .icon-arrow-right {
+    background-blend-mode: multiply !important;
+    height: 16px !important;
+    position: relative !important;
+    width: 16px !important;
+}
