@@ -17,7 +17,12 @@ A web application that serves as an interface between a user and EnzyHTP's workf
   * You can also build the environment manually.
     * Create a new conda environment `conda create -n enzyhtp-gpt`. The name following `-n` flag could be anything you like.
     * Install Flask using the command `conda install -c anaconda flask flask-login flask-sqlalchemy`.
-  * This is the only package we have to install as of now, but when we integrate EnzyHTP, we will need to install many more.
+
+* We will also install EnzyHTP (by cloning it onto your local machine for now).
+  * To do this, run `git clone https://github.com/ChemBioHTP/EnzyHTP.git new_enzy_htp`
+  * Then, run `cd new_enzy_htp` and `git checkout develop_refactor`
+  * Finally, run `sh dev-tools/install` to install all dependencies into your conda env.
+  * You should now be able to use EnzyHTP with the site.
 
 * We also need to install `npm`.
   * Taking Ubuntu (or WSL Ubuntu) for instance, install `npm` using command `sudo apt-get install npm`.
