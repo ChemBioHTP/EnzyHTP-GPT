@@ -2,6 +2,10 @@ from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 import openai
 import config
+import enzy_htp
+from enzy_htp._interface import amber_interface
+from new_enzy_htp.enzy_htp.core.clusters.accre import Accre
+from new_enzy_htp.enzy_htp.geometry.sampling import equi_md_sampling
 
 import settings
 app = Flask(__name__)
@@ -21,7 +25,7 @@ login_manager.login_message_category = "info"
 from auth import auth as auth_blueprint
 app.register_blueprint(auth_blueprint, url_prefix='/api/auth')
 
-# Generate Patterns
+# Generate Patterns - done to show user what mutations they generated
 @app.route("/api/generate_pattern", methods=["POST"])
 def generate_pattern():
     mutation_request = request.json['mut_request']
@@ -48,6 +52,35 @@ def generate_pattern():
 
     #TODO: pass this response into EnzyHTP for further processing rather than returning it
     return jsonify({"mutations": message})
+
+@app.route("/api/run_workflow", methods=["POST"])
+def run_workflow():
+    pass
+
+@app.route("/api/run_md", methods=["POST"])
+def run_simulation():
+    mutant_file = request.json["file"]
+    is_prepare_only = request.json["prepare"]
+
+    parallel_method_input = "cluster_job"
+    if is_prepare_only:
+        parallel_method_input = "prepare_only"
+
+    sp = enzy_htp.PDBParser()
+    test_stru = sp.get_structure(mutant_file.name)
+    test_stru.assign_ncaa_chargespin({"H5J" : (0,1)}) # TODO: What should go here?
+    test_param_method = amber_interface.build_md_parameterizer(
+        ncaa_param_lib_path="TODO" # TODO: What should go here?
+    )
+    cluster_job_config = {
+        "cluster" : Accre(),
+        "period" : 600,
+        "res_setting" : {"account" : "csb_gpu_acc"}
+    }
+    return equi_md_sampling(stru = test_stru,
+                     param_method = test_param_method,
+                     parallel_method = parallel_method_input,
+                     cluster_job_config = cluster_job_config,)
 
 @app.route("/")
 def home():
