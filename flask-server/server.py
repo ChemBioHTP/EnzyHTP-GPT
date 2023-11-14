@@ -11,7 +11,6 @@ app = Flask(__name__)
 def generate_pattern():
     mutation_request = request.json['mut_request']
     api_key = request.json['api_key']
-    file = request.json['file']
 
     prompt = ""
     prompt += config.prompt_skeleton
@@ -31,10 +30,8 @@ def generate_pattern():
         message = completions.choices[0].text
     except Exception as e:
         raise Exception(f'API Error: {str(e)}')
-    
-    mutant_files = generate_muts(file, message)
 
-    return jsonify({"mutations": message, "mutant_files": mutant_files})
+    return jsonify({"mutations": message})
 
 def generate_muts(file, pattern):
     sp = enzy_htp.structure.PDBParser()
