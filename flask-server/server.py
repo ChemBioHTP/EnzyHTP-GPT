@@ -2,6 +2,9 @@ from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 import openai
 import config
+import enzy_htp.structure
+import enzy_htp.mutation.api as mapi
+import enzy_htp.mutation.mutation_pattern.api as pattern_api
 
 import settings
 app = Flask(__name__)
@@ -46,9 +49,34 @@ def generate_pattern():
     except Exception as e:
         raise Exception(f'API Error: {str(e)}')
 
-    #TODO: pass this response into EnzyHTP for further processing rather than returning it
     return jsonify({"mutations": message})
 
+def generate_muts(file, pattern):
+    sp = enzy_htp.structure.PDBParser()
+    stru = sp.get_structure(file.name)
+
+    # checks to make sure mutation is valid before continuing
+    try:
+        mutations = pattern_api.decode_mutation_pattern(stru, pattern)
+    except pattern_api.InvalidMutationPatternSyntax as e:
+        raise Exception(f'Invalid mutation: {str(e)}')
+
+    res = []
+    # mutates the PDB file with PyMOL
+    for mut in mutations:
+        try:
+            mutant_stru = mapi.mutate_stru(stru, mut, engine="pymol")
+            res_file = sp.get_file_str(mutant_stru)
+        except Exception as e:
+            raise Exception(f'API Error: {str(e)}')
+        name_tag = ""
+        for single_mut in mut:
+            name_tag += str(single_mut) + "_"
+        name_tag = name_tag[:-1]
+        res.append((res_file, name_tag))
+
+    return res
+ 
 @app.route("/")
 def home():
     return render_template("../client/public/index.html")
