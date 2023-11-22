@@ -24,9 +24,9 @@ def generate_pattern():
     mutation_request = request.json['mut_request']
     api_key = request.json['api_key']
 
-    prompt = ""
-    prompt += prompt.prompt_skeleton
-    prompt += f"Query:{mutation_request}\nAnswer:"
+    input_prompt = ""
+    input_prompt += prompt.prompt_skeleton
+    input_prompt += f"Query:{mutation_request}\nAnswer:"
     
     openai.api_key = api_key
 
@@ -34,7 +34,7 @@ def generate_pattern():
     try:
         completions = openai.Completion.create(
             engine="gpt-3.5-turbo-instruct",
-            prompt=prompt,
+            prompt=input_prompt,
             max_tokens=70,
             frequency_penalty=-0.5,
             temperature=0.01,
