@@ -6,6 +6,9 @@ import enzy_htp
 from enzy_htp._interface import amber_interface
 from new_enzy_htp.enzy_htp.core.clusters.accre import Accre
 from new_enzy_htp.enzy_htp.geometry.sampling import equi_md_sampling
+import enzy_htp.structure
+import enzy_htp.mutation.api as mapi
+import enzy_htp.mutation.mutation_pattern.api as pattern_api
 
 import config
 app = Flask(__name__)
@@ -46,17 +49,41 @@ def generate_pattern():
     #TODO: make this return the mutations generated and NOT the mutation pattern itself
     return jsonify({"mutations": message})
 
-def run_simulation():
-    mutant_file = request.json["file"]
+# Generates mutants with EnzyHTP and mutation pattern
+def generate_muts(file, pattern):
+    sp = enzy_htp.structure.PDBParser()
+    stru = sp.get_structure(file.name)
+
+    # checks to make sure mutation is valid before continuing
+    try:
+        mutations = pattern_api.decode_mutation_pattern(stru, pattern)
+    except pattern_api.InvalidMutationPatternSyntax as e:
+        raise Exception(f'Invalid mutation: {str(e)}')
+
+    res = []
+    # mutates the PDB file with PyMOL
+    for mut in mutations:
+        try:
+            mutant_stru = mapi.mutate_stru(stru, mut, engine="pymol")
+        except Exception as e:
+            raise Exception(f'API Error: {str(e)}')
+        name_tag = ""
+        for single_mut in mut:
+            name_tag += str(single_mut) + "_"
+        name_tag = name_tag[:-1]
+        res.append((mutant_stru, name_tag))
+
+    return res
+
+# Runs MD simulation with EnzyHTP
+def run_simulation(stru):
     is_prepare_only = request.json["prepare"]
 
     parallel_method_input = "cluster_job"
     if is_prepare_only:
         parallel_method_input = "prepare_only"
 
-    sp = enzy_htp.PDBParser()
-    test_stru = sp.get_structure(mutant_file.name)
-    test_stru.assign_ncaa_chargespin({"H5J" : (0,1)}) # TODO: What should go here?
+    stru.assign_ncaa_chargespin({"H5J" : (0,1)}) # TODO: What should go here?
     test_param_method = amber_interface.build_md_parameterizer(
         ncaa_param_lib_path="TODO" # TODO: What should go here?
     )
@@ -65,21 +92,30 @@ def run_simulation():
         "period" : 600,
         "res_setting" : {"account" : "csb_gpu_acc"}
     }
-    return equi_md_sampling(stru = test_stru,
+    return equi_md_sampling(stru = stru,
                      param_method = test_param_method,
                      parallel_method = parallel_method_input,
                      cluster_job_config = cluster_job_config,)
 
+# Runs a complete workflow with EnzyHTP and pattern
+    # First generates mutants based on file and pattern
+    # Then runs MD simulation for each of the mutants
 @app.route("/api/run_workflow", methods=["POST"])
 def run_workflow():
     mutation_pattern = request.json["pattern"]
     file = request.json["file"]
 
+    list_of_mut_strus = generate_muts(file, mutation_pattern)
+    simulation_results = []
+
+    for mut in list_of_mut_strus:
+        simulation_results += run_simulation(mut)
+
     # Call mutant gen fn to get file/list of mutants,
     # then run each through simulation and return results
-    pass
+    return simulation_results
 
-
+ 
 @app.route("/")
 def home():
     return render_template("../client/public/index.html")
