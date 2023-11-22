@@ -1,25 +1,18 @@
 from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 import openai
-import config
+import prompt
 import enzy_htp
 from enzy_htp._interface import amber_interface
 from new_enzy_htp.enzy_htp.core.clusters.accre import Accre
 from new_enzy_htp.enzy_htp.geometry.sampling import equi_md_sampling
 
-import settings
+import config
 app = Flask(__name__)
-app.config.from_object(settings)
+app.config.from_object(config)
 
 from context import db, login_manager
 login_manager.login_message_category = "info"
-
-
-
-# Example API route - to start server, run "python server.py"
-# @app.route("/members")
-# def members():
-#     return {"members": ["Member1", "Member2"]}
 
 # Import and define your routes and views
 from auth import auth as auth_blueprint
@@ -32,7 +25,7 @@ def generate_pattern():
     api_key = request.json['api_key']
 
     prompt = ""
-    prompt += config.prompt_skeleton
+    prompt += prompt.prompt_skeleton
     prompt += f"Query:{mutation_request}\nAnswer:"
     
     openai.api_key = api_key
@@ -50,14 +43,9 @@ def generate_pattern():
     except Exception as e:
         raise Exception(f'API Error: {str(e)}')
 
-    #TODO: pass this response into EnzyHTP for further processing rather than returning it
+    #TODO: make this return the mutations generated and NOT the mutation pattern itself
     return jsonify({"mutations": message})
 
-@app.route("/api/run_workflow", methods=["POST"])
-def run_workflow():
-    pass
-
-@app.route("/api/run_md", methods=["POST"])
 def run_simulation():
     mutant_file = request.json["file"]
     is_prepare_only = request.json["prepare"]
@@ -81,6 +69,16 @@ def run_simulation():
                      param_method = test_param_method,
                      parallel_method = parallel_method_input,
                      cluster_job_config = cluster_job_config,)
+
+@app.route("/api/run_workflow", methods=["POST"])
+def run_workflow():
+    mutation_pattern = request.json["pattern"]
+    file = request.json["file"]
+
+    # Call mutant gen fn to get file/list of mutants,
+    # then run each through simulation and return results
+    pass
+
 
 @app.route("/")
 def home():
