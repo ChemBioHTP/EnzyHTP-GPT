@@ -21,25 +21,34 @@ export const ElementCreateTarget = () => {
   let navigate = useNavigate();
   const [inputValue, setInputValue] = useState("");
   const [mutationPattern, setMutationPattern] = useState("");
+  const [errorMessage, setErrorMessage] = useState(null);
   const api_key = "TODO";
 
   const handleClick = async () => {
     // Make a POST request to the backend
-    const response = await fetch("http://127.0.0.1:5000/api/generate_pattern", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ mut_request: inputValue, api_key: api_key }),
-    });
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:5000/api/generate_pattern",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ mut_request: inputValue, api_key: api_key }),
+        }
+      );
 
-    // If we get a response, set our mutation pattern to it
-    if (response.ok) {
-      const responseData = await response.json();
-      setMutationPattern(responseData.mutations);
-      console.log(mutationPattern);
-    } else {
-      console.error("Failed to contact the backend");
+      // If we get a response, set our mutation pattern to it
+      if (response.ok) {
+        const responseData = await response.json();
+        setMutationPattern(responseData.mutations);
+        console.log(mutationPattern);
+        setInputValue("");
+      } else {
+        setErrorMessage("API error");
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -71,36 +80,42 @@ export const ElementCreateTarget = () => {
             type="text-icon"
           />
         </div>
-        <div className="text-area-content">
-          <div className="text-2">
-            <textarea
-              className="text-2"
-              rows={3}
-              cols={100}
-              maxLength={200}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Type in anything"
-              style={{
-                border: "none",
-                width: "100%",
-                height: "100%",
-                padding: "8px",
-                boxSizing: "border-box",
-                resize: "none",
-              }}
-            />
-          </div>
-          <div className="frame-12">
-            <div className="text-3">{inputValue.length}/200</div>
-            <div onClick={handleClick}>
-              <Button
-                className="design-component-instance-node"
-                override={<IconSend1 className="icon-instance-node-3" />}
-                size="small"
-                stateProp="enabled"
-                type="icon-only"
+        <div>
+          <div className="text-area-content">
+            <div className="text-2">
+              <textarea
+                className="text-2"
+                rows={3}
+                cols={100}
+                maxLength={200}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="Type in anything"
+                style={{
+                  border: "none",
+                  width: "100%",
+                  height: "100%",
+                  padding: "8px",
+                  boxSizing: "border-box",
+                  resize: "none",
+                }}
               />
+            </div>
+            <div className="frame-12">
+              <div className="text-3">{inputValue.length}/200</div>
+              <div onClick={handleClick}>
+                <Button
+                  className="design-component-instance-node"
+                  override={<IconSend1 className="icon-instance-node-3" />}
+                  size="small"
+                  stateProp="enabled"
+                  type="icon-only"
+                />
+              </div>
+            </div>
+            <div className="text-2">
+              {(errorMessage && <p>Error: {errorMessage}</p>) ||
+                (mutationPattern && <p>Pattern: {mutationPattern}</p>)}
             </div>
           </div>
         </div>

@@ -147,6 +147,7 @@
   letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
   line-height: var(--body-styles-body-compact-01-line-height);
   position: relative;
+  max-width: 750px;
 }
 
 .element-create-target .accordion-instance {

@@ -1,0 +1,377 @@
+.element-create {
+  background-color: #f4f4f4;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  width: 100%;
+}
+
+.element-create .div-2 {
+  background-color: var(--layerlayer-01);
+  height: 900px;
+  position: relative;
+  width: var(--breakpoints-viewport-size);
+}
+
+.element-create .navigation-header-instance {
+  left: 0 !important;
+  position: absolute !important;
+  top: 0 !important;
+  width: 1584px !important;
+}
+
+.element-create .navigation-page-header {
+  left: 262px !important;
+  position: absolute !important;
+  top: 48px !important;
+  width: 1322px !important;
+}
+
+.element-create .icon-instance-node-3 {
+  background-blend-mode: multiply !important;
+  height: 16px !important;
+  position: relative !important;
+  width: 16px !important;
+}
+
+.element-create .navigation-side-nav {
+  align-items: flex-start;
+  background-color: var(--theme-background-background);
+  border-color: var(--theme-border-border-subtle-00);
+  border-right-style: solid;
+  border-right-width: 1px;
+  display: flex;
+  flex-direction: column;
+  height: 852px;
+  justify-content: space-between;
+  left: 0;
+  padding: 24px 0px;
+  position: absolute;
+  top: 48px;
+  width: 48px;
+}
+
+.element-create .frame-4 {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  width: 100%;
+}
+
+.element-create .UI-shell-left-panel {
+  align-items: center;
+  align-self: stretch;
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 24px;
+  padding: 7px 16px;
+  position: relative;
+  width: 100%;
+}
+
+.element-create .frame-5 {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+}
+
+.element-create .spacer-wrapper {
+  align-items: center;
+  align-self: stretch;
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 24px;
+  padding: 7px 16px 7px 32px;
+  position: relative;
+  width: 100%;
+}
+
+.element-create .spacer {
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  height: 16px;
+  margin-right: -16px;
+  position: relative;
+  width: 16px;
+}
+
+.element-create .progress-indicator {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  left: 294px;
+  position: absolute;
+  top: 267px;
+  width: 160px;
+}
+
+.element-create .progress-indicator-2 {
+  align-items: flex-start;
+  align-self: stretch;
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  border-color: var(--borderborder-interactive);
+  border-left-style: solid;
+  border-left-width: 2px;
+  display: flex;
+  flex: 0 0 auto;
+  position: relative;
+  width: 100%;
+}
+
+.element-create .content {
+  align-items: flex-start;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  flex-grow: 1;
+  position: relative;
+}
+
+.element-create .icon-label-wrapper {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  padding: 0px 16px 0px 0px;
+  position: relative;
+  width: 100%;
+}
+
+.element-create .icon-label {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  padding: 0px 0px 0px 10px;
+  position: relative;
+  width: 100%;
+}
+
+.element-create .min-width {
+  height: 1px;
+  margin-bottom: -1px;
+  position: relative;
+  width: 128px;
+}
+
+.element-create .min-height {
+  height: 58px;
+  margin-right: -1px;
+  position: relative;
+  width: 1px;
+}
+
+.element-create .label-description {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  left: 504px;
+  position: absolute;
+  top: 267px;
+  width: 929px;
+}
+
+.element-create .label {
+  align-self: stretch;
+  color: var(--texttext-primary);
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.16px;
+  line-height: 18px;
+  margin-top: -1px;
+  position: relative;
+}
+
+.element-create .description {
+  align-self: stretch;
+  color: var(--texttext-secondary);
+  font-family: var(--body-styles-body-compact-01-font-family);
+  font-size: var(--body-styles-body-compact-01-font-size);
+  font-style: var(--body-styles-body-compact-01-font-style);
+  font-weight: var(--body-styles-body-compact-01-font-weight);
+  letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+  line-height: var(--body-styles-body-compact-01-line-height);
+  position: relative;
+}
+
+.element-create .frame-6 {
+  align-items: center;
+  background-color: var(--theme-layer-layer-03);
+  box-shadow: var(--shadows-menu);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  left: 262px;
+  padding: 24px 48px;
+  position: absolute;
+  top: 804px;
+  width: 1322px;
+}
+
+.element-create .navigation-side-nav-2 {
+  align-items: flex-start;
+  background-color: var(--theme-background-background);
+  border-color: var(--theme-border-border-subtle-00);
+  border-right-style: solid;
+  border-right-width: 1px;
+  display: flex;
+  flex-direction: column;
+  height: 852px;
+  left: 48px;
+  padding: 24px 0px;
+  position: absolute;
+  top: 48px;
+  width: 214px;
+}
+
+.element-create .UI-shell-left-panel-2 {
+  align-items: center;
+  align-self: stretch;
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  display: flex;
+  flex: 0 0 auto;
+  padding: 7.5px 16px;
+  position: relative;
+  width: 100%;
+}
+
+.element-create .frame-7 {
+  align-items: flex-start;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 16px;
+  left: 504px;
+  position: absolute;
+  top: 369px;
+}
+
+.element-create .frame-8 {
+  align-items: flex-start;
+  border: 1px solid;
+  border-color: var(--theme-border-border-subtle-00);
+  border-radius: 5px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  position: relative;
+}
+
+.element-create .frame-9 {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: space-between;
+  padding: 16px;
+  position: relative;
+  width: 910px;
+}
+
+.element-create .text-wrapper-6 {
+  color: #000000;
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.16px;
+  line-height: 18px;
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.element-create .icon-edit {
+  height: 16px !important;
+  position: relative !important;
+  width: 16px !important;
+}
+
+.element-create .frame-10 {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  padding: 0px 16px 16px;
+  position: relative;
+  width: 910px;
+}
+
+.element-create .tile {
+  align-items: flex-start;
+  background-color: var(--workflow);
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  height: 116px;
+  position: relative;
+  width: 195px;
+}
+
+.element-create .line {
+  flex: 1;
+  flex-grow: 1;
+  height: 7.36px;
+  object-fit: cover;
+  position: relative;
+}
+
+.element-create .tile-2 {
+  align-items: flex-start;
+  background-color: var(--workflow);
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 195px;
+}
+
+.element-create .frame-11 {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 48px;
+  position: relative;
+}
+
+.element-create .text-wrapper-7 {
+  color: var(--theme-text-text-secondary);
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.16px;
+  line-height: 18px;
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.element-create .text-wrapper-8 {
+  color: var(--texttext-primary);
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.16px;
+  line-height: 18px;
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
