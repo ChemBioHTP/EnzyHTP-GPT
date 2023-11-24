@@ -27,9 +27,13 @@ dependencies:
   - zlib=1.2.13=h5a0b063_0
   - python>=3.7
   - flask
+  - flask-cors
   - flask-login
   - flask-sqlalchemy
   - flask-wtf
   - openai
   - dataclasses
   - libcxx
+  - windows-curses
+  - pymol-open-source
+  - openbabel

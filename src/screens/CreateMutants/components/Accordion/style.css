@@ -1,0 +1,16 @@
+.accordion {
+  align-items: flex-start;
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-color: var(--borderborder-subtle-01);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 400px;
+}
+
+.accordion .accordion-item-instance {
+  align-self: stretch !important;
+  flex: 0 0 auto !important;
+  width: 100% !important;
+}

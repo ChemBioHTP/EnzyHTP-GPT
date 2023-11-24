@@ -1,0 +1,164 @@
+.navigation-side-nav {
+  align-items: flex-start;
+  background-color: var(--theme-background-background);
+  border-color: var(--theme-border-border-subtle-00);
+  border-right-style: solid;
+  border-right-width: 1px;
+  flex-direction: column;
+  height: 852px;
+  padding: 24px 0px;
+  position: relative;
+}
+
+.navigation-side-nav .frame-4 {
+  align-items: flex-start;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  position: relative;
+}
+
+.navigation-side-nav .UI-shell-left-panel-menu-item {
+  align-self: stretch !important;
+  flex: 0 0 auto !important;
+  width: 100% !important;
+}
+
+.navigation-side-nav .UI-shell-left-panel-instance {
+  margin-right: -25px !important;
+}
+
+.navigation-side-nav .frame-5 {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+}
+
+.navigation-side-nav .frame-6 {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+}
+
+.navigation-side-nav .UI-shell-left-panel-menu-item-instance {
+  margin-right: -41px !important;
+}
+
+.navigation-side-nav .frame-7 {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+}
+
+.navigation-side-nav .UI-shell-left-panel-wrapper {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+}
+
+.navigation-side-nav .frame-8 {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+}
+
+.navigation-side-nav .frame-9 {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+}
+
+.navigation-side-nav .class-2 {
+  flex: 0 0 auto !important;
+  width: 214px !important;
+}
+
+.navigation-side-nav .frame-10 {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+}
+
+.navigation-side-nav.v2 {
+  display: inline-flex;
+  justify-content: space-between;
+}
+
+.navigation-side-nav.v1 {
+  display: flex;
+  justify-content: space-between;
+  width: 214px;
+}
+
+.navigation-side-nav.v3 {
+  display: inline-flex;
+  justify-content: space-between;
+}
+
+.navigation-side-nav.version-4 {
+  display: flex;
+  justify-content: space-between;
+  width: 48px;
+}
+
+.navigation-side-nav.version-5 {
+  display: flex;
+  width: 214px;
+}
+
+.navigation-side-nav.v2 .frame-4 {
+  width: 240px;
+}
+
+.navigation-side-nav.v1 .frame-4 {
+  align-self: stretch;
+  gap: 16px;
+  width: 100%;
+}
+
+.navigation-side-nav.v3 .frame-4 {
+  width: 240px;
+}
+
+.navigation-side-nav.version-4 .frame-4 {
+  align-self: stretch;
+  gap: 8px;
+  width: 100%;
+}
+
+.navigation-side-nav.version-5 .frame-4 {
+  align-self: stretch;
+  width: 100%;
+}
+
+.navigation-side-nav.version-4 .frame-9 {
+  gap: 8px;
+}

@@ -13,101 +13,119 @@ import hexagonDottedConnectLineBackground1 from "../../assets/images/Login/hexag
 import "./style.css";
 
 export const ElementLandingScreen = () => {
-    let navigate = useNavigate(); 
-    const routeChange = () =>{ 
-      let path = '/key'; 
-      navigate(path);
-    }
+  let navigate = useNavigate();
 
-    return (
-        <div className="element-landing-screen">
-            <div className="overlap-group-wrapper">
-                <div className="overlap-group">
-                    <div className="rectangle" />
-                    <img className="ellipse" alt="Ellipse" src={ellipse2} />
-                    <img className="hexagon-dotted" alt="Hexagon dotted" src={hexagonDottedConnectLineBackground1} />
-                    <img className="img" alt="Ellipse" src={ellipse1} />
-                    <div className="frame">
-                        <img className="union" alt="Union" src={union} />
-                        <div className="div">EnzyHTP</div>
-                    </div>
-                    <p className="p">Developed by Yang Lab at Vanderbilt University</p>
-                    <p className="text-wrapper-2">
-                        Revolutionizing computational chemistry by seamlessly streamlining preparation, mutation, and analysis.
-                    </p>
-                    <div className="frame-2">
-                        <div className="frame-3">
-                            <div className="text-wrapper-3">Create an account</div>
-                            <div className="frame-4">
-                                <div className="text-wrapper-4">Have an account?</div>
-                                <div className="text-wrapper-5">Log in</div>
-                            </div>
-                        </div>
-                        <div className="frame-5">
-                            <div className="frame-6">
-                                <TextInputDefault
-                                    backgroundClassName="text-input-default-2"
-                                    className="text-input-default-instance"
-                                    placeholderText="Email address"
-                                    showHelper={false}
-                                    showLabel={false}
-                                    size="large"
-                                    spacerClassName="design-component-instance-node"
-                                    state="enabled"
-                                    textFilled={false}
-                                />
-                                <TextInputDefault
-                                    backgroundClassName="text-input-default-2"
-                                    className="text-input-default-instance"
-                                    placeholderText="Password"
-                                    showHelper={false}
-                                    showLabel={false}
-                                    size="large"
-                                    spacerClassName="design-component-instance-node"
-                                    state="enabled"
-                                    textFilled={false}
-                                />
-                            </div>
-                            <div className="frame-6" onClick={routeChange}>
-                                <Button
-                                    buttonText="Continue"
-                                    className="button-instance"
-                                    iconClassName="button-2"
-                                    override={<IconArrowRight className="icon-arrow-right" />}
-                                    size="large"
-                                    stateProp="enabled"
-                                    format="primary"
-                                    type="text-icon"
-                                />
-                            </div>
-                        </div>
-                        <div className="frame-6">
-                            <Button
-                                buttonText="Log in with Google"
-                                className="button-instance"
-                                iconClassName="button-2"
-                                override={<IconArrowRight className="icon-arrow-right" />}
-                                size="large"
-                                stateProp="enabled"
-                                format="tertiary"
-                                type="text-icon"
-                            />
-                            <Button
-                                buttonText="Log in with Facebook"
-                                className="button-instance"
-                                iconClassName="button-2"
-                                override={<IconArrowRight className="icon-arrow-right" />}
-                                size="large"
-                                stateProp="enabled"
-                                format="tertiary"
-                                type="text-icon"
-                            />
-                        </div>
-                    </div>
-                </div>
+  const routeChange = async () => {
+    try {
+      //   // Make a GET request to the backend
+      //   const response = await fetch("http://127.0.0.1:5000/api/key");
+      //   if (response.ok) {
+      //     // The request was successful, navigate to the '/key' route
+      //     navigate("/key");
+      //   } else {
+      //     // Handle errors or show a message to the user
+      //     console.error("Failed to contact the backend");
+      //   }
+      navigate("/create_mutants");
+    } catch (error) {
+      console.error("An error occurred:", error);
+    }
+  };
+
+  return (
+    <div className="element-landing-screen">
+      <div className="overlap-group-wrapper">
+        <div className="overlap-group">
+          <div className="rectangle" />
+          <img className="ellipse" alt="Ellipse" src={ellipse2} />
+          <img
+            className="hexagon-dotted"
+            alt="Hexagon dotted"
+            src={hexagonDottedConnectLineBackground1}
+          />
+          <img className="img" alt="Ellipse" src={ellipse1} />
+          <div className="frame">
+            <img className="union" alt="Union" src={union} />
+            <div className="div">EnzyHTP</div>
+          </div>
+          <p className="p">Developed by Yang Lab at Vanderbilt University</p>
+          <p className="text-wrapper-2">
+            Revolutionizing computational chemistry by seamlessly streamlining
+            preparation, mutation, and analysis.
+          </p>
+          <div className="frame-2">
+            <div className="frame-3">
+              <div className="text-wrapper-3">Create an account</div>
+              <div className="frame-4">
+                <div className="text-wrapper-4">Have an account?</div>
+                <div className="text-wrapper-5">Log in</div>
+              </div>
             </div>
+            <div className="frame-5">
+              <div className="frame-6">
+                <TextInputDefault
+                  backgroundClassName="text-input-default-2"
+                  className="text-input-default-instance"
+                  placeholderText="Email address"
+                  showHelper={false}
+                  showLabel={false}
+                  size="large"
+                  spacerClassName="design-component-instance-node"
+                  state="enabled"
+                  textFilled={false}
+                />
+                <TextInputDefault
+                  backgroundClassName="text-input-default-2"
+                  className="text-input-default-instance"
+                  placeholderText="Password"
+                  showHelper={false}
+                  showLabel={false}
+                  size="large"
+                  spacerClassName="design-component-instance-node"
+                  state="enabled"
+                  textFilled={false}
+                />
+              </div>
+              <div className="frame-6" onClick={routeChange}>
+                <Button
+                  buttonText="Continue"
+                  className="button-instance"
+                  iconClassName="button-2"
+                  override={<IconArrowRight className="icon-arrow-right" />}
+                  size="large"
+                  stateProp="enabled"
+                  format="primary"
+                  type="text-icon"
+                />
+              </div>
+            </div>
+            <div className="frame-6">
+              <Button
+                buttonText="Log in with Google"
+                className="button-instance"
+                iconClassName="button-2"
+                override={<IconArrowRight className="icon-arrow-right" />}
+                size="large"
+                stateProp="enabled"
+                format="tertiary"
+                type="text-icon"
+              />
+              <Button
+                buttonText="Log in with Facebook"
+                className="button-instance"
+                iconClassName="button-2"
+                override={<IconArrowRight className="icon-arrow-right" />}
+                size="large"
+                stateProp="enabled"
+                format="tertiary"
+                type="text-icon"
+              />
+            </div>
+          </div>
         </div>
-    );
+      </div>
+    </div>
+  );
 };
 
 export default ElementLandingScreen;
