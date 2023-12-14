@@ -17,8 +17,13 @@ import os
 __basedir=os.getcwd()
 
 ENV='development'
-DEBUG='True'
+DEBUG=True
+SECRET_KEY='9131-0120-MA1H' # A custom value but mandatory.
 
+# Enable Non-ASCII Characters.
+JSON_AS_ASCII =False
+JSONIFY_MIMETYPE = "application/json;charset=utf-8"
+
+# Database.
 SQLALCHEMY_DATABASE_URI=f'sqlite:///{os.path.join(__basedir, "instance", "enzyhtp_gpt.db")}'
 SQLALCHEMY_TRACK_MODIFICATIONS=False
-SECRET_KEY='9131-0120-MA1H' # A custom value but mandatory.
