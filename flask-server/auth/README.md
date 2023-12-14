@@ -29,7 +29,7 @@ Some functions should have their routers to be commented in production mode so a
 
  Function                        | Router                                                                        | Detail
  ------------------------------- | ----------------------------------------------------------------------------- | --------------------
- `password_reset()`              | `@auth.route('/password/reset', methods=['POST, PUT'])`.                      | [Change Password](#341-change-password)
+ `password_reset()`              | `@auth.route('/password/reset', methods=['POST, PUT'])`.                      | [Reset Password](#342-reset-password-not-completed)
  `oauth_login_unsafe()`          | `@auth.route('oauth/unsafe/login', methods=['POST'])`.                        | [OAuth Unsafe Login](#351-oauth-unsafe-login)
  `oauth_vendor_login_callback()` | `@auth.route('oauth/<oauth_vendor>/login/callback', methods=['GET', 'POST'])` | [OAuth Vendor Login](#3522-what-to-do)
 
