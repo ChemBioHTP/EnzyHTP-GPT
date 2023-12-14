@@ -10,10 +10,8 @@ import settings
 app = Flask(__name__)
 app.config.from_object(settings)
 
-from context import db, login_manager
+from context import db, login_manager, ssl_context
 login_manager.login_message_category = "info"
-
-
 
 # Example API route - to start server, run "python server.py"
 # @app.route("/members")
@@ -93,4 +91,9 @@ if __name__ == "__main__":
 
     # Initialize LoginManager.
     login_manager.init_app(app)
-    app.run(debug=True)
+
+    # Set SSL Context and run server.
+    app.run(host='localhost',
+        port=5000,
+        debug=True,
+        ssl_context=ssl_context)
