@@ -195,6 +195,7 @@ Here, we use the account `maura.attaway@example.com` for instance to show its fu
 - Request Body: `form-data`.
   - `email`: Your email address.
   - `password`: Password set.
+  - `remember`: Whether to remember the user(s) after the browser(s) is closed. Defaults to `False`.
 - Returns:
   - If succeeded,
     - Status Code: `200 OK`.
@@ -368,8 +369,9 @@ Thus, this method will always respond with `200 OK` (with right input).
   - `email`: Email address of the oauth user.
   - `oauth_vendor`: OAuth Vendor, e.g. Google, Microsoft, etc. (In this function, whatever `oauth_vendor` fields will eventually be recorded as `Unsafe` in the database.)
   - `username`: The username of the account from OAuth Vendor.
+  - `remember`: Whether to remember the user(s) after the browser(s) is closed. Defaults to `False`.
 - Returns:
-  - If account exist, match.
+  - If account exists, match.
     - Status Code: `200 OK`.
     - Response Body
     ```json

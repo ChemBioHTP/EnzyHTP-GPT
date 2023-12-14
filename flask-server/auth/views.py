@@ -197,7 +197,7 @@ def login() -> Response:
     """User Login."""
     email = request.form.get('email', '').lower()
     user = User.get_by_email(email=email)
-    remember = bool(request.form.get('remember', False))
+    remember = bool(request.form.get('remember', False))    # Whether to remember the user(s) after the browser(s) is closed. Defaults to `False`.
     if user and user.verify_password(request.form.get('password', '')):
         is_login = login_user(user=user, remember=remember)
         response_info = AuthResponseInfo(
@@ -240,7 +240,7 @@ def profile() -> Response:
         is_authenticated=True)
     return Response(response=response_info.serialize(), status=200, mimetype='application/json')
 
-@auth.route('/change_password', methods=['POST', 'PUT'])
+@auth.route('/change_password', methods=['POST', 'PUT'])  # Keep temporarily for the sake of compatibility. Deprecate after January 2024.
 @auth.route('/password/change', methods=['POST', 'PUT'])
 @login_required
 def password_change() -> Response:
@@ -324,15 +324,15 @@ def __perform_oauth_login(
     This method should be triggered after social login is passed.
     
     The process is:
-    1. If account exist, match.
-    2. If social login email is identical with existing one, bind.
-    3. If not exist, create.
+    1. If account exists, match.
+    2. If social login account is identical with existing user's, bind.
+    3. If social login email doesn't exist in the `users` table, create new user.
 
     Args:
         oauth_email: Email address of the oauth user.
         oauth_vendor: OAuth Vendor, e.g. `Google`, `Microsoft`, etc.
         username: The username.
-        remember: Whether to remember the user after their session expires. Defaults to `False`.
+        remember: Whether to remember the user(s) after the browser(s) is closed. Defaults to `False`.
     """
     oauth_vendor = OAuthUser.camel_case_oauth_vendor(oauth_vendor)
     oauth_user = OAuthUser.get_by_email_and_vendor(email=oauth_email, oauth_vendor=oauth_vendor)
