@@ -207,3 +207,14 @@
   position: absolute !important;
   top: 48px !important;
 }
+
+.element-create-target .molstar-wrapper {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  left: 1000px;
+  position: absolute;
+  top: 340px;
+  width: 480px;
+}

@@ -17,6 +17,8 @@ import { Incomplete3 } from "./icons/Incomplete3";
 import "./style.css";
 import { useNavigate } from "react-router-dom";
 
+import { MolStarWrapper } from "./molstar";
+
 export const ElementCreateTarget = () => {
   let navigate = useNavigate();
   const [inputValue, setInputValue] = useState("");
@@ -186,6 +188,9 @@ export const ElementCreateTarget = () => {
           className="navigation-side-nav-2"
           version="version-5"
         />
+        <div className="molstar-wrapper">
+          <MolStarWrapper />
+        </div>
       </div>
     </div>
   );
