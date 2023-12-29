@@ -1,0 +1,83 @@
+.file-uploader-drag {
+  align-items: flex-start;
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  position: relative;
+}
+
+.file-uploader-drag .description-wrapper {
+  align-items: flex-start;
+  display: flex;
+  padding: 10px 96px 50px 16px;
+  position: relative;
+}
+
+.file-uploader-drag .description {
+  flex: 1;
+  font-family: var(--body-styles-body-compact-01-font-family);
+  font-size: var(--body-styles-body-compact-01-font-size);
+  font-style: var(--body-styles-body-compact-01-font-style);
+  font-weight: var(--body-styles-body-compact-01-font-weight);
+  letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+  line-height: var(--body-styles-body-compact-01-line-height);
+  margin-top: -1px;
+  position: relative;
+}
+
+.file-uploader-drag.state-15-focus {
+  border: 2px solid;
+  border-color: var(--miscellaneousinteractive);
+  display: inline-flex;
+}
+
+.file-uploader-drag.state-15-enabled {
+  border: 1px dashed;
+  border-color: var(--borderborder-strong-01);
+  display: flex;
+  width: 288px;
+}
+
+.file-uploader-drag.state-15-drag-hover {
+  border: 2px solid;
+  border-color: var(--miscellaneousinteractive);
+  display: inline-flex;
+}
+
+.file-uploader-drag.state-15-disabled {
+  border: 1px dashed;
+  border-color: var(--borderborder-disabled);
+  display: inline-flex;
+}
+
+.file-uploader-drag.state-15-focus .description-wrapper {
+  width: 288px;
+}
+
+.file-uploader-drag.state-15-enabled .description-wrapper {
+  flex: 1;
+  flex-grow: 1;
+}
+
+.file-uploader-drag.state-15-drag-hover .description-wrapper {
+  width: 288px;
+}
+
+.file-uploader-drag.state-15-disabled .description-wrapper {
+  width: 288px;
+}
+
+.file-uploader-drag.state-15-focus .description {
+  color: var(--linklink-primary);
+}
+
+.file-uploader-drag.state-15-enabled .description {
+  color: var(--linklink-primary);
+}
+
+.file-uploader-drag.state-15-drag-hover .description {
+  color: var(--linklink-primary);
+}
+
+.file-uploader-drag.state-15-disabled .description {
+  color: var(--buttonbutton-disabled);
+}

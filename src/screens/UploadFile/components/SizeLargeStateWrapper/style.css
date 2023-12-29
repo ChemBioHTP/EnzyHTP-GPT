@@ -1,0 +1,225 @@
+.size-large-state-wrapper {
+  align-items: flex-start;
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  width: 288px;
+}
+
+.size-large-state-wrapper .label-margin {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  padding: 0px 0px 4px;
+  position: relative;
+  width: 100%;
+}
+
+.size-large-state-wrapper .label-text {
+  align-self: stretch;
+  font-family: var(--utility-styles-label-01-font-family);
+  font-size: var(--utility-styles-label-01-font-size);
+  font-style: var(--utility-styles-label-01-font-style);
+  font-weight: var(--utility-styles-label-01-font-weight);
+  letter-spacing: var(--utility-styles-label-01-letter-spacing);
+  line-height: var(--utility-styles-label-01-line-height);
+  margin-top: -1px;
+  position: relative;
+}
+
+.size-large-state-wrapper .label-text-2 {
+  position: relative;
+}
+
+.size-large-state-wrapper .text-input-box {
+  align-self: stretch;
+  background-color: var(--skeletonskeleton-background);
+  position: relative;
+  width: 100%;
+}
+
+.size-large-state-wrapper .DEPRECATED-text-input-base {
+  align-self: stretch !important;
+  width: 100% !important;
+}
+
+.size-large-state-wrapper .class-842 {
+  color: var(--texttext-placeholder) !important;
+}
+
+.size-large-state-wrapper .class-843 {
+  color: var(--texttext-primary) !important;
+}
+
+.size-large-state-wrapper .class-844 {
+  color: var(--texttext-disabled) !important;
+}
+
+.size-large-state-wrapper .DEPRECATED-text-instance {
+  z-index: 1 !important;
+}
+
+.size-large-state-wrapper .helper-text-line {
+  position: relative;
+}
+
+.size-large-state-wrapper .warning-message-goes {
+  align-self: stretch;
+  font-family: var(--utility-styles-label-01-font-family);
+  font-size: var(--utility-styles-label-01-font-size);
+  font-style: var(--utility-styles-label-01-font-style);
+  font-weight: var(--utility-styles-label-01-font-weight);
+  letter-spacing: var(--utility-styles-label-01-letter-spacing);
+  line-height: var(--utility-styles-label-01-line-height);
+  position: relative;
+}
+
+.size-large-state-wrapper .state-12-active {
+  color: var(--texttext-secondary);
+}
+
+.size-large-state-wrapper .state-12-disabled {
+  color: var(--texttext-disabled);
+}
+
+.size-large-state-wrapper .state-12-focus {
+  color: var(--texttext-secondary);
+}
+
+.size-large-state-wrapper .state-12-warning {
+  color: var(--texttext-secondary);
+}
+
+.size-large-state-wrapper .state-12-skeleton {
+  color: var(--texttext-secondary);
+}
+
+.size-large-state-wrapper .state-12-enabled {
+  color: var(--texttext-secondary);
+}
+
+.size-large-state-wrapper .state-12-error {
+  color: var(--texttext-secondary);
+}
+
+.size-large-state-wrapper .filled-true {
+  align-self: stretch;
+  color: var(--texttext-secondary);
+  font-family: var(--utility-styles-label-01-font-family);
+  font-size: var(--utility-styles-label-01-font-size);
+  font-style: var(--utility-styles-label-01-font-style);
+  font-weight: var(--utility-styles-label-01-font-weight);
+  letter-spacing: var(--utility-styles-label-01-letter-spacing);
+  line-height: var(--utility-styles-label-01-line-height);
+  margin-top: -1px;
+}
+
+.size-large-state-wrapper .state-skeleton {
+  background-color: var(--skeletonskeleton-background);
+  height: 8px;
+  width: 40px;
+}
+
+.size-large-state-wrapper .size-24-large {
+  height: 48px;
+}
+
+.size-large-state-wrapper .size-24-medium {
+  height: 40px;
+}
+
+.size-large-state-wrapper .size-24-small {
+  height: 32px;
+}
+
+.size-large-state-wrapper .state-13-active {
+  align-self: stretch;
+  color: var(--texttext-secondary);
+  font-family: var(--utility-styles-helper-text-01-font-family);
+  font-size: var(--utility-styles-helper-text-01-font-size);
+  font-style: var(--utility-styles-helper-text-01-font-style);
+  font-weight: var(--utility-styles-helper-text-01-font-weight);
+  letter-spacing: var(--utility-styles-helper-text-01-letter-spacing);
+  line-height: var(--utility-styles-helper-text-01-line-height);
+}
+
+.size-large-state-wrapper .state-13-disabled {
+  align-self: stretch;
+  color: var(--texttext-disabled);
+  font-family: var(--utility-styles-helper-text-01-font-family);
+  font-size: var(--utility-styles-helper-text-01-font-size);
+  font-style: var(--utility-styles-helper-text-01-font-style);
+  font-weight: var(--utility-styles-helper-text-01-font-weight);
+  letter-spacing: var(--utility-styles-helper-text-01-letter-spacing);
+  line-height: var(--utility-styles-helper-text-01-line-height);
+}
+
+.size-large-state-wrapper .state-13-focus {
+  align-self: stretch;
+  color: var(--texttext-secondary);
+  font-family: var(--utility-styles-helper-text-01-font-family);
+  font-size: var(--utility-styles-helper-text-01-font-size);
+  font-style: var(--utility-styles-helper-text-01-font-style);
+  font-weight: var(--utility-styles-helper-text-01-font-weight);
+  letter-spacing: var(--utility-styles-helper-text-01-letter-spacing);
+  line-height: var(--utility-styles-helper-text-01-line-height);
+}
+
+.size-large-state-wrapper .state-13-warning {
+  color: var(--texttext-secondary);
+}
+
+.size-large-state-wrapper .state-13-skeleton {
+  background-color: var(--skeletonskeleton-background);
+  color: var(--texttext-secondary);
+  height: 8px;
+  width: 120px;
+}
+
+.size-large-state-wrapper .state-13-enabled {
+  align-self: stretch;
+  color: var(--texttext-secondary);
+  font-family: var(--utility-styles-helper-text-01-font-family);
+  font-size: var(--utility-styles-helper-text-01-font-size);
+  font-style: var(--utility-styles-helper-text-01-font-style);
+  font-weight: var(--utility-styles-helper-text-01-font-weight);
+  letter-spacing: var(--utility-styles-helper-text-01-letter-spacing);
+  line-height: var(--utility-styles-helper-text-01-line-height);
+}
+
+.size-large-state-wrapper .state-13-error {
+  color: var(--texttext-secondary);
+}
+
+.size-large-state-wrapper .state-14-active {
+  color: var(--texttext-primary);
+}
+
+.size-large-state-wrapper .state-14-disabled {
+  color: var(--texttext-primary);
+}
+
+.size-large-state-wrapper .state-14-focus {
+  color: var(--texttext-primary);
+}
+
+.size-large-state-wrapper .state-14-warning {
+  color: var(--texttext-primary);
+}
+
+.size-large-state-wrapper .state-14-skeleton {
+  color: var(--texttext-primary);
+}
+
+.size-large-state-wrapper .state-14-enabled {
+  color: var(--texttext-primary);
+}
+
+.size-large-state-wrapper .state-14-error {
+  color: var(--texttext-error);
+}

@@ -1,14 +1,17 @@
+import os
 from flask import Flask, request, jsonify, render_template
 import openai
 import config
 import enzy_htp.structure
 import enzy_htp.mutation.api as mapi
 import enzy_htp.mutation.mutation_pattern.api as pattern_api
+from enzy_htp.preparation import validity as vd
 from flask import Flask
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
+app.config['UPLOAD_FOLDER'] = 'uploads'
 
 # import settings
 # app = Flask(__name__)
@@ -24,9 +27,33 @@ CORS(app)
 # # def members():
 # #     return {"members": ["Member1", "Member2"]}
 
-# # Import and define your routes and views
-# from auth import auth as auth_blueprint
-# app.register_blueprint(auth_blueprint, url_prefix='/api/auth')
+# Import and define your routes and views
+from auth import auth as auth_blueprint
+app.register_blueprint(auth_blueprint, url_prefix='/api/auth')
+
+# Validate File
+@app.route("/api/validate_file", methods=["POST"])
+def validate_file():
+    result = None
+    try:
+        file = request.files['file']
+
+        if file.filename == '':
+            return 'No selected file'
+        
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+
+        if file:
+            file.save(file_path)
+
+        sp = enzy_htp.structure.PDBParser()
+        stru = sp.get_structure(file_path)
+        result = vd.is_structure_valid(stru, print_report=False)[0]
+        os.remove(file_path)
+    except:
+        result = False
+        os.remove(file_path)
+    return jsonify({"validity": result})
 
 # Generate Patterns
 @app.route("/api/generate_pattern", methods=["POST"])
@@ -91,7 +118,7 @@ def api_key():
     return {'foo': 'bar'}
 
 if __name__ == "__main__":
-    # Create database tables
+    # # Create database tables
     # app.app_context().push()
     # db.init_app(app=app)
     # db.create_all()

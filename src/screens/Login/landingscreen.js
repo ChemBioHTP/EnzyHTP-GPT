@@ -17,16 +17,7 @@ export const ElementLandingScreen = () => {
 
   const routeChange = async () => {
     try {
-      //   // Make a GET request to the backend
-      //   const response = await fetch("http://127.0.0.1:5000/api/key");
-      //   if (response.ok) {
-      //     // The request was successful, navigate to the '/key' route
-      //     navigate("/key");
-      //   } else {
-      //     // Handle errors or show a message to the user
-      //     console.error("Failed to contact the backend");
-      //   }
-      navigate("/create_mutants");
+      navigate("/upload_file");
     } catch (error) {
       console.error("An error occurred:", error);
     }

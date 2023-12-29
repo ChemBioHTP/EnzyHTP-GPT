@@ -1,0 +1,82 @@
+.DEPRECATED-text {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  position: relative;
+  width: 320px;
+}
+
+.DEPRECATED-text .text-overflow {
+  align-items: flex-start;
+  display: flex;
+  flex: 1;
+  flex-grow: 1;
+  gap: 16px;
+  height: 18px;
+  overflow-x: scroll;
+  position: relative;
+  z-index: 2;
+}
+
+.DEPRECATED-text .input-text {
+  color: var(--basetext);
+  font-family: var(--body-styles-body-compact-01-font-family);
+  font-size: var(--body-styles-body-compact-01-font-size);
+  font-style: var(--body-styles-body-compact-01-font-style);
+  font-weight: var(--body-styles-body-compact-01-font-weight);
+  letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+  line-height: var(--body-styles-body-compact-01-line-height);
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.DEPRECATED-text .icon-3 {
+  align-items: flex-start;
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 1px 0px;
+  position: relative;
+  z-index: 1;
+}
+
+.DEPRECATED-text .status-icon-instance {
+  position: relative !important;
+}
+
+.DEPRECATED-text .background {
+  background-color: var(--basebg);
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 320px;
+  z-index: 0;
+}
+
+.DEPRECATED-text.size-22-large {
+  height: 48px;
+  padding: 15px 16px;
+}
+
+.DEPRECATED-text.size-22-medium {
+  height: 40px;
+  padding: 11px 16px;
+}
+
+.DEPRECATED-text.size-22-small {
+  height: 32px;
+  padding: 7px 16px;
+}
+
+.DEPRECATED-text.size-22-large .background {
+  height: 48px;
+}
+
+.DEPRECATED-text.size-22-medium .background {
+  height: 40px;
+}
+
+.DEPRECATED-text.size-22-small .background {
+  height: 32px;
+}

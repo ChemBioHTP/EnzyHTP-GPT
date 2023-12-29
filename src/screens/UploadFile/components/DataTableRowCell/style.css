@@ -1,0 +1,162 @@
+.data-table-row-cell {
+  align-items: flex-start;
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 160px;
+}
+
+.data-table-row-cell .cell {
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  position: relative;
+  width: 100%;
+}
+
+.data-table-row-cell .content {
+  align-items: flex-start;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 16px;
+  position: relative;
+}
+
+.data-table-row-cell .text-2 {
+  align-self: stretch;
+  font-family: var(--body-styles-body-compact-01-font-family);
+  font-size: var(--body-styles-body-compact-01-font-size);
+  font-style: var(--body-styles-body-compact-01-font-style);
+  font-weight: var(--body-styles-body-compact-01-font-weight);
+  letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+  line-height: var(--body-styles-body-compact-01-line-height);
+  margin-top: -1px;
+  position: relative;
+}
+
+.data-table-row-cell .min-height {
+  height: 1px;
+  position: relative;
+}
+
+.data-table-row-cell.size-7-large {
+  height: 48px;
+}
+
+.data-table-row-cell.size-7-small {
+  height: 32px;
+}
+
+.data-table-row-cell.size-7-extra-small {
+  height: 24px;
+}
+
+.data-table-row-cell.state-7-focus {
+  border: 2px solid;
+  border-color: var(--focusfocus);
+}
+
+.data-table-row-cell.size-7-medium {
+  height: 40px;
+}
+
+.data-table-row-cell.size-7-extra-large {
+  height: 64px;
+}
+
+.data-table-row-cell.size-7-large .cell {
+  align-items: center;
+}
+
+.data-table-row-cell.size-7-small .cell {
+  align-items: center;
+}
+
+.data-table-row-cell.size-7-extra-small .cell {
+  align-items: center;
+}
+
+.data-table-row-cell.size-7-medium .cell {
+  align-items: center;
+}
+
+.data-table-row-cell.size-7-extra-large .cell {
+  align-items: flex-start;
+}
+
+.data-table-row-cell.size-7-large .content {
+  justify-content: center;
+  padding: 15px 16px;
+}
+
+.data-table-row-cell.size-7-small .content {
+  justify-content: center;
+  padding: 7px 16px;
+}
+
+.data-table-row-cell.size-7-extra-small .content {
+  justify-content: center;
+  padding: 3px 16px;
+}
+
+.data-table-row-cell.size-7-medium .content {
+  justify-content: center;
+  padding: 11px 16px;
+}
+
+.data-table-row-cell.size-7-extra-large .content {
+  padding: 15px 16px;
+}
+
+.data-table-row-cell.state-7-focus .text-2 {
+  color: var(--texttext-secondary);
+}
+
+.data-table-row-cell.state-7-enabled .text-2 {
+  color: var(--texttext-secondary);
+}
+
+.data-table-row-cell.state-7-disabled .text-2 {
+  color: var(--texttext-on-color-disabled);
+}
+
+.data-table-row-cell.size-7-large .min-height {
+  margin-left: -1328px;
+  width: 48px;
+}
+
+.data-table-row-cell.state-7-disabled .min-height {
+  margin-top: -1372px;
+}
+
+.data-table-row-cell.size-7-small .min-height {
+  margin-left: -1688px;
+  width: 32px;
+}
+
+.data-table-row-cell.size-7-extra-small .min-height {
+  margin-left: -1868px;
+  width: 24px;
+}
+
+.data-table-row-cell.state-7-focus .min-height {
+  margin-top: -1285px;
+}
+
+.data-table-row-cell.size-7-medium .min-height {
+  margin-left: -1508px;
+  width: 40px;
+}
+
+.data-table-row-cell.size-7-extra-large .min-height {
+  margin-left: -1148px;
+  width: 64px;
+}
+
+.data-table-row-cell.state-7-enabled .min-height {
+  margin-top: -1204px;
+}

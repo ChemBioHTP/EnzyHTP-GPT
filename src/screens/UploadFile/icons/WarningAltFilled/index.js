@@ -1,0 +1,1 @@
+export { WarningAltFilled } from "./WarningAltFilled";

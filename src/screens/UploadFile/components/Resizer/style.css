@@ -1,0 +1,21 @@
+.resizer {
+  align-items: flex-start;
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  display: inline-flex;
+  gap: 160px;
+  position: relative;
+}
+
+.resizer .start {
+  height: 1px;
+  position: relative;
+  width: 1px;
+}
+
+.resizer .end {
+  height: 1px;
+  margin-right: -1px;
+  position: relative;
+  width: 1px;
+}
