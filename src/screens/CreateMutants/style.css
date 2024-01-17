@@ -189,7 +189,7 @@
   left: 262px;
   padding: 24px 48px;
   position: absolute;
-  top: 804px;
+  top: 1000px;
   width: 1322px;
 }
 
@@ -216,5 +216,25 @@
   left: 1000px;
   position: absolute;
   top: 340px;
+  width: 480px;
+}
+.element-create-target .aaTable-wrapper {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  left: 300px;
+  position: absolute;
+  top: 800px;
+  width: 480px;
+}
+.element-create-target .heatMapChart-wrapper {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  left: 700px;
+  position: absolute;
+  top: 750px;
   width: 480px;
 }
