@@ -8,6 +8,8 @@ import enzy_htp.mutation.mutation_pattern.api as pattern_api
 from enzy_htp.preparation import validity as vd
 from flask import Flask
 from flask_cors import CORS
+from enzy_htp.core import general as eg
+from enzy_htp.core import _LOGGER
 
 app = Flask(__name__)
 CORS(app)
@@ -35,25 +37,34 @@ app.register_blueprint(auth_blueprint, url_prefix='/api/auth')
 @app.route("/api/validate_file", methods=["POST"])
 def validate_file():
     result = None
-    try:
-        file = request.files['file']
+    message = """"""
+    is_valid = None
+    with eg.CaptureLogging(_LOGGER) as log_str:
+        try:
+            file = request.files['file']
 
-        if file.filename == '':
-            return 'No selected file'
-        
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+            if file.filename == '':
+                return 'No selected file'
+            
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
 
-        if file:
-            file.save(file_path)
+            if file:
+                file.save(file_path)
 
-        sp = enzy_htp.structure.PDBParser()
-        stru = sp.get_structure(file_path)
-        result = vd.is_structure_valid(stru, print_report=False)[0]
-        os.remove(file_path)
-    except:
-        result = False
-        os.remove(file_path)
-    return jsonify({"validity": result})
+            sp = enzy_htp.structure.PDBParser()
+            stru = sp.get_structure(file_path)
+            result = vd.is_structure_valid(stru, print_report=True)
+            is_valid = result[0]
+            intermediate_message = result[1]
+            message += "The following errors were found in the PDB file: \n"
+            for reason, source, suggestion in intermediate_message:
+                message += "Reason: " + str(reason) + " Source: " + str(source) + " Suggestion: " + str(suggestion) + "\n"
+            os.remove(file_path)
+        except:
+            is_valid = False
+            message = log_str.getvalue()
+            os.remove(file_path)
+    return jsonify({"validity": is_valid, "message": message})
 
 # Generate Patterns
 @app.route("/api/generate_pattern", methods=["POST"])

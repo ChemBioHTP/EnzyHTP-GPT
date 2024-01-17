@@ -12,10 +12,10 @@ import { CircleDash8 } from "./icons/CircleDash8";
 import { IconAlertCircle } from "./icons/IconAlertCircle";
 import { IconArrowRight1 } from "./icons/IconArrowRight1";
 import { IconMoreHorizontal2 } from "./icons/IconMoreHorizontal2";
-import { IconSend1 } from "./icons/IconSend1";
 import { Incomplete3 } from "./icons/Incomplete3";
 import "./style.css";
 import { useNavigate } from "react-router-dom";
+import button from "../../assets/images/CreateMutants/Button.png";
 
 import { MolStarWrapper } from "./molstar";
 
@@ -103,15 +103,16 @@ export const ElementCreateTarget = () => {
                 }}
               />
             </div>
-            <div className="frame-12">
-              <div className="text-3">{inputValue.length}/200</div>
-              <div onClick={handleClick}>
-                <Button
-                  className="design-component-instance-node"
-                  override={<IconSend1 className="icon-instance-node-3" />}
-                  size="small"
-                  stateProp="enabled"
-                  type="icon-only"
+            <div
+              className="frame-12"
+              style={{ display: "flex", flexDirection: "row" }}
+            >
+              <div style={{ marginRight: "2px" }}>{inputValue.length}/200</div>
+              <div onClick={handleClick} style={{ cursor: "pointer" }}>
+                <img
+                  src={button}
+                  alt="Submit Request"
+                  style={{ marginRight: "15px" }}
                 />
               </div>
             </div>
@@ -168,16 +169,21 @@ export const ElementCreateTarget = () => {
             state="incomplete"
           />
         </div>
-        <div className="frame-13" onClick={routeChange}>
-          <Button
-            buttonText="Next"
-            className="button-3"
-            icon1={<IconArrowRight1 className="icon-instance-node-3" />}
-            iconClassName="button-2"
-            size="large"
-            stateProp="disabled"
-            type="text-icon"
-          />
+        <div className="frame-13">
+          <div style={{ cursor: "pointer" }} onClick={routeChange}>
+            <Button
+              buttonText="Next"
+              className="button-3"
+              icon1={<IconArrowRight1 className="icon-instance-node-3" />}
+              iconClassName="button-2"
+              size="large"
+              stateProp="disabled"
+              type="text-icon"
+            />
+          </div>
+        </div>
+        <div className="molstar-wrapper">
+          <MolStarWrapper />
         </div>
         <NavigationSideNav
           UIShellLeftPanelLinkText="My awesome experime..."
@@ -188,9 +194,6 @@ export const ElementCreateTarget = () => {
           className="navigation-side-nav-2"
           version="version-5"
         />
-        <div className="molstar-wrapper">
-          <MolStarWrapper />
-        </div>
       </div>
     </div>
   );

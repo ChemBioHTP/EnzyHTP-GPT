@@ -14,6 +14,7 @@ export const FileUploaderDrag = ({ helperText = "Drag and drop files here or cli
   const [file, setFile] = useState(null);
   const fileInputRef = useRef(null);
   const [valid, setValid] = useState(null);
+  const [errorMessage, setErrorMessage] = useState("");
   let navigate = useNavigate();
 
   const routeChange = () => {
@@ -70,7 +71,7 @@ export const FileUploaderDrag = ({ helperText = "Drag and drop files here or cli
 
       const data = await response.json();
       setValid(data.validity)
-      console.log(data.validity)
+      setErrorMessage(data.message)
   
     } catch (error) {
       console.error('Error uploading file', error.message);
@@ -101,7 +102,7 @@ export const FileUploaderDrag = ({ helperText = "Drag and drop files here or cli
       )}
     </div>
     <div style={{marginRight: 10, marginLeft: "auto"}}>
-        {valid == null && <p></p>}
+        {valid === null && <p></p>}
         {valid &&         
         <div onClick={routeChange}>
           <Button
@@ -114,7 +115,11 @@ export const FileUploaderDrag = ({ helperText = "Drag and drop files here or cli
             type="text-icon"
           />
         </div>}
-        {valid === false && <p>Invalid file</p>}
+        {valid === false && (
+          <div>
+            <p style={{maxWidth:"200ch", whiteSpace:"pre-line"}}>{errorMessage}</p>
+          </div>
+        )}
     </div>
     </>
   );
