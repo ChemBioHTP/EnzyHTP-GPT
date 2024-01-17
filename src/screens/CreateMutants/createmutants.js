@@ -18,6 +18,7 @@ import "./style.css";
 import { useNavigate } from "react-router-dom";
 
 import { MolStarWrapper } from "./molstar";
+import {AminoAcidTable, HeatMapChart} from "./sequenceVis";
 
 export const ElementCreateTarget = () => {
   let navigate = useNavigate();
@@ -60,6 +61,84 @@ export const ElementCreateTarget = () => {
     } catch (error) {
       console.error("An error occurred:", error);
     }
+  };
+
+  // Amino acid table inputs
+  const originalSequence = 'ABCDEFGHIJK';
+  const mutations = [
+    { seqnum: 3, mutantAminoAcid: 'X' },
+    { seqnum: 7, mutantAminoAcid: 'Y' },
+    // Add more mutations as needed
+  ];
+  const wtData = [
+    {
+      x: 1,
+      y: "F"
+    }, 
+    {
+      x: 2,
+      y: "G"
+    }, 
+    {
+      x: 3,
+      y: "A"
+    }, 
+    {
+      x: 4,
+      y: "I"
+    },
+    {
+      x: 5,
+      y: "L"
+    },
+    {
+      x: 6,
+      y: "S"
+    },
+    {
+      x: 7,
+      y: "S"
+    }
+    ]
+  const mutData = [
+    {
+      x: 1,
+      y: "F"
+    }, 
+    {
+      x: 2,
+      y: "G"
+    }, 
+    {
+      x: 3,
+      y: "A"
+    }, 
+    {
+      x: 4,
+      y: "I"
+    },
+    {
+      x: 5,
+      y: "G"
+    },
+    {
+      x: 6,
+      y: "S"
+    },
+    {
+      x: 7,
+      y: "S"
+    }
+  ]
+
+  const xCategories = ['WT', 'Mut'];
+  const yCategories = ['Row 1', 'Row 2', 'Row 3'];
+
+  const data = {
+    xCategories,
+    yCategories,
+    wtData,
+    mutData
   };
 
   return (
@@ -190,6 +269,12 @@ export const ElementCreateTarget = () => {
         />
         <div className="molstar-wrapper">
           <MolStarWrapper />
+        </div>
+        <div className="aaTable-wrapper">
+          <AminoAcidTable originalSequence={originalSequence} mutations={mutations}/>
+        </div>
+        <div className="heatMapChart-wrapper">
+          <HeatMapChart data={data}/>
         </div>
       </div>
     </div>
