@@ -1,0 +1,40 @@
+{
+    "wt_stru": {
+      "file_path": "KE_07_R7_2_S.pdb"
+    },
+    "mutant_pattern": "WT, r:2[resi 254 around 4: all not self]*2",
+    "md_constraints": [
+      {
+        "type": "distance",
+        "atoms": ["B.254.H2", "A.101.OE2"],
+        "distance": 2.4
+      },
+      {
+        "type": "angle",
+        "atoms": ["B.254.CAE", "B.254.H2", "A.101.OE2"],
+        "angle": 180.0
+      },
+      {
+        "type": "whole"
+      }
+    ],
+    "qm_level_of_theory": {
+      "basis_set": "def2svp",
+      "method": "pbe0"
+    },
+    "target_bond": {
+      "atom1": "CAE",
+      "atom2": "H2"
+    },
+    "workflow_params": {
+      "ligand_chrg_spin_mapper": {
+        "H5J": [0, 1]
+      },
+      "md_length": 1.0,
+      "qm_region_pattern": "resi 101+254",
+      "ef_region_pattern": "chain A and (not resi 101)",
+      "result_path": "${WORK_DIR}ke_test_result.pickle"
+    },
+    "target_metrics": ["EF", "SPI", "RMSD", "MMPBSA", "Stability"]
+  }
+  

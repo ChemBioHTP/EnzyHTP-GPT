@@ -1,4 +1,4 @@
-import { React, useState } from "react";
+import { React, useState, useEffect } from "react";
 import { Accordion } from "./components/Accordion";
 import { Button } from "./components/Button";
 import { DirectionHorizontalWrapper } from "./components/DirectionHorizontalWrapper";
@@ -25,7 +25,23 @@ export const ElementCreateTarget = () => {
   const [inputValue, setInputValue] = useState("");
   const [mutationPattern, setMutationPattern] = useState("");
   const [errorMessage, setErrorMessage] = useState(null);
+  const [mutationString, setMutationString] = useState("");
+  const [tableMutations, setTableMutations] = useState(null);
   const api_key = "TODO";
+
+  useEffect(() => {
+    // Call setTableValues when the mutation string changes
+    const setTableValues = () => {
+      let allMutations = mutationString.split(";");
+      for (let i = 0; i < allMutations.length; ++i) {
+        console.log(allMutations[i] + "\n");
+      }
+
+      setTableMutations(allMutations);
+    };
+
+    setTableValues();
+  }, [mutationString]);
 
   const handleClick = async () => {
     // Make a POST request to the backend
@@ -41,11 +57,10 @@ export const ElementCreateTarget = () => {
         }
       );
 
-      // If we get a response, set our mutation pattern to it
       if (response.ok) {
         const responseData = await response.json();
-        setMutationPattern(responseData.mutations);
-        console.log(mutationPattern);
+        setMutationPattern(responseData.pattern);
+        setMutationString(responseData.mut_string);
         setInputValue("");
       } else {
         setErrorMessage("API error");
@@ -61,84 +76,6 @@ export const ElementCreateTarget = () => {
     } catch (error) {
       console.error("An error occurred:", error);
     }
-  };
-
-  // Amino acid table inputs
-  const originalSequence = "ABCDEFGHIJK";
-  const mutations = [
-    { seqnum: 3, mutantAminoAcid: "X" },
-    { seqnum: 7, mutantAminoAcid: "Y" },
-    // Add more mutations as needed
-  ];
-  const wtData = [
-    {
-      x: 1,
-      y: "F",
-    },
-    {
-      x: 2,
-      y: "G",
-    },
-    {
-      x: 3,
-      y: "A",
-    },
-    {
-      x: 4,
-      y: "I",
-    },
-    {
-      x: 5,
-      y: "L",
-    },
-    {
-      x: 6,
-      y: "S",
-    },
-    {
-      x: 7,
-      y: "S",
-    },
-  ];
-  const mutData = [
-    {
-      x: 1,
-      y: "F",
-    },
-    {
-      x: 2,
-      y: "G",
-    },
-    {
-      x: 3,
-      y: "A",
-    },
-    {
-      x: 4,
-      y: "I",
-    },
-    {
-      x: 5,
-      y: "G",
-    },
-    {
-      x: 6,
-      y: "S",
-    },
-    {
-      x: 7,
-      y: "S",
-    },
-  ];
-
-  const xCategories = ["WT", "Mut"];
-  const yCategories = ["Row 1", "Row 2", "Row 3"];
-
-  const data = {
-    xCategories,
-    yCategories,
-    wtData,
-    mutData,
   };
 
   return (
@@ -273,19 +210,94 @@ export const ElementCreateTarget = () => {
           className="navigation-side-nav-2"
           version="version-5"
         />
-        <div className="molstar-wrapper">
-          <MolStarWrapper />
-        </div>
-        <div className="aaTable-wrapper">
-          <AminoAcidTable
-            originalSequence={originalSequence}
-            mutations={mutations}
-          />
-        </div>
-        <div className="heatMapChart-wrapper">
+        {mutationString !== "" && (
+          <div className="aaTable-wrapper">
+            <AminoAcidTable mutations={tableMutations} />
+          </div>
+        )}
+        {/* <div className="heatMapChart-wrapper">
           <HeatMapChart data={data} />
-        </div>
+        </div> */}
       </div>
     </div>
   );
 };
+
+// Temporary data for heatmap
+// Amino acid table inputs
+// const temporaryOriginalSequence = "ABCDEFGHIJK";
+// const mutations = [
+//   { seqnum: 3, mutantAminoAcid: "X" },
+//   { seqnum: 7, mutantAminoAcid: "Y" },
+//   // Add more mutations as needed
+// ];
+// const wtData = [
+//   {
+//     x: 1,
+//     y: "F",
+//   },
+//   {
+//     x: 2,
+//     y: "G",
+//   },
+//   {
+//     x: 3,
+//     y: "A",
+//   },
+//   {
+//     x: 4,
+//     y: "I",
+//   },
+//   {
+//     x: 5,
+//     y: "L",
+//   },
+//   {
+//     x: 6,
+//     y: "S",
+//   },
+//   {
+//     x: 7,
+//     y: "S",
+//   },
+// ];
+// const mutData = [
+//   {
+//     x: 1,
+//     y: "F",
+//   },
+//   {
+//     x: 2,
+//     y: "G",
+//   },
+//   {
+//     x: 3,
+//     y: "A",
+//   },
+//   {
+//     x: 4,
+//     y: "I",
+//   },
+//   {
+//     x: 5,
+//     y: "G",
+//   },
+//   {
+//     x: 6,
+//     y: "S",
+//   },
+//   {
+//     x: 7,
+//     y: "S",
+//   },
+// ];
+
+// const xCategories = ["WT", "Mut"];
+// const yCategories = ["Row 1", "Row 2", "Row 3"];
+
+// const data = {
+//   xCategories,
+//   yCategories,
+//   wtData,
+//   mutData,
+// };
