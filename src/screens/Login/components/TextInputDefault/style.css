@@ -1,5 +1,6 @@
 .text-input-default {
   align-items: flex-start;
+  text-align: left;
   background-blend-mode: multiply;
   background-color: var(--transparenttransparent);
   display: flex;
@@ -63,7 +64,7 @@
   flex-grow: 1;
   gap: 16px;
   height: 18px;
-  overflow-x: scroll;
+  overflow-x: hidden;
   position: relative;
   z-index: 1;
 }
@@ -99,7 +100,7 @@
   flex-grow: 1;
   gap: 16px;
   height: 18px;
-  overflow-x: scroll;
+  overflow-x: hidden;
   position: relative;
 }
 
@@ -169,7 +170,7 @@
   background-blend-mode: multiply;
   background-color: var(--transparenttransparent);
   height: 16px;
-  left: 256px;
+  right: 16px;
   position: absolute;
   width: 16px;
   z-index: 2;
@@ -205,7 +206,7 @@
   letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
   line-height: var(--body-styles-body-compact-01-line-height);
   margin-top: -1px;
-  overflow-x: scroll;
+  overflow-x: hidden;
   padding: 0;
   position: relative;
   white-space: nowrap;
@@ -411,7 +412,8 @@
 }
 
 .text-input-default .state-5-error {
-  border: 2px solid;
+  background-color: var(--fieldfield-01);
+  border: 3px solid;
   border-color: var(--supportsupport-error);
 }
 

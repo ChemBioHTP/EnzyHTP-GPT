@@ -51,13 +51,17 @@ export const TextInputDefault = ({
           {size === "large" && (!textFilled || state === "read-only") && ["enabled", "read-only"].includes(state) && (
             <>
               <div className="text-overflow">
+                <input
+                  className={`input text-filled-2-${textFilled}`}
+                  placeholder={!textFilled ? placeholderText : textFilled ? inputText : undefined}
+                  type={inputType}
+                />
                 <div className="optional-placeholder">
                   {state === "enabled" && <>{placeholderText}</>}
-
                   {state === "read-only" && !textFilled && <>No input text</>}
-
                   {textFilled && <>{inputText}</>}
                 </div>
+                
               </div>
               <div className={`background ${backgroundClassName}`} />
             </>
@@ -115,7 +119,7 @@ export const TextInputDefault = ({
 
       {["error", "warning"].includes(state) && (
         <>
-          <div className={`div state-5-${state} size-0-${size}`}>
+          <div className={`text-input state-5-${state} size-0-${size}`}>
             <div className="status-icon">
               <div className="overlap-group">
                 <div className="fill" />
@@ -123,6 +127,7 @@ export const TextInputDefault = ({
 
                 {state === "error" && <WarningFilled className="instance-node" />}
               </div>
+              
             </div>
             <input
               className={`input text-filled-2-${textFilled}`}

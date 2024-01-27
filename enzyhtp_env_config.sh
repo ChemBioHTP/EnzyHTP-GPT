@@ -11,10 +11,10 @@
 
 # Change the variable value to the path of your enzyhtp folder,
 # making sure not to add a slash at the end.
-enzyhtp_installation_path=~/bin/EnzyHTP
+enzyhtp_installation_path=~/EnzyHTP
 
 # Change the variable value to the name of your enzyhtp-gpt environment.
-env_name=enzyhtp-gpt
+target_env_name=enzyhtp-gpt
 
 # ========== Don't change anything below this line. ==========
 

@@ -19,6 +19,14 @@ export const ElementLandingScreen = () => {
       navigate(path);
     }
 
+    const emailValidation = (useremail) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(useremail);
+    };
+
+    
+    const [email, onChangeEmail] = React.useState('');
+    const [pwd, onChangePwd] = React.useState('');
     return (
         <div className="element-landing-screen">
             <div className="overlap-group-wrapper">
@@ -48,20 +56,23 @@ export const ElementLandingScreen = () => {
                                 <TextInputDefault
                                     backgroundClassName="text-input-default-2"
                                     className="text-input-default-instance"
-                                    placeholderText="Email address"
+                                    placeholderText=""
                                     showHelper={false}
-                                    showLabel={false}
+                                    showLabel={true}
+                                    labelText="Email address"
+                                    errorText="Please provide a vaild email"
                                     size="large"
                                     spacerClassName="design-component-instance-node"
-                                    state="enabled"
+                                    state="error"
                                     textFilled={false}
                                 />
                                 <TextInputDefault
                                     backgroundClassName="text-input-default-2"
                                     className="text-input-default-instance"
-                                    placeholderText="Password"
+                                    placeholderText="as"
                                     showHelper={false}
-                                    showLabel={false}
+                                    showLabel={true}
+                                    labelText="Password"
                                     size="large"
                                     spacerClassName="design-component-instance-node"
                                     state="enabled"

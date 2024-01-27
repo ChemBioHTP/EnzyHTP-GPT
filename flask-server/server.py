@@ -7,7 +7,7 @@ import enzy_htp.mutation.api as mapi
 import enzy_htp.mutation.mutation_pattern.api as pattern_api
 
 import settings
-app = Flask(__name__)
+app = Flask(__name__, template_folder='../public')
 app.config.from_object(settings)
 
 from context import db, login_manager, ssl_context
@@ -77,7 +77,7 @@ def generate_muts(file, pattern):
  
 @app.route("/")
 def home():
-    return render_template("../client/public/index.html")
+    return render_template("index.html")
 
 @app.route("/key")
 def api_key():
@@ -93,7 +93,7 @@ if __name__ == "__main__":
     login_manager.init_app(app)
 
     # Set SSL Context and run server.
-    app.run(host='localhost',
+    app.run(host='0.0.0.0',
         port=5000,
         debug=True,
         ssl_context=ssl_context)
