@@ -9,26 +9,28 @@ A web application that serves as an interface between a user and EnzyHTP's workf
 ## 1.1 Environment Configuration.
 
 - First, clone this repository onto your local machine.
-
   - Use git command `git clone https://github.com/ChemBioHTP/EnzyHTP-GPT.git`
 
-- We will then need to create a conda environment to run the website.
+* We will then need to create a conda environment to run the website.
+  * There is an existing `environment.yml` file for you to make new anaconda environment automatically.
+    * `conda env create -f environment.yml`. This command can be followed by `-n` or `--name` option to specify the environment name.
+  * If you want to install the environment without EnzyHTP, you can make use of the `environment_no_enzyhtp.yml` file. **(Don't do it at present since it's lack of some essential packages.)**
+    * Run `conda env create -f environment_no_enzyhtp.yml`. This command can also be followed by `-n` or `--name` option to specify the environment name.
 
-  - There is an existing `environment.yml` file for you to make new anaconda environment.
-    - `conda env create -f environment.yml`
-  - You can also build the environment manually.
-    - Create a new conda environment `conda create -n enzyhtp-gpt`. The name following `-n` flag could be anything you like.
-    - Install Flask using the command `conda install -c anaconda flask flask-login flask-sqlalchemy`.
+* We will also install EnzyHTP (by cloning it onto your local machine for now).
+  * To do this, run `git clone https://github.com/ChemBioHTP/EnzyHTP.git <path/to/save>` Here, we take `~/bin/EnzyHTP` as an example, i.e., run `git clone https://github.com/ChemBioHTP/EnzyHTP.git ~/bin/EnzyHTP`
+  * Then, run `cd ~/bin/EnzyHTP` and `git checkout develop_refactor` to switch to the **refactored EnzyHTP**.
+  * Thirdly, follow the instructions in the `enzyhtp_env_config.sh` script to adjust and run it. `bash enzyhtp_env_config.sh`
+  * You should now be able to use EnzyHTP with the site.
 
-- We will also install EnzyHTP (by cloning it onto your local machine for now).
+* You may faced with the error when running the `flask-server/server.py` as follows due to the bad update of `sqlalchemy`.
+  
+  > AttributeError: module 'sqlalchemy' has no attribute '\_\_all\_\_'
+  
+  * If so, run `conda install sqlalchemy=1.4.39=py39h5eee18b_0 --yes` in your `enzyhtp-gpt` conda environment.
 
-  - To do this, run `git clone https://github.com/ChemBioHTP/EnzyHTP.git new_enzy_htp`
-  - Then, run `cd new_enzy_htp` and `git checkout develop_refactor`
-  - Finally, run `sh dev-tools/install` to install all dependencies into your conda env.
-  - You should now be able to use EnzyHTP with the site.
-
-- We also need to install `npm`.
-  - Taking Ubuntu (or WSL Ubuntu) for instance, install `npm` using command `sudo apt-get install npm`.
+* We also need to install `npm`.
+  * Taking Ubuntu (or WSL Ubuntu) for instance, install `npm` using command `sudo apt-get install npm`.
 
 ## 1.2 Launch.
 
