@@ -5,6 +5,7 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 
 import PropTypes from "prop-types";
 import React from "react";
+import { useState, useRef, useEffect } from 'react';
 import { WarningAltFilled } from "../../icons/WarningAltFilled";
 import { WarningFilled } from "../../icons/WarningFilled";
 import "./style.css";
@@ -27,7 +28,18 @@ export const TextInputDefault = ({
   spacerClassName,
   backgroundClassName,
   inputType = "text",
+  onInputChange,
 }) => {
+  const [inputValue, setInputValue] = useState('');
+
+  const handleInputChange = (event) => {
+    const value = event.target.value;
+    setInputValue(value);
+    onInputChange(value);
+  };
+  
+  
+  
   return (
     <div className={`text-input-default ${state} ${className}`}>
       {(state === "active" ||
@@ -53,14 +65,17 @@ export const TextInputDefault = ({
               <div className="text-overflow">
                 <input
                   className={`input text-filled-2-${textFilled}`}
-                  placeholder={!textFilled ? placeholderText : textFilled ? inputText : undefined}
+                  placeholder={state === "enabled" && !textFilled ? placeholderText : textFilled ? inputText : undefined}
                   type={inputType}
+                  value={inputValue}
+                  onChange={handleInputChange}
                 />
-                <div className="optional-placeholder">
+                {/* <div className="optional-placeholder">
+                
                   {state === "enabled" && <>{placeholderText}</>}
                   {state === "read-only" && !textFilled && <>No input text</>}
                   {textFilled && <>{inputText}</>}
-                </div>
+                </div> */}
                 
               </div>
               <div className={`background ${backgroundClassName}`} />
@@ -133,6 +148,8 @@ export const TextInputDefault = ({
               className={`input text-filled-2-${textFilled}`}
               placeholder={!textFilled ? placeholderText : textFilled ? inputText : undefined}
               type={inputType}
+              value={inputValue}
+              onChange={handleInputChange}
             />
             <div className="spacer-2" />
           </div>

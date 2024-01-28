@@ -420,7 +420,7 @@
     --theme-text-text-inverse: var(--colors-default-neutral-white);
     --theme-text-text-on-color: var(--colors-default-neutral-white);
     --theme-text-text-on-color-disabled: var(--colors-default-gray-50);
-    --theme-text-text-placeholder: var(--colors-default-gray-40);
+    --theme-text-text-placeholder: var(--colors-default-gray-90);
     --theme-text-text-primary: var(--colors-default-gray-90);
     --theme-text-text-secondary: var(--colors-default-gray-70);
     --transparenttransparent: rgba(255, 255, 255, 0.1);

@@ -418,10 +418,12 @@
 }
 
 .text-input-default .text-filled-2-false {
+  outline: none;
   color: var(--texttext-placeholder);
 }
 
 .text-input-default .text-filled-2-true {
+  outline: none;
   color: var(--texttext-primary);
 }
 

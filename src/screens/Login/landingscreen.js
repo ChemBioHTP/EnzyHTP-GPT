@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from 'react';
 // Components
 import { IconArrowRight } from "./icons/IconArrowRight/IconArrowRight";
 import { Button } from "./components/Button/Button";
@@ -19,14 +20,32 @@ export const ElementLandingScreen = () => {
       navigate(path);
     }
 
+    const [emailState, setEmailState] = React.useState('enabled');
+    const [pwdState, setPwdState] = React.useState('enabled');
+    const [email, onChangeEmail] = React.useState('');
+    const [pwd, onChangePwd] = React.useState('');
     const emailValidation = (useremail) => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(useremail);
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      
+      const isValid = emailRegex.test(useremail);
+
+      if (!isValid) {
+        setEmailState("error");
+      } else {
+        setEmailState("enabled");
+      }
+    };
+
+    const pwdValidation = (pwd) => {
+      if (pwd.length<6) {
+        setPwdState("error");
+      } else {
+        setPwdState("enabled");
+      }
     };
 
     
-    const [email, onChangeEmail] = React.useState('');
-    const [pwd, onChangePwd] = React.useState('');
+
     return (
         <div className="element-landing-screen">
             <div className="overlap-group-wrapper">
@@ -63,20 +82,23 @@ export const ElementLandingScreen = () => {
                                     errorText="Please provide a vaild email"
                                     size="large"
                                     spacerClassName="design-component-instance-node"
-                                    state="error"
+                                    state={emailState}
                                     textFilled={false}
+                                    onInputChange={emailValidation}
                                 />
                                 <TextInputDefault
                                     backgroundClassName="text-input-default-2"
                                     className="text-input-default-instance"
-                                    placeholderText="as"
+                                    placeholderText=""
                                     showHelper={false}
                                     showLabel={true}
                                     labelText="Password"
+                                    errorText="Your password needs to be at least 8 characters including a lower-case letter, an upper case letter, a number and one special chatacter (!@#$%^&*)"
                                     size="large"
                                     spacerClassName="design-component-instance-node"
-                                    state="enabled"
+                                    state={pwdState}
                                     textFilled={false}
+                                    onInputChange={pwdValidation}
                                 />
                             </div>
                             <div className="frame-6" onClick={routeChange}>
