@@ -39,16 +39,9 @@ export const TextInputDefault = ({
   };
   
   
-  
   return (
     <div className={`text-input-default ${state} ${className}`}>
-      {(state === "active" ||
-        state === "disabled" ||
-        state === "enabled" ||
-        state === "error" ||
-        state === "focus" ||
-        state === "read-only" ||
-        state === "warning") && (
+      {["active", "disabled", "enabled", "focus", "read-only", "error", "warning"].includes(state) && (
         <div className="label-character">
           {showLabel && (
             <div className="label-margin">{showLabel && <div className="label-text">{labelText}</div>}</div>
@@ -57,12 +50,21 @@ export const TextInputDefault = ({
           <div className={`spacer ${spacerClassName}`} />
         </div>
       )}
-
-      {["active", "disabled", "enabled", "focus", "read-only"].includes(state) && (
-        <div className={`text-input state-0-${state} ${size} text-filled-${textFilled}`}>
-          {size === "large" && (!textFilled || state === "read-only") && ["enabled", "read-only"].includes(state) && (
+      {["active", "disabled", "enabled", "focus", "read-only", "error", "warning"].includes(state) && (
+        <div className={["error", "warning"].includes(state) ? `text-input state-5-${state} size-0-${size}`:`text-input state-0-${state} ${size} text-filled-${textFilled}`}>
+          {size === "large" && (!textFilled || state === "read-only") && ["enabled", "read-only","error"].includes(state) && (
             <>
+              <div className="status-icon">
+                <div className="overlap-group">
+                  <div className="fill" />
+                  {state === "warning" && <WarningAltFilled className="instance-node" />}
+
+                  {state === "error" && <WarningFilled className="instance-node" />}
+                </div>
+              </div>
+
               <div className="text-overflow">
+
                 <input
                   className={`input text-filled-2-${textFilled}`}
                   placeholder={state === "enabled" && !textFilled ? placeholderText : textFilled ? inputText : undefined}
@@ -70,15 +72,14 @@ export const TextInputDefault = ({
                   value={inputValue}
                   onChange={handleInputChange}
                 />
-                {/* <div className="optional-placeholder">
-                
-                  {state === "enabled" && <>{placeholderText}</>}
-                  {state === "read-only" && !textFilled && <>No input text</>}
-                  {textFilled && <>{inputText}</>}
-                </div> */}
-                
+                <div className="spacer-2" />
+
               </div>
-              <div className={`background ${backgroundClassName}`} />
+              
+              {["active", "disabled", "enabled", "focus", "read-only"].includes(state) && (
+                <div className={`background ${backgroundClassName}`} />
+              )}
+              
             </>
           )}
 
@@ -116,49 +117,21 @@ export const TextInputDefault = ({
         </>
       )}
 
-      {["active", "disabled", "enabled", "focus", "read-only", "skeleton"].includes(state) && (
+      {["active", "disabled", "enabled", "focus", "read-only", "skeleton", "warning", "error"].includes(state) && (
         <>
-          <>
+          <div className="helper-text-margin">
             {showHelper && (
-              <div className="helper-text-margin">
-                {showHelper && (
-                  <div className="optional-helper-text">
-                    {["active", "disabled", "enabled", "focus", "read-only"].includes(state) && <>{helperText}</>}
-                  </div>
-                )}
+              <div className="optional-helper-text">
+                {["active", "disabled", "enabled", "focus", "read-only"].includes(state) && <>{helperText}</>}
               </div>
             )}
-          </>
-        </>
-      )}
+            {["warning", "error"].includes(state) &&(
+              <div className="warning-message-goes">
+                {state === "warning" && <>{warningText}</>}
 
-      {["error", "warning"].includes(state) && (
-        <>
-          <div className={`text-input state-5-${state} size-0-${size}`}>
-            <div className="status-icon">
-              <div className="overlap-group">
-                <div className="fill" />
-                {state === "warning" && <WarningAltFilled className="instance-node" />}
-
-                {state === "error" && <WarningFilled className="instance-node" />}
+                {state === "error" && <>{errorText}</>}
               </div>
-              
-            </div>
-            <input
-              className={`input text-filled-2-${textFilled}`}
-              placeholder={!textFilled ? placeholderText : textFilled ? inputText : undefined}
-              type={inputType}
-              value={inputValue}
-              onChange={handleInputChange}
-            />
-            <div className="spacer-2" />
-          </div>
-          <div className="helper-text-margin">
-            <div className="warning-message-goes">
-              {state === "warning" && <>{warningText}</>}
-
-              {state === "error" && <>{errorText}</>}
-            </div>
+            )}
           </div>
         </>
       )}

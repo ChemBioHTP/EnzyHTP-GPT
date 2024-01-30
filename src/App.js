@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
 import ElementLandingScreen from "./screens/Login/landingscreen";
+import ElementLoginScreen from "./screens/Login/loginscreen";
+import { BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 
 function App() {
   const [data, setData] = useState([{}]);
@@ -13,8 +15,12 @@ function App() {
 
   return (
     <div className="App">
-    <ElementLandingScreen />
-    </div>
+      <Routes>
+        <Route path="/" element={<ElementLandingScreen />} />
+        <Route path="/login" element={<ElementLoginScreen />} />
+      </Routes>
+    </div>    
+    
       // {/* {typeof data.members === "undefined" ? (
       //   <p>Loading...</p>
       // ) : (

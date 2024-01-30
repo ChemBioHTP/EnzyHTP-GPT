@@ -14,7 +14,7 @@ import hexagonDottedConnectLineBackground1 from "../../assets/images/Login/hexag
 // Styles
 import "./style.css";
 
-export const ElementLandingScreen = () => {
+export const ElementLoginScreen = () => {
     let navigate = useNavigate(); 
     const routeChange = () =>{ 
       let path = '/key'; 
@@ -26,9 +26,6 @@ export const ElementLandingScreen = () => {
 
     const [emailState, setEmailState] = React.useState('enabled');
     const [pwdState, setPwdState] = React.useState('enabled');
-    const [emailValid, setEmailValid] = React.useState(false);
-    const [pwdValid, setPwdValid] = React.useState(false);
-    const [bottonDisabled, setBottonDisabled] = React.useState(true);
 
     const onChangeEmail = (useremail) => {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -39,9 +36,6 @@ export const ElementLandingScreen = () => {
         setEmailState("enabled");
       }
       setEmail(useremail);
-      setEmailValid(emailRegex.test(useremail));
-      setBottonDisabled(!(emailValid && pwdValid))
-      console.log(bottonDisabled);
     };
 
     const onChangePwd = (pwd) => {
@@ -53,9 +47,6 @@ export const ElementLandingScreen = () => {
         setPwdState("enabled");
       }
       setPwd(pwd);
-      setPwdValid(passwordRegex.test(pwd));
-      setBottonDisabled(!(emailValid && pwdValid));
-      console.log(bottonDisabled);
     };
 
     const handleSubmit = async () => {
@@ -96,10 +87,10 @@ export const ElementLandingScreen = () => {
                     </p>
                     <div className="frame-2">
                         <div className="frame-3">
-                            <div className="text-wrapper-3">Create an account</div>
+                            <div className="text-wrapper-3">Log in</div>
                             <div className="frame-4">
-                                <div className="text-wrapper-4">Have an account?</div>
-                                <div className="text-wrapper-5"><Link to="/login">Log in</Link></div>
+                                <div className="text-wrapper-4">New to EnzyHTP?</div>
+                                <div className="text-wrapper-5"><Link to="/">Sign up</Link></div>
                             </div>
                         </div>
                         <div className="frame-5">
@@ -141,9 +132,9 @@ export const ElementLandingScreen = () => {
                                     override={<IconArrowRight className="icon-arrow-right" />}
                                     size="large"
                                     stateProp="enabled"
-                                    disabled={bottonDisabled}
                                     format="primary"
                                     type="text-icon"
+                                    onClick={handleSubmit}
                                 />
                             </div>
                         </div>
@@ -176,4 +167,4 @@ export const ElementLandingScreen = () => {
     );
 };
 
-export default ElementLandingScreen;
+export default ElementLoginScreen;

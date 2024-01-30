@@ -14,6 +14,7 @@ import "./style.css";
 export const Button = ({
   icon = true,
   resizer = false,
+  disabled = false,
   buttonText = "Button",
   format,
   type,
@@ -27,18 +28,26 @@ export const Button = ({
     format: format || "primary",
     type: type || "text-icon",
     size: size || "large",
-    state: stateProp || "enabled",
+    state: disabled? "disabled": (stateProp || "enabled"),
   });
+
+  console.log(state);
 
   return (
     <button
       className={`button state-8-${state.state} ${state.format} size-2-${state.size} ${state.type} ${className}`}
       onMouseEnter={() => {
-        dispatch("mouse_enter");
+        if (!disabled) {
+          dispatch("mouse_enter");
+        }  
       }}
       onMouseLeave={() => {
-        dispatch("mouse_leave");
+        if (!disabled) {
+          dispatch("mouse_leave");
+        }
       }}
+
+      disabled = {disabled}
     >
       {((state.size === "expressive" && state.state === "hover") ||
         (state.size === "extra-large" && state.state === "hover") ||
