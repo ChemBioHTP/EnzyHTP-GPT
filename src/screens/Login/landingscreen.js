@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useState } from 'react';
+import { useState, useReducer} from 'react';
 // Components
 import { IconArrowRight } from "./icons/IconArrowRight/IconArrowRight";
 import { Button } from "./components/Button/Button";
@@ -20,42 +20,42 @@ export const ElementLandingScreen = () => {
       let path = '/key'; 
       navigate(path);
     }
+    const [email, setEmail] = useState('');
+    const [pwd, setPwd] = useState('');
 
-    const [email, setEmail] = React.useState('');
-    const [pwd, setPwd] = React.useState('');
+    const initState = {
+        emailState:"enabled",
+        pwdState:"enabled",
+        emailValid: false,
+        pwdValid: false,
+        bottonDisabled: true,
+        bottonState: "disabled",
+    }
 
-    const [emailState, setEmailState] = React.useState('enabled');
-    const [pwdState, setPwdState] = React.useState('enabled');
-    const [emailValid, setEmailValid] = React.useState(false);
-    const [pwdValid, setPwdValid] = React.useState(false);
-    const [bottonDisabled, setBottonDisabled] = React.useState(true);
+    const [state, dispatch] = useReducer(reducer, initState);
 
     const onChangeEmail = (useremail) => {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const isValid = (!useremail) || emailRegex.test(useremail);
-      if (!isValid) {
-        setEmailState("error");
-      } else {
-        setEmailState("enabled");
-      }
+      const regexValid = emailRegex.test(useremail);
+      
+      dispatch((!useremail)? "email_empty": regexValid? "email_valid": "email_error");
+
+      dispatch((regexValid && state.pwdValid)? "button_enabled": "button_disabled");
+           
       setEmail(useremail);
-      setEmailValid(emailRegex.test(useremail));
-      setBottonDisabled(!(emailValid && pwdValid))
-      console.log(bottonDisabled);
+      console.log("In email change",state.bottonDisabled);
     };
 
     const onChangePwd = (pwd) => {
       const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
-      const isValid = (!pwd) || passwordRegex.test(pwd);
-      if (!isValid) {
-        setPwdState("error");
-      } else {
-        setPwdState("enabled");
-      }
+      const regexValid = passwordRegex.test(pwd);
+      
+      dispatch((!pwd)? "pwd_empty": regexValid? "pwd_valid": "pwd_error");
+
+      dispatch((regexValid && state.emailValid)? "button_enabled": "button_disabled");
+
       setPwd(pwd);
-      setPwdValid(passwordRegex.test(pwd));
-      setBottonDisabled(!(emailValid && pwdValid));
-      console.log(bottonDisabled);
+      console.log("In pwd change",state.bottonDisabled);
     };
 
     const handleSubmit = async () => {
@@ -114,7 +114,7 @@ export const ElementLandingScreen = () => {
                                     errorText="Please provide a vaild email"
                                     size="large"
                                     spacerClassName="design-component-instance-node"
-                                    state={emailState}
+                                    state={state.emailState}
                                     textFilled={false}
                                     onInputChange={onChangeEmail}
                                 />
@@ -128,7 +128,7 @@ export const ElementLandingScreen = () => {
                                     errorText="Your password needs to be at least 8 characters including a lower-case letter, an upper case letter, a number and one special chatacter (!@#$%^&*)"
                                     size="large"
                                     spacerClassName="design-component-instance-node"
-                                    state={pwdState}
+                                    state={state.pwdState}
                                     textFilled={false}
                                     onInputChange={onChangePwd}
                                 />
@@ -140,8 +140,8 @@ export const ElementLandingScreen = () => {
                                     iconClassName="button-2"
                                     override={<IconArrowRight className="icon-arrow-right" />}
                                     size="large"
-                                    stateProp="enabled"
-                                    disabled={bottonDisabled}
+                                    stateProp={state.bottonState}
+                                    disabled={state.bottonDisabled}
                                     format="primary"
                                     type="text-icon"
                                 />
@@ -175,5 +175,60 @@ export const ElementLandingScreen = () => {
         </div>
     );
 };
+
+function reducer(state, action) {
+    switch (action) {
+      case "email_error":
+        return {
+          ...state,
+          emailState: "error",
+          emailValid: false,
+        };
+      case "email_empty":
+        return {
+          ...state,
+          emailState: "enabled",
+          emailValid: false,
+        };
+      case "email_valid":
+        return {
+          ...state,
+          emailState: "enabled",
+          emailValid: true,
+        };
+      case "pwd_error":
+        return {
+          ...state,
+          pwdState: "error",
+          pwdValid: false,
+        };
+      case "pwd_empty":
+        return {
+          ...state,
+          pwdState: "enabled",
+          pwdValid: false,
+        };
+      case "pwd_valid":
+        return {
+          ...state,
+          pwdState: "enabled",
+          pwdValid: true,
+        };
+      case "button_disabled":
+        return {
+          ...state,
+          bottonState: "disabled",
+          bottonDisabled: true,
+        };
+      case "button_enabled":
+        return {
+          ...state,
+          bottonState: "enabled",
+          bottonDisabled: false,
+        };
+    }
+  
+    return state;
+}
 
 export default ElementLandingScreen;

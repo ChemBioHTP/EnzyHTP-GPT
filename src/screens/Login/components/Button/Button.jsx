@@ -28,23 +28,19 @@ export const Button = ({
     format: format || "primary",
     type: type || "text-icon",
     size: size || "large",
-    state: disabled? "disabled": (stateProp || "enabled"),
+    state: stateProp || "enabled",
   });
-
-  console.log(state);
-
+  // if(buttonText==="Continue"){
+  //   console.log(state.state);
+  // }
   return (
     <button
       className={`button state-8-${state.state} ${state.format} size-2-${state.size} ${state.type} ${className}`}
       onMouseEnter={() => {
-        if (!disabled) {
-          dispatch("mouse_enter");
-        }  
+        dispatch(disabled? "botton_disabled": "mouse_enter");
       }}
       onMouseLeave={() => {
-        if (!disabled) {
-          dispatch("mouse_leave");
-        }
+        dispatch(disabled? "botton_disabled": "mouse_leave");
       }}
 
       disabled = {disabled}
@@ -248,6 +244,11 @@ function reducer(state, action) {
       return {
         ...state,
         state: "enabled",
+      };
+    case "button_disabled":
+      return {
+        ...state,
+        state: "disabled",
       };
   }
 
