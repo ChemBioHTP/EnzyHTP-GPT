@@ -33,10 +33,6 @@ export const ElementCreateTarget = () => {
     // Call setTableValues when the mutation string changes
     const setTableValues = () => {
       let allMutations = mutationString.split(";");
-      for (let i = 0; i < allMutations.length; ++i) {
-        console.log(allMutations[i] + "\n");
-      }
-
       setTableMutations(allMutations);
     };
 
@@ -198,9 +194,6 @@ export const ElementCreateTarget = () => {
             />
           </div>
         </div>
-        <div className="molstar-wrapper">
-          <MolStarWrapper />
-        </div>
         <NavigationSideNav
           UIShellLeftPanelLinkText="My awesome experime..."
           UIShellLeftPanelSelected={false}
@@ -210,14 +203,6 @@ export const ElementCreateTarget = () => {
           className="navigation-side-nav-2"
           version="version-5"
         />
-        {mutationString !== "" && (
-          <div className="aaTable-wrapper">
-            <AminoAcidTable mutations={tableMutations} />
-          </div>
-        )}
-        {/* <div className="heatMapChart-wrapper">
-          <HeatMapChart data={data} />
-        </div> */}
       </div>
     </div>
   );

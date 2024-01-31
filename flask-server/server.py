@@ -19,13 +19,12 @@ CORS(app)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 file_path = ""
 
-# TODO: figure out database startup
-# import settings
-# app = Flask(__name__)
-# app.config.from_object(settings)
+import settings
+app = Flask(__name__)
+app.config.from_object(settings)
 
-# from context import db, login_manager
-# login_manager.login_message_category = "info"
+from context import db, login_manager, ssl_context
+login_manager.login_message_category = "info"
 
 # Import and define your routes and views
 from auth import auth as auth_blueprint
@@ -146,17 +145,17 @@ def api_key():
     return {'foo': 'bar'}
 
 if __name__ == "__main__":
-    # # Create database tables
-    # app.app_context().push()
-    # db.init_app(app=app)
-    # db.create_all()
+    # Create database tables
+    app.app_context().push()
+    db.init_app(app=app)
+    db.create_all()
 
-    # # Initialize LoginManager.
-    # login_manager.init_app(app)
+    # Initialize LoginManager.
+    login_manager.init_app(app)
     app.run(debug=True)
 
-    # Set SSL Context and run server. TODO: figure out database startup
-    #app.run(host='localhost',
-    #    port=5000,
-    #    debug=True,
-    #    ssl_context=ssl_context)
+    # Set SSL Context and run server.
+    app.run(host='localhost',
+       port=5000,
+       debug=True,
+       ssl_context=ssl_context)

@@ -75,9 +75,9 @@ mkdir -p server
 mkdir -p client
 
 # Generate private key
-openssl genrsa -out ca.key 1024
-openssl genrsa -out server.key 1024
-openssl genrsa -out client.key 1024
+openssl genrsa -out ca.key 2048
+openssl genrsa -out server.key 2048
+openssl genrsa -out client.key 2048
 
 # To create a certificate request file based on the private key, you need to enter some meta-information of the certificate: email, domain name, etc.
 openssl req -out ca.req -key ca.key -new -config ./ca_cert.conf
