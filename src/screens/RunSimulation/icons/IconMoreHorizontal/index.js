@@ -1,0 +1,1 @@
+export { IconMoreHorizontal } from "./IconMoreHorizontal";
