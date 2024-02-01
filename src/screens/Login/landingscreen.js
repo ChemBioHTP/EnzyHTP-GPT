@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useState, useReducer} from 'react';
+import { useState, useReducer, useEffect} from 'react';
 // Components
 import { IconArrowRight } from "./icons/IconArrowRight/IconArrowRight";
 import { Button } from "./components/Button/Button";
@@ -17,12 +17,29 @@ import "./style.css";
 export const ElementLandingScreen = () => {
     let navigate = useNavigate(); 
     const routeChange = () =>{ 
+      if (rememberId) {
+        localStorage.setItem('rememberedId', email);
+      }
+      console.log(localStorage.getItem('rememberedId'));
       let path = '/key'; 
       navigate(path);
     }
+  
+    const savedId = localStorage.getItem('rememberedId') || '';
+  
+    const [rememberId, setRememberId] = useState(savedId);
+
     const [email, setEmail] = useState('');
     const [pwd, setPwd] = useState('');
 
+    useEffect(() => {
+      localStorage.setItem('rememberedId', rememberId);
+    }, [rememberId]);
+    
+    const handleCheckboxChange = () => {
+      setRememberId(prev => !prev);
+    };
+  
     const initState = {
         emailState:"enabled",
         pwdState:"enabled",
@@ -43,7 +60,7 @@ export const ElementLandingScreen = () => {
       dispatch((regexValid && state.pwdValid)? "button_enabled": "button_disabled");
            
       setEmail(useremail);
-      console.log("In email change",state.bottonDisabled);
+
     };
 
     const onChangePwd = (pwd) => {
@@ -55,7 +72,7 @@ export const ElementLandingScreen = () => {
       dispatch((regexValid && state.emailValid)? "button_enabled": "button_disabled");
 
       setPwd(pwd);
-      console.log("In pwd change",state.bottonDisabled);
+
     };
 
     const handleSubmit = async () => {
@@ -146,6 +163,17 @@ export const ElementLandingScreen = () => {
                                     type="text-icon"
                                 />
                             </div>
+                            <div className="frame-6" >
+                              <div className="text-wrapper-4">
+                                <input
+                                  type="checkbox"
+                                  className="custom-checkbox"
+                                  checked={rememberId}
+                                  onChange={handleCheckboxChange}
+                                />
+                                Remember id
+                              </div>
+                            </div>
                         </div>
                         <div className="frame-6">
                             <Button
@@ -158,16 +186,7 @@ export const ElementLandingScreen = () => {
                                 format="tertiary"
                                 type="text-icon"
                             />
-                            <Button
-                                buttonText="Log in with Facebook"
-                                className="button-instance"
-                                iconClassName="button-2"
-                                override={<IconArrowRight className="icon-arrow-right" />}
-                                size="large"
-                                stateProp="enabled"
-                                format="tertiary"
-                                type="text-icon"
-                            />
+                            
                         </div>
                     </div>
                 </div>

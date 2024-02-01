@@ -30,17 +30,21 @@ export const Button = ({
     size: size || "large",
     state: stateProp || "enabled",
   });
-  // if(buttonText==="Continue"){
-  //   console.log(state.state);
-  // }
+  
+  if(state.state!=="disabled" && disabled){
+    dispatch("button_disabled");
+  } else if (state.state === "disabled" && !disabled) {
+    dispatch("button_enabled");
+  }
+  
   return (
     <button
       className={`button state-8-${state.state} ${state.format} size-2-${state.size} ${state.type} ${className}`}
       onMouseEnter={() => {
-        dispatch(disabled? "botton_disabled": "mouse_enter");
+        dispatch(disabled? "button_disabled": "mouse_enter");
       }}
       onMouseLeave={() => {
-        dispatch(disabled? "botton_disabled": "mouse_leave");
+        dispatch(disabled? "button_disabled": "mouse_leave");
       }}
 
       disabled = {disabled}
@@ -249,6 +253,11 @@ function reducer(state, action) {
       return {
         ...state,
         state: "disabled",
+      };
+    case "button_enabled":
+      return {
+        ...state,
+        state: "enabled",
       };
   }
 

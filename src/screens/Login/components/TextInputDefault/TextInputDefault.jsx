@@ -38,7 +38,10 @@ export const TextInputDefault = ({
     onInputChange(value);
   };
   
-  
+  useEffect(() => {
+    setInputValue("value");
+  }, []);
+
   return (
     <div className={`text-input-default ${state} ${className}`}>
       {["active", "disabled", "enabled", "focus", "read-only", "error", "warning"].includes(state) && (
