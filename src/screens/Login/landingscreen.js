@@ -27,14 +27,10 @@ export const ElementLandingScreen = () => {
   
     const savedId = localStorage.getItem('rememberedId') || '';
   
-    const [rememberId, setRememberId] = useState(savedId);
+    const [rememberId, setRememberId] = useState(savedId? true: false);
 
     const [email, setEmail] = useState('');
     const [pwd, setPwd] = useState('');
-
-    useEffect(() => {
-      localStorage.setItem('rememberedId', rememberId);
-    }, [rememberId]);
     
     const handleCheckboxChange = () => {
       setRememberId(prev => !prev);
@@ -147,6 +143,7 @@ export const ElementLandingScreen = () => {
                                     spacerClassName="design-component-instance-node"
                                     state={state.pwdState}
                                     textFilled={false}
+                                    inputType="password"
                                     onInputChange={onChangePwd}
                                 />
                             </div>

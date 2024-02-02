@@ -17,16 +17,30 @@ import "./style.css";
 export const ElementLoginScreen = () => {
     let navigate = useNavigate(); 
     const routeChange = () =>{ 
+      if (rememberId) {
+        localStorage.setItem('rememberedId', email);
+      }else{
+        localStorage.removeItem('rememberedId');
+      }
       let path = '/key'; 
       navigate(path);
     }
+
+    const savedId = localStorage.getItem('rememberedId') || '';
+  
+    const [rememberId, setRememberId] = useState(savedId? true: false);
+    
     const [email, setEmail] = useState('');
     const [pwd, setPwd] = useState('');
 
+    const handleCheckboxChange = () => {
+      setRememberId(prev => !prev);
+    };
+  
     const initState = {
         emailState:"enabled",
         pwdState:"enabled",
-        emailValid: false,
+        emailValid: savedId? true: false,
         pwdValid: false,
         bottonDisabled: true,
         bottonState: "disabled",
@@ -104,18 +118,20 @@ export const ElementLoginScreen = () => {
                         </div>
                         <div className="frame-5">
                             <div className="frame-6">
-                                <TextInputDefault
+                            <TextInputDefault
                                     backgroundClassName="text-input-default-2"
                                     className="text-input-default-instance"
                                     placeholderText=""
                                     showHelper={false}
                                     showLabel={true}
                                     labelText="Email address"
+                                    inputDefault={savedId}
                                     errorText="Please provide a vaild email"
                                     size="large"
                                     spacerClassName="design-component-instance-node"
                                     state={state.emailState}
                                     textFilled={false}
+                                    textDefault={true}
                                     onInputChange={onChangeEmail}
                                 />
                                 <TextInputDefault
@@ -130,6 +146,7 @@ export const ElementLoginScreen = () => {
                                     spacerClassName="design-component-instance-node"
                                     state={state.pwdState}
                                     textFilled={false}
+                                    inputType="password"
                                     onInputChange={onChangePwd}
                                 />
                             </div>
@@ -151,6 +168,8 @@ export const ElementLoginScreen = () => {
                                 <input
                                   type="checkbox"
                                   className="custom-checkbox"
+                                  checked={rememberId}
+                                  onChange={handleCheckboxChange}
                                 />
                                 Remember id
                               </div>

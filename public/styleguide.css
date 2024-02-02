@@ -141,6 +141,7 @@
     --buttonbutton-tertiary: var(--theme-button-button-tertiary);
     --buttonbutton-tertiary-active: var(--theme-button-button-tertiary-active);
     --buttonbutton-tertiary-hover: var(--theme-button-button-tertiary-hover);
+    --theme-button-button-secondary-hover: rgba(22, 22, 22, 1);
     --colors-default-blue-40: rgba(120, 169, 255, 1);
     --colors-default-blue-60: rgba(15, 98, 254, 1);
     --colors-default-gray-10: rgba(244, 244, 244, 1);

@@ -16,6 +16,7 @@ export const TextInputDefault = ({
   showLabel = true,
   showCount = false,
   inputText = "Input text",
+  inputDefault = "Default text",
   placeholderText = "Placeholder text (optional)",
   errorText = "Error message goes here",
   showHelper = true,
@@ -24,6 +25,7 @@ export const TextInputDefault = ({
   size,
   state,
   textFilled,
+  textDefault = false,
   className,
   spacerClassName,
   backgroundClassName,
@@ -39,7 +41,9 @@ export const TextInputDefault = ({
   };
   
   useEffect(() => {
-    setInputValue("value");
+    if(textDefault){
+      setInputValue(inputDefault);
+    }
   }, []);
 
   return (
@@ -148,6 +152,7 @@ TextInputDefault.propTypes = {
   showLabel: PropTypes.bool,
   showCount: PropTypes.bool,
   inputText: PropTypes.string,
+  inputDefault: PropTypes.string,
   placeholderText: PropTypes.string,
   errorText: PropTypes.string,
   showHelper: PropTypes.bool,
@@ -156,5 +161,7 @@ TextInputDefault.propTypes = {
   size: PropTypes.oneOf(["large", "medium", "small"]),
   state: PropTypes.oneOf(["warning", "active", "enabled", "focus", "read-only", "skeleton", "error", "disabled"]),
   textFilled: PropTypes.bool,
+  textDefault: PropTypes.bool,
+  textHidden: PropTypes.bool,
   inputType: PropTypes.string,
 };

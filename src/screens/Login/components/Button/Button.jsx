@@ -22,7 +22,7 @@ export const Button = ({
   stateProp,
   className,
   iconClassName,
-  override = <Add1 className="add-1" color="white" />,
+  override,
 }) => {
   const [state, dispatch] = useReducer(reducer, {
     format: format || "primary",
