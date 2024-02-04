@@ -5,10 +5,12 @@ import config
 import enzy_htp.structure
 import enzy_htp.mutation.api as mapi
 import enzy_htp.mutation.mutation_pattern.api as pattern_api
+from flask_cors import CORS
 
 import settings
 app = Flask(__name__, template_folder='../public')
 app.config.from_object(settings)
+CORS(app)
 
 from context import db, login_manager, ssl_context
 login_manager.login_message_category = "info"

@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useState, useReducer} from 'react';
+import { useState, useReducer, useEffect} from 'react';
 // Components
 import { IconArrowRight } from "./icons/IconArrowRight/IconArrowRight";
 import { Button } from "./components/Button/Button";
@@ -14,45 +14,34 @@ import hexagonDottedConnectLineBackground1 from "../../assets/images/Login/hexag
 // Styles
 import "./style.css";
 
-export const ApiKeyScreen = () => {
+export const ForgotpwdScreen = () => {
     let navigate = useNavigate(); 
-    const routeChange = () =>{ 
-      let path = '/key'; 
-      navigate(path);
+    const handleSubmit = async() => {
+      
     }
-    
-    const [key, setKey] = useState('');
 
+    const [email, setEmail] = useState('');
+ 
+  
     const initState = {
+        emailState:"enabled",
+        emailValid: false,
         bottonDisabled: true,
         bottonState: "disabled",
     }
 
     const [state, dispatch] = useReducer(reducer, initState);
 
-    const onChangeKey = (key) => {
+    const onChangeEmail = (useremail) => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const regexValid = emailRegex.test(useremail);
+      
+      dispatch((!useremail)? "email_empty": regexValid? "email_valid": "email_error");
 
-      dispatch(key? "button_enabled": "button_disabled");
+      dispatch(regexValid? "button_enabled": "button_disabled");
+           
+      setEmail(useremail);
 
-      setKey(key);
-
-    };
-
-    const handleSignout = async () => {   
-      try {
-        const response = await fetch('https://192.168.1.252:5000/api/auth/logout', {
-          method: 'GET',
-          headers: {
-              'Content-Type': 'application/json',
-          },
-        });
-        if (response.ok) {
-          let path = '/login'; 
-          navigate(path);
-        }
-      }catch (error) {
-        console.error('Error sending data:', error);
-      }
     };
     
 
@@ -74,34 +63,32 @@ export const ApiKeyScreen = () => {
                     </p>
                     <div className="frame-2">
                         <div className="frame-3">
-                            <div className="text-wrapper-3">Provide Secret API Key</div>
+                            <div className="text-wrapper-3">Forgot password</div>
                             <div className="frame-4">
-                            <div className="text-wrapper-4">Copy and paste your API key from OpenAI.</div>                               
-                                <div className="text-wrapper-5"><Link to="https://help.openai.com/en/articles/4936850-where-do-i-find-my-api-key" target="_blank">learn more</Link></div>
+                                <div className="text-wrapper-4" style={{ textAlign: 'left' }}>Please verify your email for us. Once you do, we'll
+                                <br />send instructions to reset your password.</div>
                             </div>
-                            <div className="text-wrapper-4" style={{ textAlign: 'left' }}>We need it for running the embedded ChatGPT
-                            <br />Agent for your workflow. Estimated cost: $5000/run</div>
                         </div>
                         <div className="frame-5">
                             <div className="frame-6">
-                            <TextInputDefault
+                                <TextInputDefault
                                     backgroundClassName="text-input-default-2"
                                     className="text-input-default-instance"
                                     placeholderText=""
                                     showHelper={false}
-                                    showLabel={false}
+                                    showLabel={true}
+                                    labelText="Email address"
                                     errorText="Please provide a vaild email"
                                     size="large"
                                     spacerClassName="design-component-instance-node"
-                                    state="enabled"
+                                    state={state.emailState}
                                     textFilled={false}
-                                    onInputChange={onChangeKey}
-                                />
-                                
+                                    onInputChange={onChangeEmail}
+                                />                                
                             </div>
-                            <div className="frame-6" onClick={routeChange}>
+                            <div className="frame-6" onClick={handleSubmit}>
                                 <Button
-                                    buttonText="Continue"
+                                    buttonText="Reset my password"
                                     className="button-instance"
                                     iconClassName="button-2"
                                     override={<IconArrowRight className="icon-arrow-right" />}
@@ -111,19 +98,8 @@ export const ApiKeyScreen = () => {
                                     format="primary"
                                     type="text-icon"
                                 />
-                            </div>
-                            <div className="frame-6" onClick={handleSignout}>
-                                <Button
-                                    buttonText="Sign out"
-                                    className="button-instance"
-                                    iconClassName="button-2"
-                                    size="large"
-                                    stateProp="enabled"
-                                    format="secondary"
-                                    type="text-icon"
-                                />
-                            </div>
-                        </div>                     
+                            </div>                           
+                        </div>                        
                     </div>
                 </div>
             </div>
@@ -133,6 +109,24 @@ export const ApiKeyScreen = () => {
 
 function reducer(state, action) {
     switch (action) {
+      case "email_error":
+        return {
+          ...state,
+          emailState: "error",
+          emailValid: false,
+        };
+      case "email_empty":
+        return {
+          ...state,
+          emailState: "enabled",
+          emailValid: false,
+        };
+      case "email_valid":
+        return {
+          ...state,
+          emailState: "enabled",
+          emailValid: true,
+        };
       case "button_disabled":
         return {
           ...state,
@@ -150,4 +144,4 @@ function reducer(state, action) {
     return state;
 }
 
-export default ApiKeyScreen;
+export default ForgotpwdScreen;

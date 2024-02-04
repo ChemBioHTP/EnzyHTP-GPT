@@ -9,11 +9,15 @@ import { useState, useRef, useEffect } from 'react';
 import { WarningAltFilled } from "../../icons/WarningAltFilled";
 import { WarningFilled } from "../../icons/WarningFilled";
 import "./style.css";
+import { Link } from "react-router-dom";
 
 export const TextInputDefault = ({
   countText = "0/100",
   labelText = "Label",
+  linkText = "Link",
+  linkHerf = "/",
   showLabel = true,
+  showLink = false,
   showCount = false,
   inputText = "Input text",
   inputDefault = "Default text",
@@ -53,7 +57,9 @@ export const TextInputDefault = ({
           {showLabel && (
             <div className="label-margin">{showLabel && <div className="label-text">{labelText}</div>}</div>
           )}
-
+          {showLink && (
+            <div className="link-margin">{showLink && <Link className="link-text" to={linkHerf}>{linkText}</Link>}</div>
+          )}
           <div className={`spacer ${spacerClassName}`} />
         </div>
       )}

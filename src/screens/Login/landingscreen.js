@@ -16,13 +16,38 @@ import "./style.css";
 
 export const ElementLandingScreen = () => {
     let navigate = useNavigate(); 
-    const routeChange = () =>{ 
+    const handleSubmit = async() => {
       if (rememberId) {
         localStorage.setItem('rememberedId', email);
+      } else {
+        localStorage.removeItem('rememberedId');
       }
-      console.log(localStorage.getItem('rememberedId'));
-      let path = '/key'; 
-      navigate(path);
+    
+      const formData = new FormData();
+        formData.append('email', email);
+        formData.append('password', pwd);
+        try {
+          const response = await fetch('https://192.168.1.252:5000/api/auth/register', {
+              method: 'POST',          
+              body: formData,
+          });
+          if (response.ok) {
+            let path = '/key'; 
+            navigate(path);
+          } else {
+            if ('Notification' in window) {
+              Notification.requestPermission().then((permission) => {
+                if (permission === 'granted') {
+                  new Notification('ERROR', {
+                    body: 'Register failed',
+                  });
+                }
+              });
+            }
+          }
+        }catch (error) {
+          console.error('Error sending data:', error);
+        }
     }
   
     const savedId = localStorage.getItem('rememberedId') || '';
@@ -69,25 +94,6 @@ export const ElementLandingScreen = () => {
 
       setPwd(pwd);
 
-    };
-
-    const handleSubmit = async () => {
-        const data = {
-            email: email,
-            password: pwd,
-        };
-      
-        try {
-            const response = await fetch('https://localhost:5000', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
-        }catch (error) {
-            console.error('Error sending data:', error);
-        }
     };
     
 
@@ -147,7 +153,7 @@ export const ElementLandingScreen = () => {
                                     onInputChange={onChangePwd}
                                 />
                             </div>
-                            <div className="frame-6" onClick={routeChange}>
+                            <div className="frame-6" onClick={handleSubmit}>
                                 <Button
                                     buttonText="Continue"
                                     className="button-instance"

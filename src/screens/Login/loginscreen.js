@@ -16,21 +16,38 @@ import "./style.css";
 
 export const ElementLoginScreen = () => {
     let navigate = useNavigate(); 
-    const routeChange = () =>{ 
+    const handleSubmit = async() => {
       if (rememberId) {
         localStorage.setItem('rememberedId', email);
-      }else{
+      } else {
         localStorage.removeItem('rememberedId');
       }
-      let path = '/key'; 
-      navigate(path);
+
+      const formData = new FormData();
+        formData.append('email', email);
+        formData.append('password', pwd);
+        try {
+          const response = await fetch('https://192.168.1.252:5000/api/auth/login', {
+              method: 'POST',          
+              body: formData,
+          });
+          if (response.ok) {
+            localStorage.setItem('isLoggedIn', true);
+            let path = '/key'; 
+            navigate(path);
+          } else {
+            dispatch("pwd_error");
+          }
+        }catch (error) {
+          console.error('Error sending data:', error);
+        }
     }
 
     const savedId = localStorage.getItem('rememberedId') || '';
   
     const [rememberId, setRememberId] = useState(savedId? true: false);
     
-    const [email, setEmail] = useState('');
+    const [email, setEmail] = useState(savedId);
     const [pwd, setPwd] = useState('');
 
     const handleCheckboxChange = () => {
@@ -61,34 +78,13 @@ export const ElementLoginScreen = () => {
     };
 
     const onChangePwd = (pwd) => {
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
-      const regexValid = passwordRegex.test(pwd);
       
-      dispatch((!pwd)? "pwd_empty": regexValid? "pwd_valid": "pwd_error");
+      dispatch(pwd? "pwd_valid": "pwd_empty");
 
-      dispatch((regexValid && state.emailValid)? "button_enabled": "button_disabled");
+      dispatch((pwd && state.emailValid)? "button_enabled": "button_disabled");
 
       setPwd(pwd);
 
-    };
-
-    const handleSubmit = async () => {
-        const data = {
-            email: email,
-            password: pwd,
-        };
-      
-        try {
-            const response = await fetch('https://localhost:5000', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
-        }catch (error) {
-            console.error('Error sending data:', error);
-        }
     };
     
 
@@ -140,8 +136,11 @@ export const ElementLoginScreen = () => {
                                     placeholderText=""
                                     showHelper={false}
                                     showLabel={true}
+                                    showLink={true}
+                                    linkText="Forgot password?"
+                                    linkHerf="/forgotpwd"
                                     labelText="Password"
-                                    errorText="Your password needs to be at least 8 characters including a lower-case letter, an upper case letter, a number and one special chatacter (!@#$%^&*)"
+                                    errorText="Your password was incorrect. Please try again or tap Forgot password to reset it."
                                     size="large"
                                     spacerClassName="design-component-instance-node"
                                     state={state.pwdState}
@@ -150,7 +149,7 @@ export const ElementLoginScreen = () => {
                                     onInputChange={onChangePwd}
                                 />
                             </div>
-                            <div className="frame-6" onClick={routeChange}>
+                            <div className="frame-6" onClick={handleSubmit}>
                                 <Button
                                     buttonText="Continue"
                                     className="button-instance"
