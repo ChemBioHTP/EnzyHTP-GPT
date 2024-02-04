@@ -1,0 +1,120 @@
+.status-icon {
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  height: 16px;
+  width: 16px;
+}
+
+.status-icon .overlap-group {
+  height: 16px;
+  position: relative;
+}
+
+.status-icon .fill {
+  position: absolute;
+}
+
+.status-icon .checkmark-filled-6 {
+  background-blend-mode: multiply !important;
+  height: 16px !important;
+  left: 0 !important;
+  position: absolute !important;
+  top: 0 !important;
+  width: 16px !important;
+}
+
+.status-icon .state-success-blue {
+  height: 8px;
+  left: 4px;
+  top: 4px;
+  width: 8px;
+}
+
+.status-icon .state-warning-red {
+  height: 10px;
+  left: 4px;
+  top: 3px;
+  width: 8px;
+}
+
+.status-icon .high-contrast-true {
+  left: 4px;
+  width: 8px;
+}
+
+.status-icon .state-warning-yellow {
+  background-color: var(--accessibilityblack);
+}
+
+.status-icon .state-success-green {
+  height: 8px;
+  left: 4px;
+  top: 4px;
+  width: 8px;
+}
+
+.status-icon .state-error {
+  height: 8px;
+  left: 4px;
+  top: 4px;
+  width: 8px;
+}
+
+.status-icon .state-info {
+  height: 10px;
+  left: 4px;
+  top: 3px;
+  width: 8px;
+}
+
+.status-icon .high-contrast-true.state-warning-yellow {
+  height: 10px;
+  top: 3px;
+}
+
+.status-icon .high-contrast-false.state-warning-red {
+  background-color: #ffffff;
+}
+
+.status-icon .high-contrast-true.state-error {
+  background-color: #000000;
+}
+
+.status-icon .high-contrast-false.state-info {
+  background-color: #ffffff;
+}
+
+.status-icon .high-contrast-false.state-success-green {
+  background-color: #ffffff;
+}
+
+.status-icon .high-contrast-false.state-error {
+  background-color: #ffffff;
+}
+
+.status-icon .high-contrast-false.state-warning-yellow {
+  height: 9px;
+  left: 6px;
+  top: 5px;
+  width: 4px;
+}
+
+.status-icon .high-contrast-true.state-success-green {
+  background-color: #000000;
+}
+
+.status-icon .high-contrast-true.state-success-blue {
+  background-color: #000000;
+}
+
+.status-icon .high-contrast-true.state-info {
+  background-color: #000000;
+}
+
+.status-icon .high-contrast-false.state-success-blue {
+  background-color: #ffffff;
+}
+
+.status-icon .high-contrast-true.state-warning-red {
+  background-color: #000000;
+}

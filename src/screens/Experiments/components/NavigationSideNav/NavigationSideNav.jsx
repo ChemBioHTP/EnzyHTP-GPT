@@ -15,7 +15,7 @@ export const NavigationSideNav = ({ version, className }) => {
         {version === "version-4" && (
           <UiShellLeftPanel
             className="UI-shell-left-panel-menu-item"
-            compact={false}
+            compact={true}
             divider={false}
             expanded={false}
             level="level-1"
@@ -33,7 +33,7 @@ export const NavigationSideNav = ({ version, className }) => {
               {version === "version-4" && (
                 <UiShellLeftPanel
                   className="UI-shell-left-panel-menu-item"
-                  compact={false}
+                  compact={true}
                   divider={false}
                   expanded={false}
                   level="level-1"
@@ -193,9 +193,10 @@ export const NavigationSideNav = ({ version, className }) => {
           <>
             <UiShellLeftPanel
               className="UI-shell-left-panel-menu-item"
-              compact={false}
+              compact={true}
               divider={false}
               expanded={false}
+              iconLeft={false}
               level="level-2"
               linkIconClassName="UI-shell-left-panel-menu-item-instance"
               linkText="In progress"
@@ -205,9 +206,10 @@ export const NavigationSideNav = ({ version, className }) => {
             />
             <UiShellLeftPanel
               className="UI-shell-left-panel-menu-item"
-              compact={false}
+              compact={true}
               divider={false}
               expanded={false}
+              iconLeft={false}
               level="level-2"
               linkIconClassName="UI-shell-left-panel-menu-item-instance"
               linkText="With error"
@@ -217,9 +219,10 @@ export const NavigationSideNav = ({ version, className }) => {
             />
             <UiShellLeftPanel
               className="UI-shell-left-panel-menu-item"
-              compact={false}
+              compact={true}
               divider={false}
               expanded={false}
+              iconLeft={false}
               level="level-2"
               linkIconClassName="UI-shell-left-panel-menu-item-instance"
               linkText="Complete"
@@ -229,9 +232,10 @@ export const NavigationSideNav = ({ version, className }) => {
             />
             <UiShellLeftPanel
               className="UI-shell-left-panel-menu-item"
-              compact={false}
+              compact={true}
               divider={false}
               expanded={false}
+              iconLeft={false}
               level="level-2"
               linkIconClassName="UI-shell-left-panel-menu-item-instance"
               linkText="Archived"
@@ -378,7 +382,7 @@ export const NavigationSideNav = ({ version, className }) => {
           <>
             <UiShellLeftPanel
               className={`${["v1", "version-4"].includes(version) ? "UI-shell-left-panel-menu-item" : "class"}`}
-              compact={false}
+              compact={true}
               divider={false}
               expanded={false}
               level="level-1"
@@ -390,7 +394,7 @@ export const NavigationSideNav = ({ version, className }) => {
             />
             <UiShellLeftPanel
               className={`${["v1", "version-4"].includes(version) ? "UI-shell-left-panel-menu-item" : "class"}`}
-              compact={false}
+              compact={true}
               divider={false}
               expanded={false}
               level="level-1"
@@ -402,7 +406,7 @@ export const NavigationSideNav = ({ version, className }) => {
             />
             <UiShellLeftPanel
               className={`${["v1", "version-4"].includes(version) ? "UI-shell-left-panel-menu-item" : "class"}`}
-              compact={false}
+              compact={true}
               divider={false}
               expanded={false}
               level="level-1"

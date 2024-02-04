@@ -19,7 +19,7 @@ export const Chevron9 = ({ color = "#161616", opacity = "unset", className }) =>
       <rect className="rect" fill="white" height="16" style={{ mixBlendMode: 'multiply'}} width="16" />
       <path
         className="path"
-        d="M8 11L3 5.99999L3.7 5.29999L8 9.59999L12.3 5.29999L13 5.99999L8 11Z"
+        d="M8 10.9998L3 5.9998L3.7 5.2998L8 9.5998L12.3 5.2998L13 5.9998L8 10.9998Z"
         fill={color}
         fillOpacity={opacity}
       />

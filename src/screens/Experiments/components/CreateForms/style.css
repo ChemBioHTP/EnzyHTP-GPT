@@ -1,0 +1,102 @@
+.create-forms {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 16px;
+  position: relative;
+  width: 642px;
+}
+
+.create-forms .DEPRECATED-text-input {
+  background-color: #ffffff !important;
+  border-bottom-style: solid !important;
+  border-bottom-width: 1px !important;
+  border-color: #8d8d8d !important;
+  width: 610px !important;
+  z-index: -1 !important;
+}
+
+.create-forms .instance-node-2 {
+  align-self: stretch !important;
+  flex: 0 0 auto !important;
+  width: 100% !important;
+}
+
+.create-forms .frame {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  width: 100%;
+}
+
+.create-forms .label-text-wrapper {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  padding: 0px 0px 4px;
+  position: relative;
+  width: 100%;
+}
+
+.create-forms .text-wrapper {
+  align-self: stretch;
+  color: #525252;
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.32px;
+  line-height: 16px;
+  margin-top: -1px;
+  position: relative;
+}
+
+.create-forms .class-4 {
+  color: #525252 !important;
+}
+
+.create-forms .class-5 {
+  position: relative !important;
+}
+
+.create-forms .class-6 {
+  background-blend-mode: unset !important;
+  background-color: #f4f4f4 !important;
+  position: relative !important;
+}
+
+.create-forms .class-7 {
+  align-self: stretch !important;
+  background-color: #ffffff !important;
+  flex: 0 0 auto !important;
+  width: 100% !important;
+}
+
+.create-forms .class-8 {
+  align-self: stretch !important;
+  background-color: #ffffff !important;
+  border: unset !important;
+  border-color: unset !important;
+  flex: 0 0 auto !important;
+  width: 100% !important;
+}
+
+.create-forms .checkmark-filled {
+  height: 16px !important;
+  left: 0 !important;
+  position: absolute !important;
+  top: 0 !important;
+  width: 16px !important;
+}
+
+.create-forms .close-instance {
+  height: 16px !important;
+  position: relative !important;
+  width: 16px !important;
+}

@@ -6,15 +6,21 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 import PropTypes from "prop-types";
 import React from "react";
 import { useReducer } from "react";
-import { Checkbox3 } from "../../icons/Checkbox3";
 import { Chevron4 } from "../../icons/Chevron4";
 import { Chevron9 } from "../../icons/Chevron9";
+import { IconGrid } from "../../icons/IconGrid";
+import { IconGitMerge1 } from "../../icons/IconGitMerge1";
+import { IconHelpCircle } from "../../icons/IconHelpCircle";
+import { IconSettings1 } from "../../icons/IconSettings1";
+import { IconMessageSquare1 } from "../../icons/IconMessageSquare1";
+
 import "./style.css";
+import { Icon } from "carbon-components-react";
 
 export const UiShellLeftPanel = ({
   linkText = "Link",
   iconRight = false,
-  iconLeft = false,
+  iconLeft = true,
   type,
   level,
   stateProp,
@@ -69,19 +75,73 @@ export const UiShellLeftPanel = ({
           )}
         </div>
       )}
-
-      {state.compact && !state.divider && (
-        <Checkbox3
-          className="instance-node"
-          color={
-            ["enabled", "focus"].includes(state.state)
-              ? "#525252"
-              : ["active", "disabled", "hover", "selected"].includes(state.state)
-              ? "#161616"
-              : undefined
-          }
-          fillOpacity={state.state === "disabled" ? "0.25" : undefined}
+      {iconLeft && (
+        linkText === "My experiments"&& (
+          <IconGrid
+            className="instance-node"
+            color={
+              ["enabled", "focus"].includes(state.state)
+                ? "#525252"
+                : ["active", "disabled", "hover", "selected"].includes(state.state)
+                ? "#161616"
+                : undefined
+            }
+            fillOpacity={state.state === "disabled" ? "0.25" : undefined}
+          />
+        ) ||
+        linkText === "Workflows"&& (
+          <IconGitMerge1
+            className="instance-node"
+            color={
+              ["enabled", "focus"].includes(state.state)
+                ? "#525252"
+                : ["active", "disabled", "hover", "selected"].includes(state.state)
+                ? "#161616"
+                : undefined
+            }
+            fillOpacity={state.state === "disabled" ? "0.25" : undefined}
         />
+        ) ||
+        linkText === "Help"&& (
+          <IconHelpCircle
+            className="instance-node"
+            color={
+              ["enabled", "focus"].includes(state.state)
+                ? "#525252"
+                : ["active", "disabled", "hover", "selected"].includes(state.state)
+                ? "#161616"
+                : undefined
+            }
+            fillOpacity={state.state === "disabled" ? "0.25" : undefined}
+        />
+        ) ||
+        linkText === "Feedback"&& (
+          <IconMessageSquare1
+            className="instance-node"
+            color={
+              ["enabled", "focus"].includes(state.state)
+                ? "#525252"
+                : ["active", "disabled", "hover", "selected"].includes(state.state)
+                ? "#161616"
+                : undefined
+            }
+            fillOpacity={state.state === "disabled" ? "0.25" : undefined}
+        />
+        ) ||
+        linkText === "Settings"&& (
+          <IconSettings1
+            className="instance-node"
+            color={
+              ["enabled", "focus"].includes(state.state)
+                ? "#525252"
+                : ["active", "disabled", "hover", "selected"].includes(state.state)
+                ? "#161616"
+                : undefined
+            }
+            fillOpacity={state.state === "disabled" ? "0.25" : undefined}
+        />
+        )
+
       )}
     </div>
   );
@@ -199,6 +259,50 @@ function reducer(state, action) {
           selected: false,
           state: "hover",
           type: "compact",
+        };
+    }
+  }
+  if (
+    state.compact === true &&
+    state.divider === false &&
+    state.expanded === false &&
+    state.level === "level-1" &&
+    state.selected === false &&
+    state.state === "enabled" &&
+    state.type === "link"
+  ) {
+    switch (action) {
+      case "mouse_enter":
+        return {
+          compact: true,
+          divider: false,
+          expanded: false,
+          level: "level-1",
+          selected: false,
+          state: "hover",
+          type: "link",
+        };
+    }
+  }
+  if (
+    state.compact === true &&
+    state.divider === false &&
+    state.expanded === false &&
+    state.level === "level-1" &&
+    state.selected === false &&
+    state.state === "hover" &&
+    state.type === "link"
+  ) {
+    switch (action) {
+      case "mouse_leave":
+        return {
+          compact: true,
+          divider: false,
+          expanded: false,
+          level: "level-1",
+          selected: false,
+          state: "enabled",
+          type: "link",
         };
     }
   }
