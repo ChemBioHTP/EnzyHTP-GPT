@@ -84,7 +84,7 @@ The sqlite database will be generated as `/flask-server/instance/enzyhtp-gpt.db`
 
 Shut down the server, change the directory to the `/flask-server` directory, and run `python instance/init_db.py`. Then, some example fake data will be added to the `users` table of the sqlite database.
 
-## 3. Functions
+## 3. Email Authentication
 
 Here, we use the account `maura.attaway@example.com` for instance to show its function, which is an account generated randomly.
 
@@ -105,6 +105,7 @@ Here, we use the account `maura.attaway@example.com` for instance to show its fu
     {
         "id": "b701ff89-84db-44e3-8ed6-bb973efbebcf",
         "email": "maura.attaway@example.com",
+        "username": "maura.attaway",
         "is_successful": true,
         "message": "New user `maura.attaway@example.com` is created.",
         "timestamp": "2023-10-30 13:21:55.286660",
@@ -118,6 +119,7 @@ Here, we use the account `maura.attaway@example.com` for instance to show its fu
     {
         "id": null,
         "email": "maura.attaway@example.com",
+        "username": "maura.attaway",
         "is_successful": false,
         "message": "New user `maura.attaway@example.com` conflicted with an existing account.",
         "timestamp": "2023-10-30 20:08:36.306698",
@@ -202,24 +204,41 @@ Here, we use the account `maura.attaway@example.com` for instance to show its fu
     - Response Body (example)
     ```json
     {
-        "id": "637f25c8-c7b8-4182-997a-6fd53e346ecf",
+        "id": "9cbd55b3-cd94-4623-9153-36fd3dcc579d",
         "email": "maura.attaway@example.com",
+        "username": "maura.attaway",
         "is_successful": true,
-        "message": "The user `maura.attaway@example.com` logged in.",
-        "timestamp": "2023-10-30 18:04:49.150020",
-        "is_authenticated": true
+        "message": "The user `maura.attaway` logged in.",
+        "timestamp": "2024-02-04 23:13:23.645364",
+        "is_authenticated": true,
+        "has_openai_secret_key": false
     }
     ```
-  - If failed (due to conflict),
+  - If failed (due to password mismatch).
     - Status Code: `401 UNAUTHORIZED`.
     - Response Body: 
     ```json
     {
         "id": null,
         "email": "maura.attaway@example.com",
+        "username": "",
         "is_successful": true,
-        "message": "The user `maura.attaway@example.com` failed to log in.",
-        "timestamp": "2023-10-30 20:08:17.820156",
+        "message": "The user `maura.attaway@example.com` failed to log in because of a password mismatch.",
+        "timestamp": "2024-02-04 23:17:42.922157",
+        "is_authenticated": false
+    }
+    ```
+  - If failed (due to user not exist).
+    - Status Code: `404 NOT FOUND`.
+    - Response Body:
+    ```json
+    {
+        "id": null,
+        "email": "mara.attaway@example.com",
+        "username": "",
+        "is_successful": true,
+        "message": "The user `mara.attaway@example.com` failed to log in because user does not exist.",
+        "timestamp": "2024-02-04 23:17:42.922157",
         "is_authenticated": false
     }
     ```
@@ -235,11 +254,12 @@ Here, we use the account `maura.attaway@example.com` for instance to show its fu
     - Response Body (example)
     ```json
     {
-        "id": "b701ff89-84db-44e3-8ed6-bb973efbebcf",
+        "id": "9cbd55b3-cd94-4623-9153-36fd3dcc579d",
         "email": "maura.attaway@example.com",
+        "username": "",
         "is_successful": true,
         "message": "The user `maura.attaway@example.com` logged out.",
-        "timestamp": "2023-10-30 20:08:17.820156",
+        "timestamp": "2024-02-04 23:34:13.491143",
         "is_authenticated": false
     }
     ```
@@ -250,9 +270,10 @@ Here, we use the account `maura.attaway@example.com` for instance to show its fu
     {
         "id": null,
         "email": null,
+        "username": "",
         "is_successful": false,
         "message": "Unauthorized request, please login first.",
-        "timestamp": "2023-10-30 21:09:22.485493",
+        "timestamp": "2024-02-04 23:34:13.491143",
         "is_authenticated": false
     }
     ```
@@ -267,17 +288,19 @@ Here, we use the account `maura.attaway@example.com` for instance to show its fu
 - Request Method: `GET` | `POST`.
 - Request Body: Not required.
 - Returns:
-  - If succeeded,
+  - If succeeded
     - Status: `200 OK`.
     - Response Body:
     ```json
     {
-        "id": "b701ff89-84db-44e3-8ed6-bb973efbebcf",
+        "id": "9cbd55b3-cd94-4623-9153-36fd3dcc579d",
         "email": "maura.attaway@example.com",
+        "username": "maura.attaway",
         "is_successful": true,
         "message": "",
-        "timestamp": "2023-10-30 20:08:17.820156",
-        "is_authenticated": true
+        "timestamp": "2024-02-04 23:34:13.491143",
+        "is_authenticated": true,
+        "has_openai_secret_key": false
     }
     ```
   - If failed (happen when the user is not authenticated.)
@@ -287,10 +310,82 @@ Here, we use the account `maura.attaway@example.com` for instance to show its fu
     {
         "id": null,
         "email": null,
+        "username": "",
         "is_successful": false,
         "message": "Unauthorized request, please login first.",
-        "timestamp": "2023-10-30 20:08:17.820156",
+        "timestamp": "2024-02-04 23:34:13.491143",
         "is_authenticated": false
+    }
+    ```
+
+#### 3.3.2 Profile Update
+
+- Path: `/api/auth/profile/update`.
+- Request Method: `POST` | `PUT`.
+- Request Body: `form-data`.
+  - `field`: The profile field to update.
+  - `value`: The value to be set to the field.
+- Returns:
+  - If succeeded to update `username`,
+    - Status: `200 OK`.
+    - Response Body:
+    ```json
+    {
+        "id": "9cbd55b3-cd94-4623-9153-36fd3dcc579d",
+        "email": "maura.attaway@example.com",
+        "username": "Maura A.",
+        "is_successful": true,
+        "message": "The field `username` is successfully updated.",
+        "timestamp": "2024-02-05 00:36:28.830526",
+        "is_authenticated": true,
+        "has_openai_secret_key": false
+    }
+    ```
+  - If succeeded to update `openai_secret_key`.
+    - Status: `200 OK`.
+    - Response Body:
+    ```json
+    {
+        "id": "9cbd55b3-cd94-4623-9153-36fd3dcc579d",
+        "email": "maura.attaway@example.com",
+        "username": "Maura A.",
+        "is_successful": true,
+        "message": "The field `openai_secret_key` is successfully updated.",
+        "timestamp": "2024-02-05 00:38:23.238768",
+        "is_authenticated": true,
+        "has_openai_secret_key": true
+    }
+    ```
+    - Note that the `has_openai_secret_key` value is `true` now.
+  - If failed (happen when the `field` is not recognizable or not editable.)
+    - Status Code: `403 FORBIDDEN`.
+    - Response Body: 
+    ```json
+    {
+        "id": "9cbd55b3-cd94-4623-9153-36fd3dcc579d",
+        "email": "maura.attaway@example.com",
+        "username": "Maura A.",
+        "is_successful": false,
+        "message": "The field `id` is not recognizable or not editable.",
+        "timestamp": "2024-02-05 00:38:23.238768",
+        "is_authenticated": true,
+        "has_openai_secret_key": true
+    }
+    ```
+    - Currently only `username` and `openai_secret_key` fields are editable.
+  - If failed (happen when the `field` or `value` is null in the request.)
+    - Status Code: `400 BAD REQUEST`.
+    - Response Body: 
+    ```json
+    {
+        "id": "9cbd55b3-cd94-4623-9153-36fd3dcc579d",
+        "email": "maura.attaway@example.com",
+        "username": "Maura A.",
+        "is_successful": false,
+        "message": "The `field` or `value` is null in the request.",
+        "timestamp": "2024-02-05 00:38:23.238768",
+        "is_authenticated": true,
+        "has_openai_secret_key": true
     }
     ```
 
@@ -309,12 +404,14 @@ Here, we use the account `maura.attaway@example.com` for instance to show its fu
     - Response Body:
     ```json
     {
-        "id": "1bce4b77-9c60-4144-a907-c46aa1258722",
+        "id": "9cbd55b3-cd94-4623-9153-36fd3dcc579d",
         "email": "maura.attaway@example.com",
+        "username": "maura.attaway",
         "is_successful": true,
-        "message": "User `maura.attaway@example.com` succeeded to change the password.",
-        "timestamp": "2023-10-31 01:07:52.281764",
-        "is_authenticated": true
+        "message": "User `maura.attaway` succeeded to change the password.",
+        "timestamp": "2024-02-05 00:01:04.861464",
+        "is_authenticated": true,
+        "has_openai_secret_key": false
     }
     ```
   - If failed (because the old password does not match.)
@@ -322,12 +419,14 @@ Here, we use the account `maura.attaway@example.com` for instance to show its fu
     - Response Body: 
     ```json
     {
-        "id": "1bce4b77-9c60-4144-a907-c46aa1258722",
+        "id": "9cbd55b3-cd94-4623-9153-36fd3dcc579d",
         "email": "maura.attaway@example.com",
+        "username": "maura.attaway",
         "is_successful": false,
-        "message": "User `maura.attaway@example.com` failed to change the password due to unmatched old password.",
-        "timestamp": "2023-10-31 01:07:52.281764",
-        "is_authenticated": true
+        "message": "User `maura.attaway` failed to change the password due to unmatched old password.",
+        "timestamp": "2024-02-05 00:01:04.861464",
+        "is_authenticated": true,
+        "has_openai_secret_key": false
     }
     ```
   - If failed (happen when the user is not authenticated.)
@@ -337,6 +436,7 @@ Here, we use the account `maura.attaway@example.com` for instance to show its fu
     {
         "id": null,
         "email": null,
+        "username": "",
         "is_successful": false,
         "message": "Unauthorized request, please login first.",
         "timestamp": "2023-10-30 20:08:17.820156",
@@ -354,9 +454,9 @@ Function when people forget their password, or a new user logs in using Social L
 - Request Body: Not required.
 - Returns: (Leave for later...)
 
-### 3.5 OAuth
+## 4 OAuth
 
-#### 3.5.1 OAuth Unsafe Login
+### 4.1 OAuth Unsafe Login
 
 This method is only to test if the application works properly after passing the social login.
 This method is for development mode only.
@@ -392,13 +492,14 @@ Thus, this method will always respond with `200 OK` (with right input).
     - Response Body: 
     ```json
     {
-        "id": "d3bfa780-377d-4f33-ab62-49fdbd0648a1",
+        "id": "11888232-3ad8-43cd-9778-bc1659488a19",
         "email": "san.zhang@example.com",
-        "username": "ZHANG San",
+        "username": "san.zhang",
         "is_successful": true,
-        "message": "`New oauth account `san.zhang@example.com` logged in using `Unsafe` account, automatically bound to User `ZHANG San`.",
-        "timestamp": "2023-12-13 22:32:17.976542",
+        "message": "`New oauth account `san.zhang@example.com` logged in using `Unsafe` account, automatically bound to User `san.zhang`.",
+        "timestamp": "2024-02-05 00:01:05.093385",
         "is_authenticated": true,
+        "has_openai_secret_key": false,
         "oauth_email": "san.zhang@example.com",
         "oauth_vendor": "Unsafe"
     }
@@ -420,7 +521,7 @@ Thus, this method will always respond with `200 OK` (with right input).
     }
     ```
 
-#### 3.5.2 OAuth Vendor Login
+### 4.2 OAuth Vendor Login
 
 This method is to redirect the user to the Social Login consent page (i.e., Google, Microsoft, etc.) and automatically redirect to the callback function to grab the user information from the vendor's. Then, the login process will be performed by the EnzyHTP Web Application to set up a session and grant user with the cookie. 
 
@@ -435,7 +536,7 @@ Here, the `oauth_vendor` is a variable. For example, if we are to login with Goo
 
 Before developing or testing OAuth, some preparations should be done. Please check the `README.md` file in the `/flask-server` directory or Click the Links: 1. [SSL Certificates](../README.md#3-ssl-certificates) 2. [OAuth Clients](../README.md#4-oauth-clients).
 
-##### 3.5.2.1 How it works?
+#### 4.2.1 How it works?
 
 - For the convenience of description, Google Login is employed for instance.
 - When the user click the Social Login button (e.g. Login with Google), navigate the user to `https://<HOST_DOMAIN>:<PORT>/api/auth/oauth/google/login`, which will be automatically redirected (Status: 302) to the consent page of Google.
@@ -490,7 +591,7 @@ Before developing or testing OAuth, some preparations should be done. Please che
     }
     ```
 
-##### 3.5.2.2 What to do?
+#### 4.2.2 What to do?
 
 - Current callback function is imperfect, since it's so weird to let user(s) see some json strings.
 - It's better to have a dashboard or homepage for user to redirect to. Then, a redirect(301) response can be sent to redirect users to that page.
