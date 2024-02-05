@@ -12,10 +12,11 @@ This component serves as a basic authentication for EnzyHTP Webapp.
 This component provides following methods.
 
 - `register`: New User Registration.
-- `unregister`: Unregister a Current User. Only the user him/herself is permitted to do so.
+- `unregister`: Unregister the current User. Only the user him/herself is permitted to do so.
 - `login`: User Login and create a cookie.
 - `logout`: User Logout and delete the cookie.
 - `profile`: The profile of the user.
+- `profile/update`: Update profile fields.
 - `password/change`: Change the password of the user him/herself.
 - `password/reset`: Reset the password of the user him/herself.
 - `oauth/unsafe/login`: Test if the application works properly after passing the social login.

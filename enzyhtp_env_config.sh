@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # This script is a part of first time installation.
 # This script is to config environment variables of the current conda env.
@@ -7,7 +7,6 @@
 # This script should be modified before execution.
 
 # Reference: https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#saving-environment-variables
-
 
 # Change the variable value to the path of your enzyhtp folder,
 # making sure not to add a slash at the end.
