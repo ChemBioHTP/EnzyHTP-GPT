@@ -23,6 +23,7 @@ class User(db.Model, UserMixin):
         email (str): Email address of the user.
         password (str): Password hashed with SHA256.
         username (str): The username.
+        openai_api_key (str): The user's OpenAI API Key to access OpenAI Services such as ChatGPT.
         registered_on (datetime): The time when the user is registered.
         admin (bool): The flag showing if the user is an admin.
     """
@@ -31,6 +32,7 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(255), nullable=False, unique=True)
     password = db.Column(db.String(64), nullable=False)
     username = db.Column(db.String(64), nullable=True)
+    openai_secret_key = db.Column(db.String(64), nullable=True)
     registered_on = db.Column(db.DateTime, nullable=False)
     admin = db.Column(db.Boolean, nullable=False, default=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
@@ -152,7 +154,6 @@ class User(db.Model, UserMixin):
         else:
             return False
         
-
     def get_id(self) -> str:
         """Get the ID of current user.
         
@@ -160,6 +161,14 @@ class User(db.Model, UserMixin):
             The id of current user.
         """
         return self.id
+
+    @property
+    def has_openai_secret_key(self) -> bool:
+        '''Does the user have OpenAI Secret Key?'''
+        if self.openai_secret_key:
+            return True
+        else:
+            return False
 
 class OAuthUser(db.Model):
     """User from Social Login.
