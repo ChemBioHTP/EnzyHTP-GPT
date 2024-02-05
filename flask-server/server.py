@@ -16,7 +16,7 @@ app = Flask(__name__)
 CORS(app)
 
 # TODO: Update method for getting files - global variable for now, integrate into database
-app.config['UPLOAD_FOLDER'] = 'uploads'
+UPLOAD_FOLDER = 'uploads'
 file_path = ""
 
 import settings
@@ -44,7 +44,7 @@ def validate_file():
             if file.filename == '':
                 return 'No selected file'
             
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+            file_path = os.path.join(UPLOAD_FOLDER, file.filename)
 
             if file:
                 file.save(file_path)
