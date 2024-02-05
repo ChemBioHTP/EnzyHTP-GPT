@@ -1,0 +1,67 @@
+.modal-panel {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  width: 333px;
+}
+
+.modal-panel .tag {
+  align-items: flex-start;
+  align-self: stretch;
+  background-color: var(--theme-tag-blue-tag-background-blue);
+  border-radius: 1000px;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+}
+
+.modal-panel .label {
+  align-items: center;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  padding: 4px 16px;
+  position: relative;
+  width: 100%;
+}
+
+.modal-panel .p {
+  align-self: stretch;
+  color: var(--theme-tag-blue-tag-color-blue);
+  font-family: var(--utility-styles-label-01-font-family);
+  font-size: var(--utility-styles-label-01-font-size);
+  font-style: var(--utility-styles-label-01-font-style);
+  font-weight: var(--utility-styles-label-01-font-weight);
+  letter-spacing: var(--utility-styles-label-01-letter-spacing);
+  line-height: var(--utility-styles-label-01-line-height);
+  margin-top: -1px;
+  position: relative;
+}
+
+.modal-panel .tag-2 {
+  align-items: flex-start;
+  align-self: stretch;
+  background-color: var(--theme-tag-blue-tag-background-blue);
+  border-radius: 1000px;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 0px 0px;
+  position: relative;
+  width: 100%;
+}
+
+.modal-panel .label-wrapper {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  flex-grow: 1;
+  padding: 4px 16px;
+  position: relative;
+}
