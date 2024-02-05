@@ -375,3 +375,30 @@
   white-space: nowrap;
   width: fit-content;
 }
+
+.WorkflowDisplay{
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  border-radius: 5px;
+  border: 1px solid var(--Border-border-subtle-00, #E0E0E0);  
+}
+
+.TargetMetrics {
+  display: flex;
+  width: 989px;
+  padding: 16px;
+  align-items: center;
+  border-radius: 5px;
+  border: 1px solid var(--Border-border-subtle-00, #E0E0E0);  
+}
+
+.GeometryConstraint {
+  display: flex;
+  width: 989px;
+  padding: 16px;
+  align-items: center;
+  border-radius: 5px;
+  border: 1px solid var(--Border-border-subtle-00, #E0E0E0);  
+}

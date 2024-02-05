@@ -1,0 +1,14 @@
+.TileContent{
+    display: flex;
+    padding: 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    border-radius: 3px;
+    background: var(--workflow, #E7F1FF);
+    width: 195px;
+    height: 116px;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-shrink: 0;
+    margin: 16px;
+  }

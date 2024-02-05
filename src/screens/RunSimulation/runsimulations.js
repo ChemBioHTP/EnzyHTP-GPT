@@ -1,22 +1,17 @@
 import React from "react";
 import { NavigationHeader } from "./components/NavigationHeader";
 import { NavigationPage } from "./components/NavigationPage";
-import { IconAlertCircle2 } from "./icons/IconAlertCircle2";
-import { IconEdit3 } from "./icons/IconEdit3";
-import { IconMoreHorizontal } from "./icons/IconMoreHorizontal";
 import "./style.css";
 import { NavigationSideNav } from "../CreateMutants/components/NavigationSideNav";
 import { IconMoreHorizontal2 } from "../CreateMutants/icons/IconMoreHorizontal2";
 import { IconAlertCircle } from "../CreateMutants/icons/IconAlertCircle";
-import { TabsItems } from "../CreateMutants/components/TabsItems";
 import { Button } from "../CreateMutants/components/Button";
-import { Accordion } from "../CreateMutants/components/Accordion";
-import { ModalPanel } from "../CreateMutants/components/ModalPanel";
-import { ModalPanelTargets } from "../CreateMutants/components/ModalPanelTargets";
 import { DirectionHorizontalWrapper } from "../CreateMutants/components/DirectionHorizontalWrapper";
 import { CircleDash8 } from "../CreateMutants/icons/CircleDash8";
 import { Incomplete3 } from "../CreateMutants/icons/Incomplete3";
-import { IconArrowRight1 } from "../CreateMutants/icons/IconArrowRight1";
+import WorkflowDisplay from "./components/WorkflowDisplay/WorkflowDisplay";
+import TargetMetrics from "./components/TargetMetrics/TargetMetrics";
+import GeometryConstraint from "./components/GeometryConstraint/GeometryConstraint";
 
 export const RunSimulation = () => {
   return (
@@ -36,6 +31,15 @@ export const RunSimulation = () => {
               apply to the wild type. You can apply multiple mutants to the wild
               type.
             </p>
+            <div className="WorkflowDisplay">
+              <WorkflowDisplay />
+            </div>
+            <div className="TargetMetrics">
+              <TargetMetrics />
+            </div>
+            <div className="GeometryConstraint">
+              <GeometryConstraint />
+            </div>
           </div>
           <div className="progress-indicator-2">
             <DirectionHorizontalWrapper
@@ -57,7 +61,6 @@ export const RunSimulation = () => {
               state="incomplete"
             />
           </div>
-
           <div className="frame-13">
             <div style={{ cursor: "pointer" }}>
               <Button
