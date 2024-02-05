@@ -10,6 +10,7 @@ import ellipse2 from "../../assets/images/Login/ellipse-2.svg";
 import ellipse1 from "../../assets/images/Login/ellipse-1.svg";
 import union from "../../assets/images/Login/union.svg";
 import { Link } from 'react-router-dom';
+import Cookies from 'js-cookie';
 import hexagonDottedConnectLineBackground1 from "../../assets/images/Login/hexagon-dotted-connect-line-background-1.png";
 // Styles
 import "./style.css";
@@ -40,13 +41,10 @@ export const ApiKeyScreen = () => {
 
     const handleSignout = async () => {   
       try {
-        const response = await fetch('https://192.168.1.252:5000/api/auth/logout', {
-          method: 'GET',
-          headers: {
-              'Content-Type': 'application/json',
-          },
-        });
+        Cookies.remove('userToken');
+        const response = await fetch('https://192.168.1.252:5000/api/auth/logout');
         if (response.ok) {
+          
           let path = '/login'; 
           navigate(path);
         }

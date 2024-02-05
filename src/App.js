@@ -5,12 +5,14 @@ import ElementLoginScreen from "./screens/Login/loginscreen";
 import { BrowserRouter as Router, Route, Routes, Navigate} from 'react-router-dom';
 import ApiKeyScreen from "./screens/Login/apikeyscreen";
 import ForgotpwdScreen from "./screens/Login/forgotpwdscreen";
+import Cookies from 'js-cookie';
+import ChangepwdScreen from "./screens/Login/changepwdscreen";
 
 function App() {
   const [data, setData] = useState([{}]);
 
   const PrivateRoute = ({ element }) => {
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
+    const isLoggedIn = Cookies.get('userToken');
 
     return isLoggedIn ? (
       element
@@ -25,7 +27,8 @@ function App() {
         <Route path="/" element={<ElementLandingScreen />} />
         <Route path="/login" element={<ElementLoginScreen />} />
         <Route path="/key" element={<PrivateRoute element={<ApiKeyScreen />}/>} />
-        <Route path="/forgotpwd" element={<PrivateRoute element={<ForgotpwdScreen />}/>} />
+        <Route path="/forgotpwd" element={<PrivateRoute element={<ForgotpwdScreen />} />} />
+        <Route path="/changepwd" element={<PrivateRoute element={<ChangepwdScreen />}/>} />
       </Routes>
     </div>    
     

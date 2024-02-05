@@ -10,6 +10,7 @@ import ellipse2 from "../../assets/images/Login/ellipse-2.svg";
 import ellipse1 from "../../assets/images/Login/ellipse-1.svg";
 import union from "../../assets/images/Login/union.svg";
 import { Link } from 'react-router-dom';
+import Cookies from 'js-cookie';
 import hexagonDottedConnectLineBackground1 from "../../assets/images/Login/hexagon-dotted-connect-line-background-1.png";
 // Styles
 import "./style.css";
@@ -18,32 +19,43 @@ export const ElementLoginScreen = () => {
     let navigate = useNavigate(); 
     const handleSubmit = async() => {
       if (rememberId) {
-        localStorage.setItem('rememberedId', email);
+        Cookies.set('rememberedId', email);
       } else {
-        localStorage.removeItem('rememberedId');
+        Cookies.remove('rememberedId');
       }
 
       const formData = new FormData();
-        formData.append('email', email);
-        formData.append('password', pwd);
-        try {
-          const response = await fetch('https://192.168.1.252:5000/api/auth/login', {
-              method: 'POST',          
-              body: formData,
-          });
-          if (response.ok) {
-            localStorage.setItem('isLoggedIn', true);
-            let path = '/key'; 
-            navigate(path);
-          } else {
-            dispatch("pwd_error");
+      formData.append('email', email);
+      formData.append('password', pwd);
+      await fetch('https://192.168.1.252:5000/api/auth/login', {
+        method: 'POST',
+        body: formData,
+      })
+      .then(response => {
+        if (!response.ok) {
+          if (response.status == 401) {
+            throw dispatch("pwd_error");
+          } else if (response.status == 404) {
+            throw dispatch("email_notfound");
           }
-        }catch (error) {
-          console.error('Error sending data:', error);
         }
+    
+        return response.json();
+      })
+      .then(data => {
+          let userToken = data.id;
+          const currentTime = new Date();
+          const expirationTime = new Date(currentTime.getTime() + 60 * 60 * 1000);
+          Cookies.set('userToken', userToken, { expires: expirationTime });
+          let path = '/key';
+          navigate(path);
+      })
+      .catch(error => {
+          console.error('Error sending data:', error);
+      });
     }
 
-    const savedId = localStorage.getItem('rememberedId') || '';
+    const savedId = Cookies.get('rememberedId') || '';
   
     const [rememberId, setRememberId] = useState(savedId? true: false);
     
@@ -58,6 +70,7 @@ export const ElementLoginScreen = () => {
         emailState:"enabled",
         pwdState:"enabled",
         emailValid: savedId? true: false,
+        errorText: "Error Text",
         pwdValid: false,
         bottonDisabled: true,
         bottonState: "disabled",
@@ -122,7 +135,7 @@ export const ElementLoginScreen = () => {
                                     showLabel={true}
                                     labelText="Email address"
                                     inputDefault={savedId}
-                                    errorText="Please provide a vaild email"
+                                    errorText={state.errorText}
                                     size="large"
                                     spacerClassName="design-component-instance-node"
                                     state={state.emailState}
@@ -200,6 +213,14 @@ function reducer(state, action) {
           ...state,
           emailState: "error",
           emailValid: false,
+          errorText: "Please provide a vaild email",
+        };
+      case "email_notfound":
+        return {
+          ...state,
+          emailState: "error",
+          emailValid: false,
+          errorText: "The email does not exist. Please sign up for a new account.",
         };
       case "email_empty":
         return {

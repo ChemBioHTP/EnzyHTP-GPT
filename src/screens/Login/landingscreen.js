@@ -10,6 +10,7 @@ import ellipse2 from "../../assets/images/Login/ellipse-2.svg";
 import ellipse1 from "../../assets/images/Login/ellipse-1.svg";
 import union from "../../assets/images/Login/union.svg";
 import { Link } from 'react-router-dom';
+import Cookies from 'js-cookie';
 import hexagonDottedConnectLineBackground1 from "../../assets/images/Login/hexagon-dotted-connect-line-background-1.png";
 // Styles
 import "./style.css";
@@ -18,9 +19,9 @@ export const ElementLandingScreen = () => {
     let navigate = useNavigate(); 
     const handleSubmit = async() => {
       if (rememberId) {
-        localStorage.setItem('rememberedId', email);
+        Cookies.set('rememberedId', email);
       } else {
-        localStorage.removeItem('rememberedId');
+        Cookies.remove('rememberedId');
       }
     
       const formData = new FormData();
@@ -50,7 +51,7 @@ export const ElementLandingScreen = () => {
         }
     }
   
-    const savedId = localStorage.getItem('rememberedId') || '';
+    const savedId = Cookies.get('rememberedId') || '';
   
     const [rememberId, setRememberId] = useState(savedId? true: false);
 

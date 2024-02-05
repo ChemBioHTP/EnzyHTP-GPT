@@ -10,38 +10,60 @@ import ellipse2 from "../../assets/images/Login/ellipse-2.svg";
 import ellipse1 from "../../assets/images/Login/ellipse-1.svg";
 import union from "../../assets/images/Login/union.svg";
 import { Link } from 'react-router-dom';
+import Cookies from 'js-cookie';
 import hexagonDottedConnectLineBackground1 from "../../assets/images/Login/hexagon-dotted-connect-line-background-1.png";
 // Styles
 import "./style.css";
 
-export const ForgotpwdScreen = () => {
+export const ChangepwdScreen = () => {
     let navigate = useNavigate(); 
     const handleSubmit = async() => {
-      let path = '/changepwd'; 
-      navigate(path);
+    
     }
-
-    const [email, setEmail] = useState('');
- 
+  
+    const [newPwd, setNewPwd] = useState('');
+    const [conPwd, setConPwd] = useState('');
+    
   
     const initState = {
-        emailState:"enabled",
-        emailValid: false,
+        newPwdState:"enabled",
+        conPwdState:"enabled",
+        newPwdVaild: false,
+        conPwdValid: false,
         bottonDisabled: true,
         bottonState: "disabled",
     }
 
     const [state, dispatch] = useReducer(reducer, initState);
 
-    const onChangeEmail = (useremail) => {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const regexValid = emailRegex.test(useremail);
+    const onChangeNewPwd = (pwd) => {
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+      const regexValid = passwordRegex.test(pwd);
+      const match = pwd===conPwd? true: false;
+      if (!pwd) {
+        dispatch("new_pwd_empty");
+      } else if(regexValid){
+        dispatch("new_pwd_valid");       
+        dispatch((!conPwd)? "confirm_pwd_empty": match? "confirm_pwd_valid": "confirm_pwd_error");
+      } else {
+        dispatch("new_pwd_error");
+      }
       
-      dispatch((!useremail)? "email_empty": regexValid? "email_valid": "email_error");
+      
+      dispatch((regexValid && match)? "button_enabled": "button_disabled");
+  
+      setNewPwd(pwd);
 
-      dispatch(regexValid? "button_enabled": "button_disabled");
-           
-      setEmail(useremail);
+    };
+
+    const onChangeConPwd = (pwd) => {
+      const match = pwd===newPwd? true: false;
+      
+      dispatch((!pwd)? "confirm_pwd_empty": match? "confirm_pwd_valid": "confirm_pwd_error");
+
+      dispatch((match && state.newPwdValid)? "button_enabled": "button_disabled");
+
+      setConPwd(pwd);
 
     };
     
@@ -64,10 +86,9 @@ export const ForgotpwdScreen = () => {
                     </p>
                     <div className="frame-2">
                         <div className="frame-3">
-                            <div className="text-wrapper-3">Forgot password</div>
+                            <div className="text-wrapper-3">Reset Password</div>
                             <div className="frame-4">
-                                <div className="text-wrapper-4" style={{ textAlign: 'left' }}>Please verify your email for us. Once you do, we'll
-                                <br />send instructions to reset your password.</div>
+                                <div className="text-wrapper-4">Please enter your new password</div>
                             </div>
                         </div>
                         <div className="frame-5">
@@ -78,29 +99,44 @@ export const ForgotpwdScreen = () => {
                                     placeholderText=""
                                     showHelper={false}
                                     showLabel={true}
-                                    labelText="Email address"
-                                    errorText="Please provide a vaild email"
+                                    labelText="New password"
+                                    errorText="Your password needs to be at least 8 characters including a lower-case letter, an upper case letter, a number and one special chatacter (!@#$%^&*)"
                                     size="large"
                                     spacerClassName="design-component-instance-node"
-                                    state={state.emailState}
+                                    state={state.newPwdState}
                                     textFilled={false}
-                                    onInputChange={onChangeEmail}
-                                />                                
+                                    
+                                    onInputChange={onChangeNewPwd}
+                                />
+                                <TextInputDefault
+                                    backgroundClassName="text-input-default-2"
+                                    className="text-input-default-instance"
+                                    placeholderText=""
+                                    showHelper={false}
+                                    showLabel={true}
+                                    labelText="Confirm password"
+                                    errorText="Password do not match. Please re-enter."
+                                    size="large"
+                                    spacerClassName="design-component-instance-node"
+                                    state={state.conPwdState}
+                                    textFilled={false}
+                                    
+                                    onInputChange={onChangeConPwd}
+                                />
                             </div>
                             <div className="frame-6" onClick={handleSubmit}>
                                 <Button
                                     buttonText="Reset my password"
                                     className="button-instance"
                                     iconClassName="button-2"
-                                    override={<IconArrowRight className="icon-arrow-right" />}
                                     size="large"
                                     stateProp={state.bottonState}
                                     disabled={state.bottonDisabled}
                                     format="primary"
                                     type="text-icon"
                                 />
-                            </div>                           
-                        </div>                        
+                            </div>               
+                        </div>                   
                     </div>
                 </div>
             </div>
@@ -110,23 +146,41 @@ export const ForgotpwdScreen = () => {
 
 function reducer(state, action) {
     switch (action) {
-      case "email_error":
+      case "new_pwd_error":
         return {
           ...state,
-          emailState: "error",
-          emailValid: false,
+          newPwdState: "error",
+          newPwdValid: false,
         };
-      case "email_empty":
+      case "new_pwd_empty":
         return {
           ...state,
-          emailState: "enabled",
-          emailValid: false,
+          newPwdState: "enabled",
+          newPwdValid: false,
         };
-      case "email_valid":
+      case "new_pwd_valid":
         return {
           ...state,
-          emailState: "enabled",
-          emailValid: true,
+          newPwdState: "enabled",
+          newPwdValid: true,
+        };
+      case "confirm_pwd_error":
+        return {
+          ...state,
+          conPwdState: "error",
+          conPwdValid: false,
+        };
+      case "confirm_pwd_empty":
+        return {
+          ...state,
+          conPwdState: "enabled",
+          conPwdValid: false,
+        };
+      case "confirm_pwd_valid":
+        return {
+          ...state,
+          conPwdState: "enabled",
+          conPwdValid: true,
         };
       case "button_disabled":
         return {
@@ -145,4 +199,4 @@ function reducer(state, action) {
     return state;
 }
 
-export default ForgotpwdScreen;
+export default ChangepwdScreen;

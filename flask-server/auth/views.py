@@ -213,7 +213,10 @@ def login() -> Response:
             email=email,
             message=f'The user `{email}` failed to log in.',
             is_authenticated=False)
-        return Response(response=response_info.serialize(), status=401, mimetype='application/json')
+        if user:
+            return Response(response=response_info.serialize(), status=401, mimetype='application/json')
+        else:
+            return Response(response=response_info.serialize(), status=404, mimetype='application/json')
 
 @auth.route('/logout', methods=['GET', 'POST'])
 @login_required
