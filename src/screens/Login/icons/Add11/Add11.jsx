@@ -15,7 +15,7 @@ export const Add11 = ({ className }) => {
       width="20"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <rect className="rect" fill="white" height="20" style="mix-blend-mode:multiply" width="20" />
+      <rect className="rect" fill="white" height="20" style={{ mixBlendMode: 'multiply'}} width="20" />
       <path
         className="path"
         d="M10.125 9.375V9.875H10.625H14.5V10.125H10.625H10.125V10.625V14.5H9.875V10.625V10.125H9.375H5.5V9.875H9.375H9.875V9.375V5.5H10.125V9.375Z"

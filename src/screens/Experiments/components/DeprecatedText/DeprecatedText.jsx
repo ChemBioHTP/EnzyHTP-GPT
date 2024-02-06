@@ -5,8 +5,8 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 
 import PropTypes from "prop-types";
 import React from "react";
-import { WarningAltFilled10 } from "../../icons/WarningAltFilled10";
-import { WarningFilled9 } from "../../icons/WarningFilled9";
+import { WarningAltFilled } from "../../icons/WarningAltFilled";
+import { WarningFilled1 } from "../../icons/WarningFilled1";
 import { StatusIcon } from "../StatusIcon";
 import "./style.css";
 
@@ -19,8 +19,8 @@ export const DeprecatedText = ({
   hasIcon = true,
   backgroundClassName,
   visible = true,
-  statusIconIcon = <WarningAltFilled10 className="icon-instance-node" color="#F1C21B" />,
-  override = <WarningFilled9 className="icon-instance-node" color="#DA1E28" />,
+  statusIconIcon = <WarningAltFilled className="icon-instance-node" color="#F1C21B" />,
+  override = <WarningFilled1 className="icon-instance-node" color="#DA1E28" />,
   visible1 = true,
 }) => {
   return (

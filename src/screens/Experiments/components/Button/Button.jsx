@@ -21,6 +21,7 @@ export const Button = ({
   stateProp,
   className,
   iconClassName,
+  onClick,
 }) => {
   const [state, dispatch] = useReducer(reducer, {
     style: style || "primary",
@@ -37,6 +38,10 @@ export const Button = ({
       }}
       onMouseLeave={() => {
         dispatch("mouse_leave");
+      }}
+      onClick={() => {
+        dispatch("click");
+        onClick && onClick();
       }}
     >
       {((state.size === "expressive" && state.state === "hover") ||
@@ -89,6 +94,7 @@ export const Button = ({
               <>
                 {icon && (
                   <div
+                    style={{background: 'transparent', mixBlendMode: 'multiply'}}
                     className={`icon-3 ${
                       ["danger-primary", "danger-tertiary", "primary", "secondary", "tertiary"].includes(state.style)
                         ? iconClassName
@@ -241,6 +247,7 @@ export const Button = ({
           <>{icon && <div className="icon-2">{icon && <Add />}</div>}</>
         </>
       )}
+    
     </button>
   );
 };
@@ -257,6 +264,11 @@ function reducer(state, action) {
       return {
         ...state,
         state: "enabled",
+      };
+    case "click":
+      return {
+        ...state,
+        state: "active",
       };
   }
 
@@ -279,4 +291,5 @@ Button.propTypes = {
   type: PropTypes.oneOf(["icon-only", "text-icon"]),
   size: PropTypes.oneOf(["large", "two-x-large", "extra-large", "expressive", "small", "medium"]),
   stateProp: PropTypes.oneOf(["active", "enabled", "focus", "hover", "skeleton", "disabled"]),
+  onClick: PropTypes.func,
 };

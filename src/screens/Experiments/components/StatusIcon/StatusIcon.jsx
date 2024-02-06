@@ -5,19 +5,19 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 
 import PropTypes from "prop-types";
 import React from "react";
-import { CheckmarkFilled6 } from "../../icons/CheckmarkFilled6";
+import { CheckmarkFilled3 } from "../../icons/CheckmarkFilled3";
 import "./style.css";
 
 export const StatusIcon = ({
   state,
   highContrast,
   className,
-  icon = <CheckmarkFilled6 className="checkmark-filled-6" color="#0F62FE" />,
+  icon = <CheckmarkFilled3 className="checkmark-filled-3" color="#0F62FE" />,
 }) => {
   return (
     <div className={`status-icon ${className}`}>
       <div className="overlap-group">
-        <div className={`fill state-${state} high-contrast-${highContrast}`} />
+        <div className={`fill state-0-${state} high-contrast-${highContrast}`} />
         {icon}
       </div>
     </div>

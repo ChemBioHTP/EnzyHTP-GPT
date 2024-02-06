@@ -6,14 +6,15 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 import PropTypes from "prop-types";
 import React from "react";
 import { useReducer } from "react";
-import { CheckmarkFilled6 } from "../../icons/CheckmarkFilled6";
-import { Close14 } from "../../icons/Close14";
-import { Close2 } from "../../icons/Close2";
-import { Close3 } from "../../icons/Close3";
-import { Close5 } from "../../icons/Close5";
-import { Close6 } from "../../icons/Close6";
-import { Close7 } from "../../icons/Close7";
-import { WarningFilled9 } from "../../icons/WarningFilled9";
+import { CheckmarkFilled3 } from "../../icons/CheckmarkFilled3";
+import { Close } from "../../icons/Close";
+// import { Close14 } from "../../icons/Close14";
+// import { Close2 } from "../../icons/Close2";
+// import { Close3 } from "../../icons/Close3";
+// import { Close5 } from "../../icons/Close5";
+// import { Close6 } from "../../icons/Close6";
+// import { Close7 } from "../../icons/Close7";
+import { WarningFilled1 } from "../../icons/WarningFilled1";
 import { StatusIcon } from "../StatusIcon";
 import "./style.css";
 
@@ -24,10 +25,10 @@ export const FileUploaderFile = ({
   size,
   stateProp,
   className,
-  statusIconIcon = <WarningFilled9 className="warning-filled" color="#DA1E28" />,
+  statusIconIcon = <WarningFilled1 className="warning-filled" color="#DA1E28" />,
   statusIconState = "warning-red",
   statusIconStateSuccessGreenClassName,
-  icon = <Close14 className="close-14" />,
+  icon = <Close className="close-14" />,
   divider = "/img/divider-7.svg",
   errorShortClassName,
 }) => {
@@ -64,11 +65,11 @@ export const FileUploaderFile = ({
               </>
             )}
 
-            {state.state === "uploaded" && state.size === "large" && <Close2 className="close-2" />}
+            {state.state === "uploaded" && state.size === "large" && <Close className="close-2" />}
 
-            {state.state === "uploaded" && state.size === "medium" && <Close3 className="close-2" />}
+            {state.state === "uploaded" && state.size === "medium" && <Close className="close-2" />}
 
-            {state.state === "uploaded" && state.size === "small" && <Close14 className="close-14" />}
+            {state.state === "uploaded" && state.size === "small" && <Close className="close-14" />}
 
             {state.state === "loading" && (
               <div className="loading-animation">
@@ -80,11 +81,11 @@ export const FileUploaderFile = ({
               </div>
             )}
 
-            {state.state === "focus" && state.size === "large" && <Close5 className="close-2" />}
+            {state.state === "focus" && state.size === "large" && <Close className="close-2" />}
 
-            {state.state === "focus" && state.size === "medium" && <Close6 className="close-2" />}
+            {state.state === "focus" && state.size === "medium" && <Close className="close-2" />}
 
-            {state.size === "small" && state.state === "focus" && <Close7 className="close-2" />}
+            {state.size === "small" && state.state === "focus" && <Close className="close-2" />}
           </div>
         )}
 
@@ -92,7 +93,7 @@ export const FileUploaderFile = ({
           <StatusIcon
             className="status-icon-2"
             highContrast={false}
-            icon={<CheckmarkFilled6 className="warning-filled" color="#0F62FE" />}
+            icon={<CheckmarkFilled3 className="warning-filled" color="#0F62FE" />}
             state="success-blue"
           />
         )}

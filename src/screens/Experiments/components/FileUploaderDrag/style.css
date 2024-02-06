@@ -1,5 +1,6 @@
 .file-uploader-drag {
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
   background-blend-mode: multiply;
   background-color: var(--transparenttransparent);
   position: relative;
@@ -79,4 +80,17 @@
 
 .file-uploader-drag.state-disabled .description {
   color: #c6c6c6;
+}
+.file-uploader-drag .upload-button {
+  align-items: center;
+  justify-content: center;
+  border-bottom-width: 1px;
+  border-color: var(--borderborder-strong-01);
+  display: flex;
+  flex: 0 0 auto;
+  /* gap: 8px; */
+  padding: 8px 16px;
+  right: 30px;
+  position: relative;
+
 }

@@ -5,8 +5,8 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 
 import PropTypes from "prop-types";
 import React from "react";
-import { WarningAltFilled10 } from "../../icons/WarningAltFilled10";
-import { WarningFilled9 } from "../../icons/WarningFilled9";
+import { WarningAltFilled } from "../../icons/WarningAltFilled";
+import { WarningFilled1 } from "../../icons/WarningFilled1";
 import { DeprecatedText } from "../DeprecatedText";
 import "./style.css";
 
@@ -81,10 +81,10 @@ export const SizeLargeStateWrapper = ({
             className="DEPRECATED-text-input-base"
             divClassName={`${filled ? "class-2" : "class"}`}
             inputText={DEPRECATEDTextInputText}
-            override={state === "error" ? <WarningFilled9 className="instance-node" color="#DA1E28" /> : undefined}
+            override={state === "error" ? <WarningFilled1 className="instance-node" color="#DA1E28" /> : undefined}
             size={size === "medium" ? "medium" : size === "small" ? "small" : "large"}
             statusIconIcon={
-              state === "warning" ? <WarningAltFilled10 className="instance-node" color="#F1C21B" /> : undefined
+              state === "warning" ? <WarningAltFilled className="instance-node" color="#F1C21B" /> : undefined
             }
             visible={state === "warning" ? false : undefined}
             visible1={state === "error" ? false : undefined}

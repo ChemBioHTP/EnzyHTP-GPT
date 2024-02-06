@@ -5,7 +5,7 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 
 import PropTypes from "prop-types";
 import React from "react";
-import { CheckmarkFilled } from "../../icons/CheckmarkFilled";
+import { CheckmarkFilled3 } from "../../icons/CheckmarkFilled3";
 import { Close } from "../../icons/Close";
 import { FileUploaderDrag } from "../FileUploaderDrag";
 import { FileUploaderFile } from "../FileUploaderFile";
@@ -15,7 +15,7 @@ import "./style.css";
 export const CreateForms = ({
   state,
   className,
-  fileUploaderFile = <CheckmarkFilled className="checkmark-filled" />,
+  fileUploaderFile = <CheckmarkFilled3 className="checkmark-filled" />,
   fileUploaderFileIcon = <Close className="close-instance" />,
 }) => {
   return (

@@ -17,7 +17,7 @@ export const ElementLandingScreen = () => {
 
   const routeChange = async () => {
     try {
-      navigate("/upload_file");
+      navigate("/experiments");
     } catch (error) {
       console.error("An error occurred:", error);
     }
