@@ -28,7 +28,7 @@ export const ElementLandingScreen = () => {
         formData.append('email', email);
         formData.append('password', pwd);
         try {
-          const response = await fetch('https://192.168.1.252:5000/api/auth/register', {
+          const response = await fetch('/api/auth/register', {
               method: 'POST',          
               body: formData,
           });

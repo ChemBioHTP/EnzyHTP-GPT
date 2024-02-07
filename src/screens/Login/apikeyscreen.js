@@ -42,9 +42,15 @@ export const ApiKeyScreen = () => {
     const handleSignout = async () => {   
       try {
         Cookies.remove('userToken');
-        const response = await fetch('https://192.168.1.252:5000/api/auth/logout');
+        let session = Cookies.get('session') || '';
+        console.log(session);
+        const response = await fetch('/api/auth/logout',{
+          method: 'GET',
+          headers: {
+            'Cookie': session
+          }
+        });
         if (response.ok) {
-          
           let path = '/login'; 
           navigate(path);
         }

@@ -27,9 +27,9 @@ export const ElementLoginScreen = () => {
       const formData = new FormData();
       formData.append('email', email);
       formData.append('password', pwd);
-      await fetch('https://192.168.1.252:5000/api/auth/login', {
+      await fetch('/api/auth/login', {
         method: 'POST',
-        body: formData,
+        body: formData,   
       })
       .then(response => {
         if (!response.ok) {
@@ -38,6 +38,10 @@ export const ElementLoginScreen = () => {
           } else if (response.status == 404) {
             throw dispatch("email_notfound");
           }
+        } else {
+          var session = response.headers.get("Set-Cookie");
+          console.log(session);
+          Cookies.set('session', session, 1);
         }
     
         return response.json();
@@ -45,7 +49,7 @@ export const ElementLoginScreen = () => {
       .then(data => {
           let userToken = data.id;
           const currentTime = new Date();
-          const expirationTime = new Date(currentTime.getTime() + 60 * 60 * 1000);
+          const expirationTime = new Date(currentTime.getTime() + 60 * 60 * 1000);        
           Cookies.set('userToken', userToken, { expires: expirationTime });
           let path = '/key';
           navigate(path);
