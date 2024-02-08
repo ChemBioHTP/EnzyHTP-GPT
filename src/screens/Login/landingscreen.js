@@ -14,6 +14,7 @@ import Cookies from 'js-cookie';
 import hexagonDottedConnectLineBackground1 from "../../assets/images/Login/hexagon-dotted-connect-line-background-1.png";
 // Styles
 import "./style.css";
+import {googlelogin} from "./Api/googleLogin.js"
 
 export const ElementLandingScreen = () => {
     let navigate = useNavigate(); 
@@ -33,7 +34,7 @@ export const ElementLandingScreen = () => {
               body: formData,
           });
           if (response.ok) {
-            let path = '/key'; 
+            let path = '/login'; 
             navigate(path);
           } else {
             if ('Notification' in window) {
@@ -50,7 +51,10 @@ export const ElementLandingScreen = () => {
           console.error('Error sending data:', error);
         }
     }
-  
+    
+    const handleGoogleLogin = async() => {
+      googlelogin();
+    }
     const savedId = Cookies.get('rememberedId') || '';
   
     const [rememberId, setRememberId] = useState(savedId? true: false);
@@ -179,7 +183,7 @@ export const ElementLandingScreen = () => {
                               </div>
                             </div>
                         </div>
-                        <div className="frame-6">
+                        <div className="frame-6" onClick={handleGoogleLogin}>
                             <Button
                                 buttonText="Log in with Google"
                                 className="button-instance"

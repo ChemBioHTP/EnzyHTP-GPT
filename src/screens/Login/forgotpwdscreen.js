@@ -17,7 +17,7 @@ import "./style.css";
 export const ForgotpwdScreen = () => {
     let navigate = useNavigate(); 
     const handleSubmit = async() => {
-      let path = '/changepwd'; 
+      let path = '/resetpwd'; 
       navigate(path);
     }
 

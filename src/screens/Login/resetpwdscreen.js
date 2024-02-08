@@ -15,7 +15,7 @@ import hexagonDottedConnectLineBackground1 from "../../assets/images/Login/hexag
 // Styles
 import "./style.css";
 
-export const ChangepwdScreen = () => {
+export const ResetpwdScreen = () => {
     let navigate = useNavigate(); 
     const handleSubmit = async() => {
     
@@ -199,4 +199,4 @@ function reducer(state, action) {
     return state;
 }
 
-export default ChangepwdScreen;
+export default ResetpwdScreen;

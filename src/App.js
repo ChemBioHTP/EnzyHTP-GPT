@@ -6,7 +6,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate} from 'react-router-do
 import ApiKeyScreen from "./screens/Login/apikeyscreen";
 import ForgotpwdScreen from "./screens/Login/forgotpwdscreen";
 import Cookies from 'js-cookie';
-import ChangepwdScreen from "./screens/Login/changepwdscreen";
+import ResetpwdScreen from "./screens/Login/resetpwdscreen";
 
 function App() {
   const [data, setData] = useState([{}]);
@@ -27,8 +27,8 @@ function App() {
         <Route path="/" element={<ElementLandingScreen />} />
         <Route path="/login" element={<ElementLoginScreen />} />
         <Route path="/key" element={<PrivateRoute element={<ApiKeyScreen />}/>} />
-        <Route path="/forgotpwd" element={<PrivateRoute element={<ForgotpwdScreen />} />} />
-        <Route path="/changepwd" element={<PrivateRoute element={<ChangepwdScreen />}/>} />
+        <Route path="/forgotpwd" element={<ForgotpwdScreen />} />
+        <Route path="/resetpwd" element={<ResetpwdScreen />} />
       </Routes>
     </div>    
     

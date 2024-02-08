@@ -33,9 +33,9 @@ export const ElementLoginScreen = () => {
       })
       .then(response => {
         if (!response.ok) {
-          if (response.status == 401) {
+          if (response.status === 401) {
             throw dispatch("pwd_error");
-          } else if (response.status == 404) {
+          } else if (response.status === 404) {
             throw dispatch("email_notfound");
           }
         } else {
