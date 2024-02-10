@@ -56,7 +56,7 @@ export const SizeLargeStateWrapper = ({
             state === "disabled" && "class-3"
           }`}
           hasIcon={false}
-          inputText={DEPRECATEDTextInputText}
+          initialInputText={DEPRECATEDTextInputText}
           size={size === "medium" ? "medium" : size === "small" ? "small" : "large"}
           textOverflowClassName="DEPRECATED-text-instance"
         />

@@ -28,7 +28,19 @@
   margin-top: -1px;
   position: relative;
   white-space: nowrap;
-  width: fit-content;
+  width: 100%;
+}
+.DEPRECATED-text .input-class {
+  color: var(--basetext);
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.16px;
+  line-height: 18px;
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: 100%;
 }
 
 .DEPRECATED-text .icon {

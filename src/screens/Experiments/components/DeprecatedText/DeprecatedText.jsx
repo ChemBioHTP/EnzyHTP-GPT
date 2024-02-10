@@ -8,10 +8,11 @@ import React from "react";
 import { WarningAltFilled } from "../../icons/WarningAltFilled";
 import { WarningFilled1 } from "../../icons/WarningFilled1";
 import { StatusIcon } from "../StatusIcon";
+import { useState } from "react";
 import "./style.css";
 
 export const DeprecatedText = ({
-  inputText = "Input text",
+  initialInputText = "",
   size,
   className,
   textOverflowClassName,
@@ -22,11 +23,28 @@ export const DeprecatedText = ({
   statusIconIcon = <WarningAltFilled className="icon-instance-node" color="#F1C21B" />,
   override = <WarningFilled1 className="icon-instance-node" color="#DA1E28" />,
   visible1 = true,
+  onChange,
 }) => {
+  const [inputText, setInputText] = useState("");
+  const handleInputChange = (e) => {
+    setInputText(e.target.value);
+    if (onChange) {
+      onChange(e.target.value);
+    }
+  };
+
   return (
     <div className={`DEPRECATED-text ${size} ${className}`}>
       <div className={`text-overflow ${textOverflowClassName}`}>
-        <div className={`input-text ${divClassName}`}>{inputText}</div>
+        <div className={`input-text ${divClassName}`}>
+        <input
+            className="input-class"
+            type="text"
+            value={inputText}
+            onChange={handleInputChange}
+            placeholder={initialInputText}
+          />
+        </div>
       </div>
       {hasIcon && (
         <div className="icon">
@@ -56,4 +74,5 @@ DeprecatedText.propTypes = {
   hasIcon: PropTypes.bool,
   visible: PropTypes.bool,
   visible1: PropTypes.bool,
+  onChange: PropTypes.func, // Prop for handling input text changes
 };
