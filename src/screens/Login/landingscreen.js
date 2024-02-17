@@ -14,7 +14,6 @@ import Cookies from 'js-cookie';
 import hexagonDottedConnectLineBackground1 from "../../assets/images/Login/hexagon-dotted-connect-line-background-1.png";
 // Styles
 import "./style.css";
-import {googlelogin} from "./Api/googleLogin.js"
 
 export const ElementLandingScreen = () => {
     let navigate = useNavigate(); 
@@ -53,7 +52,8 @@ export const ElementLandingScreen = () => {
     }
     
     const handleGoogleLogin = async() => {
-      googlelogin();
+      let path = '/api/auth/oauth/google/login';
+      navigate(path);
     }
     const savedId = Cookies.get('rememberedId') || '';
   

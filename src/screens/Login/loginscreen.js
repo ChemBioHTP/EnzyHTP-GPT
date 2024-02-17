@@ -58,7 +58,12 @@ export const ElementLoginScreen = () => {
           console.error('Error sending data:', error);
       });
     }
-
+  
+    const handleGoogleLogin = async() => {
+      let path = '/api/auth/oauth/google/login';
+      navigate(path);
+    }
+  
     const savedId = Cookies.get('rememberedId') || '';
   
     const [rememberId, setRememberId] = useState(savedId? true: false);
@@ -191,7 +196,7 @@ export const ElementLoginScreen = () => {
                               </div>
                             </div>
                         </div>
-                        <div className="frame-6">
+                        <div className="frame-6" onClick={handleGoogleLogin}>
                             <Button
                                 buttonText="Log in with Google"
                                 className="button-instance"

@@ -10,7 +10,6 @@ from flask_cors import CORS
 import settings
 app = Flask(__name__, template_folder='../public')
 app.config.from_object(settings)
-CORS(app)
 
 from context import db, login_manager, ssl_context
 login_manager.login_message_category = "info"
