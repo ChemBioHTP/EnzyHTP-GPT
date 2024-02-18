@@ -20,6 +20,7 @@ from json import dumps, loads
 from . import auth
 from .models import User, OAuthUser
 from context import db, login_manager
+from settings import OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI
 from server import app
 
 class AuthResponseInfo():
@@ -44,6 +45,7 @@ class AuthResponseInfo():
             message: str = str(),
             timestamp = datetime.utcnow(),
             is_authenticated: bool = False,
+            verify_openai_secret_key: bool = False
             ) -> None:
         """Authentication Response Information.
         
@@ -54,7 +56,8 @@ class AuthResponseInfo():
             is_successful: Has the request successfully achieved its purpose?
             message: The message to be sent.
             timestamp: For 'register', it is the time when the user is registered; otherwise it is the time when the operation is completed.  
-            is_authenticated: A boolean value to show if a user is authenticated. Set to `True` for login success, Set to `False` for login failure or logout.
+            is_authenticated (bool): Show if a user is authenticated. Set to `True` for login success, Set to `False` for login failure or logout.
+            verify_openai_secret_key (bool): Will we verify the user's OpenAI Secret Key?
         """
         self.id = id
         self.email = email
@@ -66,14 +69,14 @@ class AuthResponseInfo():
         if (is_authenticated):
             user: User = current_user
             self.has_openai_secret_key = user.has_openai_secret_key
+        if (verify_openai_secret_key):
+            self.is_openai_secret_key_valid, self.openai_status_code, self.openai_response_description = user.get_openai_secret_key_status()
         return
     
     def serialize(self) -> str:
         """Serialize the current instance to json string."""
         from json import dumps
         serialized_data = self.__dict__
-        # for key, value in serialized_data.items():
-        #     print(f"{key}: {type(value)}")
         return dumps(serialized_data)
 
 @login_manager.user_loader
@@ -179,7 +182,8 @@ def login() -> Response:
             email=user.email,
             username=user.username,
             message=f'The user `{user.username}` logged in.',
-            is_authenticated=is_login)
+            is_authenticated=is_login,
+            verify_openai_secret_key=True)
         return Response(response=response_info.serialize(), status=200, mimetype='application/json')
     elif (not user):
         response_info = AuthResponseInfo(
@@ -244,7 +248,8 @@ def profile_update() -> Response:
             username=user.username,
             is_successful=True,
             message=f'The field `{field_name}` is successfully updated.',
-            is_authenticated=True
+            is_authenticated=True,
+            verify_openai_secret_key=(field_name == 'openai_secret_key')
         )
         return Response(response=response_info.serialize(), status=200, mimetype='application/json')
     elif (field_name not in editable_profile_fields):
@@ -363,6 +368,7 @@ class OAuthResponseInfo(AuthResponseInfo):
             message: str = str(),
             timestamp = datetime.utcnow(),
             is_authenticated: bool = False,
+            verify_openai_secret_key: bool = False
             ) -> None:
         """Authentication Response Information.
         
@@ -376,10 +382,11 @@ class OAuthResponseInfo(AuthResponseInfo):
             message: The message to be sent.
             timestamp: For 'register', it is the time when the user is registered; otherwise it is the time when the operation is completed.  
             is_authenticated: A boolean value to show if a user is authenticated. Set to `True` for login success, Set to `False` for login failure or logout.
+            verify_openai_secret_key (bool): Will we verify the user's OpenAI Secret Key?
         """
         super().__init__(id=id,
             email=email, username=username, is_successful=is_successful, message=message,
-            timestamp=timestamp, is_authenticated=is_authenticated)
+            timestamp=timestamp, is_authenticated=is_authenticated, verify_openai_secret_key=verify_openai_secret_key)
         self.oauth_email = oauth_email
         self.oauth_vendor = OAuthUser.camel_case_oauth_vendor(oauth_vendor)
         return
@@ -416,7 +423,8 @@ def __perform_oauth_login(
             oauth_email=oauth_email,
             oauth_vendor=oauth_vendor,
             message=f'User `{user.username}` logged in using `{oauth_vendor}` account.',
-            is_authenticated=True)
+            is_authenticated=True,
+            verify_openai_secret_key=True)
         return Response(response=oauth_response_info.serialize(), status=200, mimetype='application/json')
     elif (user := User.get_by_email(email=oauth_email)):
         oauth_user = OAuthUser(
@@ -433,7 +441,8 @@ def __perform_oauth_login(
             oauth_email=oauth_email,
             oauth_vendor=oauth_vendor,
             message=f'`New oauth account `{oauth_email}` logged in using `{oauth_vendor}` account, automatically bound to User `{user.username}`.',
-            is_authenticated=True)
+            is_authenticated=True,
+            verify_openai_secret_key=True)
         return Response(response=oauth_response_info.serialize(), status=201, mimetype='application/json')
     else:
         user = User(email=oauth_email, password=str(uuid4())[:8], username=username)
@@ -449,7 +458,8 @@ def __perform_oauth_login(
             oauth_email=oauth_email,
             oauth_vendor=oauth_vendor,
             message=f'`New oauth account `{oauth_email}` logged in using `{oauth_vendor}` account. Create new User `{username}`.',
-            is_authenticated=True)
+            is_authenticated=True,
+            verify_openai_secret_key=True)
         return Response(response=oauth_response_info.serialize(), status=201, mimetype='application/json')
 
 @auth.route('oauth/<oauth_vendor>/login', methods=['GET', 'POST'])
@@ -584,8 +594,8 @@ def oauth_vendor_login_callback(oauth_vendor: str) -> Response:
         oauth_vendor=oauth_vendor,
         username=username,
         remember=remember)
-    return response
-    # return redirect(f'/api/auth/profile', code=301)
+    # return response
+    return redirect(OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI, code=301)
 
 @auth.route('oauth/unsafe/login', methods=['POST'])
 def oauth_login_unsafe() -> Response:
