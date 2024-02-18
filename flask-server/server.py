@@ -5,7 +5,6 @@ import config
 import enzy_htp.structure
 import enzy_htp.mutation.api as mapi
 import enzy_htp.mutation.mutation_pattern.api as pattern_api
-from flask_cors import CORS
 
 import settings
 app = Flask(__name__, template_folder='../public')
@@ -94,7 +93,7 @@ if __name__ == "__main__":
     login_manager.init_app(app)
 
     # Set SSL Context and run server.
-    app.run(host='0.0.0.0',
+    app.run(host='localhost',
         port=5000,
         debug=True,
         ssl_context=ssl_context)
