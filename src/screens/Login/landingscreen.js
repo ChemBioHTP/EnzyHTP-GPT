@@ -16,7 +16,6 @@ import hexagonDottedConnectLineBackground1 from "../../assets/images/Login/hexag
 import "./style.css";
 
 export const ElementLandingScreen = () => {
-<<<<<<< HEAD
     let navigate = useNavigate(); 
     const handleSubmit = async() => {
       if (rememberId) {
@@ -199,46 +198,6 @@ export const ElementLandingScreen = () => {
                         </div>
                     </div>
                 </div>
-=======
-  let navigate = useNavigate();
-
-  const routeChange = async () => {
-    try {
-      navigate("/upload_file");
-    } catch (error) {
-      console.error("An error occurred:", error);
-    }
-  };
-
-  return (
-    <div className="element-landing-screen">
-      <div className="overlap-group-wrapper">
-        <div className="overlap-group">
-          <div className="rectangle" />
-          <img className="ellipse" alt="Ellipse" src={ellipse2} />
-          <img
-            className="hexagon-dotted"
-            alt="Hexagon dotted"
-            src={hexagonDottedConnectLineBackground1}
-          />
-          <img className="img" alt="Ellipse" src={ellipse1} />
-          <div className="frame">
-            <img className="union" alt="Union" src={union} />
-            <div className="div">EnzyHTP</div>
-          </div>
-          <p className="p">Developed by Yang Lab at Vanderbilt University</p>
-          <p className="text-wrapper-2">
-            Revolutionizing computational chemistry by seamlessly streamlining
-            preparation, mutation, and analysis.
-          </p>
-          <div className="frame-2">
-            <div className="frame-3">
-              <div className="text-wrapper-3">Create an account</div>
-              <div className="frame-4">
-                <div className="text-wrapper-4">Have an account?</div>
-                <div className="text-wrapper-5">Log in</div>
-              </div>
->>>>>>> origin/develop
             </div>
             <div className="frame-5">
               <div className="frame-6">
@@ -300,14 +259,11 @@ export const ElementLandingScreen = () => {
                 type="text-icon"
               />
             </div>
-          </div>
         </div>
-      </div>
-    </div>
+          
   );
 };
 
-<<<<<<< HEAD
 function reducer(state, action) {
     switch (action) {
       case "email_error":
@@ -364,6 +320,3 @@ function reducer(state, action) {
 }
 
 export default ElementLandingScreen;
-=======
-export default ElementLandingScreen;
->>>>>>> origin/develop

@@ -23,7 +23,6 @@ function App() {
 
   return (
     <div className="App">
-<<<<<<< HEAD
       <Routes>
         <Route path="/" element={<ElementLandingScreen />} />
         <Route path="/login" element={<ElementLoginScreen />} />
@@ -39,15 +38,6 @@ function App() {
       // ) : (
       //   data.members.map((member, i) => <p key={i}>{member}</p>)
       // )} */}
-=======
-      <ElementLandingScreen />
-    </div>
-    // {/* {typeof data.members === "undefined" ? (
-    //   <p>Loading...</p>
-    // ) : (
-    //   data.members.map((member, i) => <p key={i}>{member}</p>)
-    // )} */}
->>>>>>> origin/develop
   );
 }
 
