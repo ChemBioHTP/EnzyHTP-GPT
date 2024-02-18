@@ -11,9 +11,13 @@
 # Here put the import lib.
 from __future__ import annotations  # To enable the annotation that a staticmethod of a class returns an instance of the class.
 from flask_login import UserMixin
-from context import db
 import uuid
+from typing import Tuple
 from datetime import datetime
+from requests import post
+
+from context import db
+from settings import OPENAI_API_URI
 
 class User(db.Model, UserMixin):
     """User Model: User Information.
@@ -161,6 +165,63 @@ class User(db.Model, UserMixin):
             The id of current user.
         """
         return self.id
+
+    def get_openai_secret_key_status(self) -> Tuple[bool, int, str]:
+        """Verify by sending a prompt to ChatGPT and check its response code.
+        - If the OpenAI Secret Key is valid?
+        - If the account has sufficient credit?        
+
+        Returns:
+            is_valid (bool): Is the user's key valid?
+            status_code (int): The status code from OpenAI.
+            response_msg (str): The response message to describe the status.
+        """
+        valid_key_response_code_list = [200, 400, 429]
+        response_msg_dict = {
+            200: "Your OpenAI Secret Key is valid and your account balance is sufficient.",
+            429: "You exceeded your current OpenAI API quota, please check your plan and billing details.",
+            400: "Your OpenAI Secret Key is valid, but you sent a bad request.",
+            401: "Invalid OpenAI Secret Key.",
+            500: "OpenAI Internal Server Error. Unable to verify."
+        }
+        is_valid = False
+        status_code = 500
+
+        if self.openai_secret_key:
+            is_valid = False
+
+            headers = {
+                'Authorization': f'Bearer {self.openai_secret_key}',
+                'Content-Type': 'application/json',
+            }
+            url = OPENAI_API_URI
+            request_body = {
+                "model": "gpt-3.5-turbo",
+                "max_tokens": 30,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "Please say an emotional welcome speech, no less than 8 words, to welcome me to ChatGPT, and add punctuation at the end."
+                    }
+                ]
+            }
+            try:
+                response = post(url, headers=headers, json=request_body)
+                status_code = response.status_code
+                if status_code in valid_key_response_code_list:
+                    is_valid = True
+                    if status_code == 200:
+                        response_json = response.json()
+                        response_msg_dict[200] = response_json['choices'][0]['message']['content']
+                else:
+                    pass
+            except:
+                pass
+        else:
+            response_msg_dict[500] = "OpenAI Secret Key does not exist."
+        return is_valid, status_code, response_msg_dict[status_code]
+                
+
 
     @property
     def has_openai_secret_key(self) -> bool:
