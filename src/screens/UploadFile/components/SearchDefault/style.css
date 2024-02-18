@@ -1,0 +1,206 @@
+.search-default {
+  position: relative;
+}
+
+.search-default .search-icon {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 16px;
+  justify-content: center;
+  position: relative;
+}
+
+.search-default .hide-text-overflow {
+  align-items: flex-start;
+  display: flex;
+  flex: 1;
+  flex-grow: 1;
+  height: 18px;
+  position: relative;
+}
+
+.search-default .text {
+  flex: 1;
+  font-family: var(--body-styles-body-compact-01-font-family);
+  font-size: var(--body-styles-body-compact-01-font-size);
+  font-style: var(--body-styles-body-compact-01-font-style);
+  font-weight: var(--body-styles-body-compact-01-font-weight);
+  height: 18px;
+  letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+  line-height: var(--body-styles-body-compact-01-line-height);
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+}
+
+.search-default .clear-icon {
+  align-items: center;
+  position: relative;
+}
+
+.search-default .search-7 {
+  background-blend-mode: multiply !important;
+  height: 16px !important;
+  position: relative !important;
+  width: 16px !important;
+}
+
+.search-default .search-base {
+  align-items: center;
+  position: relative;
+}
+
+.search-default.expanded-false {
+  display: inline-flex;
+}
+
+.search-default.state-0-disabled {
+  align-items: center;
+  background-color: var(--fieldfield-01);
+}
+
+.search-default.state-0-hover {
+  align-items: center;
+}
+
+.search-default.state-0-focus {
+  align-items: center;
+  background-color: var(--fieldfield-01);
+  border: 2px solid;
+  border-color: var(--focusfocus);
+}
+
+.search-default.state-0-skeleton {
+  align-items: flex-start;
+  background-color: var(--skeletonskeleton-background);
+}
+
+.search-default.state-0-filled {
+  align-items: center;
+  background-color: var(--fieldfield-01);
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-color: var(--borderborder-strong-01);
+}
+
+.search-default.state-0-enabled {
+  align-items: center;
+}
+
+.search-default.expanded-true {
+  display: flex;
+  width: 358px;
+}
+
+.search-default.state-0-hover.expanded-false {
+  background-color: var(--layerlayer-hover-01);
+}
+
+.search-default.state-0-hover.expanded-true {
+  background-color: var(--fieldfield-01);
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-color: var(--borderborder-strong-01);
+}
+
+.search-default.state-0-enabled.expanded-false {
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+}
+
+.search-default.state-0-enabled.expanded-true {
+  background-color: var(--fieldfield-01);
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-color: var(--borderborder-strong-01);
+}
+
+.search-default.state-0-enabled.expandable-false.large {
+  height: 48px;
+}
+
+.search-default.large .search-icon {
+  padding: 16px;
+}
+
+.search-default.medium .search-icon {
+  padding: 12px;
+}
+
+.search-default.small .search-icon {
+  padding: 8px;
+}
+
+.search-default.state-0-disabled .text {
+  color: var(--texttext-disabled);
+}
+
+.search-default.state-0-hover .text {
+  color: var(--texttext-placeholder);
+}
+
+.search-default.state-0-focus .text {
+  color: var(--texttext-primary);
+}
+
+.search-default.state-0-skeleton .text {
+  color: var(--texttext-placeholder);
+}
+
+.search-default.state-0-filled .text {
+  color: var(--texttext-primary);
+}
+
+.search-default.state-0-enabled .text {
+  color: var(--texttext-placeholder);
+}
+
+.search-default.large .clear-icon {
+  display: flex;
+  padding: 16px;
+  width: 48px;
+}
+
+.search-default.medium .clear-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  padding: 12px;
+}
+
+.search-default.small .clear-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  padding: 8px;
+}
+
+.search-default.expanded-false .search-base {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 16px;
+  justify-content: center;
+}
+
+.search-default.large .search-base {
+  padding: 16px;
+}
+
+.search-default.state-0-skeleton .search-base {
+  flex-grow: 1;
+}
+
+.search-default.expanded-true .search-base {
+  display: flex;
+  flex: 1;
+  padding: 16px;
+}
+
+.search-default.expanded-false.medium .search-base {
+  padding: 12px;
+}
+
+.search-default.expanded-false.small .search-base {
+  padding: 8px;
+}

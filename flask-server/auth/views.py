@@ -20,6 +20,7 @@ from json import dumps, loads
 from . import auth
 from .models import User, OAuthUser
 from context import db, login_manager
+from settings import OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI
 from server import app
 
 class AuthResponseInfo():
@@ -29,10 +30,11 @@ class AuthResponseInfo():
         id (str): User ID.
         email (str): User Email Address.
         username (str): Username.
-        is_successful (bool): A boolean value to show if a request have successfully achieved its purpose.
+        is_successful (bool): Has the request successfully achieved its purpose?
         message (str): The message to be sent.
         timestamp (str): For 'register', it is the time when the user is registered; otherwise it is the time when the operation is completed.  
         is_authenticated (bool): A boolean value to show if a user is authenticated. Set to `True` for login success, Set to `False` for login failure or logout.
+        has_openai_secret_key (bool): Does the user have OpenAI Secret Key?
     """
 
     def __init__(self,
@@ -43,6 +45,7 @@ class AuthResponseInfo():
             message: str = str(),
             timestamp = datetime.utcnow(),
             is_authenticated: bool = False,
+            verify_openai_secret_key: bool = False
             ) -> None:
         """Authentication Response Information.
         
@@ -50,10 +53,11 @@ class AuthResponseInfo():
             id: User ID.
             email: User Email Address.
             username: Username.
-            is_successful: A boolean value to show if a request have successfully achieved its purpose.
+            is_successful: Has the request successfully achieved its purpose?
             message: The message to be sent.
             timestamp: For 'register', it is the time when the user is registered; otherwise it is the time when the operation is completed.  
-            is_authenticated: A boolean value to show if a user is authenticated. Set to `True` for login success, Set to `False` for login failure or logout.
+            is_authenticated (bool): Show if a user is authenticated. Set to `True` for login success, Set to `False` for login failure or logout.
+            verify_openai_secret_key (bool): Will we verify the user's OpenAI Secret Key?
         """
         self.id = id
         self.email = email
@@ -62,52 +66,18 @@ class AuthResponseInfo():
         self.message = message
         self.timestamp = str(timestamp)
         self.is_authenticated = is_authenticated
+        if (is_authenticated):
+            user: User = current_user
+            self.has_openai_secret_key = user.has_openai_secret_key
+        if (verify_openai_secret_key):
+            self.is_openai_secret_key_valid, self.openai_status_code, self.openai_response_description = user.get_openai_secret_key_status()
         return
-
+    
     def serialize(self) -> str:
         """Serialize the current instance to json string."""
         from json import dumps
         serialized_data = self.__dict__
-        # for key, value in serialized_data.items():
-        #     print(f"{key}: {type(value)}")
         return dumps(serialized_data)
-    
-class OAuthResponseInfo(AuthResponseInfo):
-    """OAuth Response Information.
-    
-    Attributes (except for attributes in base class):
-        oauth_vendor (str): OAuth Vendor, e.g. Google, Microsoft, etc.
-    """
-    def __init__(self,
-            id: str,
-            email: str,
-            oauth_email: str,
-            oauth_vendor: str,
-            username: str = str(),
-            is_successful: bool = True,
-            message: str = str(),
-            timestamp = datetime.utcnow(),
-            is_authenticated: bool = False,
-            ) -> None:
-        """Authentication Response Information.
-        
-        Args:
-            id: User ID.
-            email: User Email Address.
-            oauth_email: OAuth Email Address (e.g. gmail of Google, outlook/hotmail of Microsoft, etc.)
-            oauth_vendor: OAuth Vendor, e.g. Google, Microsoft, etc.
-            username: Username.
-            is_successful: A boolean value to show if a request have successfully achieved its purpose.
-            message: The message to be sent.
-            timestamp: For 'register', it is the time when the user is registered; otherwise it is the time when the operation is completed.  
-            is_authenticated: A boolean value to show if a user is authenticated. Set to `True` for login success, Set to `False` for login failure or logout.
-        """
-        super().__init__(id=id,
-            email=email, username=username, is_successful=is_successful, message=message,
-            timestamp=timestamp, is_authenticated=is_authenticated)
-        self.oauth_email = oauth_email
-        self.oauth_vendor = OAuthUser.camel_case_oauth_vendor(oauth_vendor)
-        return
 
 @login_manager.user_loader
 def load_user(user_id: str) -> User:
@@ -128,6 +98,8 @@ def unauth_handler() -> Response:
         message='Unauthorized request, please login first.',
     )
     return Response(response=response_info.serialize(), status=401, mimetype='application/json')
+
+#region 3.1 Register and Unregister
 
 @auth.route('/register', methods=['POST'])
 def register() -> Response:
@@ -161,6 +133,7 @@ def register() -> Response:
 @login_required
 def unregister() -> Response:
     """Unregister a Current User. Only the user him/herself is permitted to do so."""
+    
     user = current_user
     email_to_match = request.form.get('email').lower()
     user_to_unregister = User.get_by_email(email=email_to_match)
@@ -192,6 +165,10 @@ def unregister() -> Response:
             is_authenticated=True)
         return Response(response=response_info.serialize(), status=403, mimetype='application/json')
 
+#endregion
+
+#region 3.2 Login and Logout
+
 @auth.route('/login', methods=['POST'])
 def login() -> Response:
     """User Login."""
@@ -205,13 +182,21 @@ def login() -> Response:
             email=user.email,
             username=user.username,
             message=f'The user `{user.username}` logged in.',
-            is_authenticated=is_login)
+            is_authenticated=is_login,
+            verify_openai_secret_key=True)
         return Response(response=response_info.serialize(), status=200, mimetype='application/json')
+    elif (not user):
+        response_info = AuthResponseInfo(
+            id=None,
+            email=email,
+            message=f'The user `{email}` failed to log in because user does not exist.',
+            is_authenticated=False)
+        return Response(response=response_info.serialize(), status=404, mimetype='application/json')
     else:
         response_info = AuthResponseInfo(
             id=None,
             email=email,
-            message=f'The user `{email}` failed to log in.',
+            message=f'The user `{email}` failed to log in because of a password mismatch.',
             is_authenticated=False)
         return Response(response=response_info.serialize(), status=401, mimetype='application/json')
 
@@ -228,6 +213,10 @@ def logout() -> Response:
     logout_user()
     return Response(response=response_info.serialize(), status=200, mimetype='application/json')
 
+#endregion
+
+#region 3.3 Profile
+
 @auth.route('/profile', methods=['GET'])
 @login_required
 def profile() -> Response:
@@ -240,7 +229,54 @@ def profile() -> Response:
         is_authenticated=True)
     return Response(response=response_info.serialize(), status=200, mimetype='application/json')
 
-@auth.route('/change_password', methods=['POST', 'PUT'])  # Keep temporarily for the sake of compatibility. Deprecate after January 2024.
+@auth.route('/profile/update', methods=['POST', 'PUT'])
+@login_required
+def profile_update() -> Response:
+    """Update the editable field(s) in the user profile."""
+    user: User = current_user
+    editable_profile_fields = ['username', 'openai_secret_key'] # Only fields in the list are editable.
+
+    field_name = request.form.get(key='field', default=None)
+    field_value = request.form.get(key='value', default=None)
+
+    if (field_name in editable_profile_fields and field_value):
+        setattr(user, field_name, field_value)
+        db.session.commit()
+        response_info = AuthResponseInfo(
+            id=user.id,
+            email=user.email,
+            username=user.username,
+            is_successful=True,
+            message=f'The field `{field_name}` is successfully updated.',
+            is_authenticated=True,
+            verify_openai_secret_key=(field_name == 'openai_secret_key')
+        )
+        return Response(response=response_info.serialize(), status=200, mimetype='application/json')
+    elif (field_name not in editable_profile_fields):
+        response_info = AuthResponseInfo(
+            id=user.id,
+            email=user.email,
+            username=user.username,
+            is_successful=False,
+            message=f'The field `{field_name}` is not recognizable or not editable.',
+            is_authenticated=True
+        )
+        return Response(response=response_info.serialize(), status=403, mimetype='application/json')
+    else:
+        response_info = AuthResponseInfo(
+            id=user.id,
+            email=user.email,
+            username=user.username,
+            is_successful=False,
+            message=f'The `field` or `value` is null in the request.',
+            is_authenticated=True
+        )
+        return Response(response=response_info.serialize(), status=400, mimetype='application/json')
+
+#endregion
+
+#region 3.4 Password
+
 @auth.route('/password/change', methods=['POST', 'PUT'])
 @login_required
 def password_change() -> Response:
@@ -265,7 +301,7 @@ def password_change() -> Response:
             email=user.email,
             username=user.username,
             is_successful=False,
-            mmessage=f'User `{user.username}` failed to change the password due to unmatched old password.',
+            message=f'User `{user.username}` failed to change the password due to unmatched old password.',
             is_authenticated=True,
         )
         return Response(response=response_info.serialize(), status=400, mimetype='application/json')
@@ -309,10 +345,51 @@ def password_reset() -> Response:
         )
         return Response(response=response_info.serialize(), status=400, mimetype='application/json')
 
-## ******* The dividing line between normal login and OAuth login ****** ##
+#endregion
+
+## ******* The dividing line between Email login and OAuth login ****** ##
 
 from .config import CLIENT_ID, CLIENT_SECRET, provider_cfg_dict, oauth_client_dict
 from oauthlib.oauth2 import WebApplicationClient
+    
+class OAuthResponseInfo(AuthResponseInfo):
+    """OAuth Response Information.
+    
+    Attributes (except for attributes in base class):
+        oauth_vendor (str): OAuth Vendor, e.g. Google, Microsoft, etc.
+    """
+    def __init__(self,
+            id: str,
+            email: str,
+            oauth_email: str,
+            oauth_vendor: str,
+            username: str = str(),
+            is_successful: bool = True,
+            message: str = str(),
+            timestamp = datetime.utcnow(),
+            is_authenticated: bool = False,
+            verify_openai_secret_key: bool = False
+            ) -> None:
+        """Authentication Response Information.
+        
+        Args:
+            id: User ID.
+            email: User Email Address.
+            oauth_email: OAuth Email Address (e.g. gmail of Google, outlook/hotmail of Microsoft, etc.)
+            oauth_vendor: OAuth Vendor, e.g. Google, Microsoft, etc.
+            username: Username.
+            is_successful: A boolean value to show if a request have successfully achieved its purpose.
+            message: The message to be sent.
+            timestamp: For 'register', it is the time when the user is registered; otherwise it is the time when the operation is completed.  
+            is_authenticated: A boolean value to show if a user is authenticated. Set to `True` for login success, Set to `False` for login failure or logout.
+            verify_openai_secret_key (bool): Will we verify the user's OpenAI Secret Key?
+        """
+        super().__init__(id=id,
+            email=email, username=username, is_successful=is_successful, message=message,
+            timestamp=timestamp, is_authenticated=is_authenticated, verify_openai_secret_key=verify_openai_secret_key)
+        self.oauth_email = oauth_email
+        self.oauth_vendor = OAuthUser.camel_case_oauth_vendor(oauth_vendor)
+        return
 
 def __perform_oauth_login(
         oauth_email: str,
@@ -346,7 +423,8 @@ def __perform_oauth_login(
             oauth_email=oauth_email,
             oauth_vendor=oauth_vendor,
             message=f'User `{user.username}` logged in using `{oauth_vendor}` account.',
-            is_authenticated=True)
+            is_authenticated=True,
+            verify_openai_secret_key=True)
         return Response(response=oauth_response_info.serialize(), status=200, mimetype='application/json')
     elif (user := User.get_by_email(email=oauth_email)):
         oauth_user = OAuthUser(
@@ -363,7 +441,8 @@ def __perform_oauth_login(
             oauth_email=oauth_email,
             oauth_vendor=oauth_vendor,
             message=f'`New oauth account `{oauth_email}` logged in using `{oauth_vendor}` account, automatically bound to User `{user.username}`.',
-            is_authenticated=True)
+            is_authenticated=True,
+            verify_openai_secret_key=True)
         return Response(response=oauth_response_info.serialize(), status=201, mimetype='application/json')
     else:
         user = User(email=oauth_email, password=str(uuid4())[:8], username=username)
@@ -379,7 +458,8 @@ def __perform_oauth_login(
             oauth_email=oauth_email,
             oauth_vendor=oauth_vendor,
             message=f'`New oauth account `{oauth_email}` logged in using `{oauth_vendor}` account. Create new User `{username}`.',
-            is_authenticated=True)
+            is_authenticated=True,
+            verify_openai_secret_key=True)
         return Response(response=oauth_response_info.serialize(), status=201, mimetype='application/json')
 
 @auth.route('oauth/<oauth_vendor>/login', methods=['GET', 'POST'])
@@ -514,8 +594,8 @@ def oauth_vendor_login_callback(oauth_vendor: str) -> Response:
         oauth_vendor=oauth_vendor,
         username=username,
         remember=remember)
-    return response
-    # return redirect(f'/api/auth/profile', code=301)
+    # return response
+    return redirect(OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI, code=301)
 
 @auth.route('oauth/unsafe/login', methods=['POST'])
 def oauth_login_unsafe() -> Response:

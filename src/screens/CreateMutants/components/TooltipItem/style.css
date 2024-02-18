@@ -1,0 +1,256 @@
+.tooltip-item {
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  display: inline-flex;
+  position: relative;
+}
+
+.tooltip-item .tooltip-caret-item {
+  background-blend-mode: multiply !important;
+  flex: 0 0 auto !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.tooltip-item .body {
+  align-items: flex-start;
+  border-radius: 2px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  max-width: 208px;
+  position: relative;
+}
+
+.tooltip-item .tooltip-content {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  padding: 2px 16px;
+  position: relative;
+  width: 100%;
+  z-index: 1;
+}
+
+.tooltip-item .tooltip-text {
+  color: var(--iconicon-inverse);
+  font-family: var(--body-styles-body-compact-01-font-family);
+  font-size: var(--body-styles-body-compact-01-font-size);
+  font-style: var(--body-styles-body-compact-01-font-style);
+  font-weight: var(--body-styles-body-compact-01-font-weight);
+  letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+  line-height: var(--body-styles-body-compact-01-line-height);
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+  z-index: 1;
+}
+
+.tooltip-item .background-4 {
+  background-color: var(--backgroundbackground-inverse);
+  border-radius: 2px;
+  height: 22px;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 105px;
+  z-index: 0;
+}
+
+.tooltip-item .min-width-3 {
+  height: 1px;
+  margin-bottom: -1px;
+  position: relative;
+  width: 64px;
+  z-index: 0;
+}
+
+.tooltip-item .tooltip-caret-item-2 {
+  background-blend-mode: multiply !important;
+  flex: 0 0 auto !important;
+  position: relative !important;
+  z-index: 0 !important;
+}
+
+.tooltip-item .body-2 {
+  align-items: flex-start;
+  border-radius: 2px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  max-width: 208px;
+  position: relative;
+  z-index: 0;
+}
+
+.tooltip-item .body-3 {
+  align-items: flex-start;
+  border-radius: 2px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+.tooltip-item .background-5 {
+  background-color: var(--backgroundbackground-inverse);
+  border-radius: 2px;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 105px;
+  z-index: 0;
+}
+
+.tooltip-item .body-4 {
+  align-items: flex-start;
+  border-radius: 2px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  position: relative;
+  z-index: 0;
+}
+
+.tooltip-item .background-6 {
+  background-color: var(--backgroundbackground-inverse);
+  border-radius: 2px;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 105px;
+  z-index: 0;
+}
+
+.tooltip-item .body-5 {
+  align-items: flex-start;
+  border-radius: 2px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  max-width: 288px;
+  padding: 16px;
+  position: relative;
+  z-index: 0;
+}
+
+.tooltip-item .background-7 {
+  background-color: var(--backgroundbackground-inverse);
+  border-radius: 2px;
+  height: 50px;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 105px;
+  z-index: 0;
+}
+
+.tooltip-item.standard {
+  border-radius: 2px;
+}
+
+.tooltip-item.position-bottom {
+  flex-direction: column;
+}
+
+.tooltip-item.start {
+  align-items: flex-start;
+}
+
+.tooltip-item.end {
+  align-items: flex-end;
+}
+
+.tooltip-item.position-top {
+  flex-direction: column;
+}
+
+.tooltip-item.center {
+  align-items: center;
+}
+
+.tooltip-item.standard.position-left {
+  justify-content: flex-end;
+}
+
+.tooltip-item.position-bottom.icon {
+  justify-content: flex-end;
+}
+
+.tooltip-item.definition.position-bottom {
+  justify-content: flex-end;
+}
+
+.tooltip-item.position-bottom .body {
+  z-index: 0;
+}
+
+.tooltip-item.position-left .body {
+  z-index: 1;
+}
+
+.tooltip-item.position-top .body {
+  z-index: 1;
+}
+
+.tooltip-item.position-right .body {
+  z-index: 1;
+}
+
+.tooltip-item.definition .body-3 {
+  max-width: 176px;
+  padding: 8px 16px;
+}
+
+.tooltip-item.standard .body-3 {
+  max-width: 288px;
+  padding: 16px;
+}
+
+.tooltip-item.icon .body-3 {
+  max-width: 176px;
+  padding: 8px 16px;
+}
+
+.tooltip-item.definition .background-5 {
+  height: 34px;
+}
+
+.tooltip-item.standard .background-5 {
+  height: 50px;
+}
+
+.tooltip-item.icon .background-5 {
+  height: 34px;
+}
+
+.tooltip-item.definition .body-4 {
+  max-width: 176px;
+  padding: 8px 16px;
+}
+
+.tooltip-item.standard .body-4 {
+  max-width: 288px;
+  padding: 16px;
+}
+
+.tooltip-item.icon .body-4 {
+  max-width: 176px;
+  padding: 8px 16px;
+}
+
+.tooltip-item.definition .background-6 {
+  height: 34px;
+}
+
+.tooltip-item.standard .background-6 {
+  height: 50px;
+}
+
+.tooltip-item.icon .background-6 {
+  height: 34px;
+}
