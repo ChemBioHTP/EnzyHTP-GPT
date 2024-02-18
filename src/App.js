@@ -29,6 +29,7 @@ function App() {
         <Route path="/key" element={<PrivateRoute element={<ApiKeyScreen />}/>} />
         <Route path="/forgotpwd" element={<ForgotpwdScreen />} />
         <Route path="/resetpwd" element={<ResetpwdScreen />} />
+        <Route path="/googlelogin" element={<GoogleLogin />} />
       </Routes>
     </div>    
     
@@ -38,6 +39,12 @@ function App() {
       //   data.members.map((member, i) => <p key={i}>{member}</p>)
       // )} */}
   );
+}
+
+function GoogleLogin() {
+
+  window.location.replace('https://localhost:5000/api/auth/oauth/google/login');
+  return null;
 }
 
 export default App;

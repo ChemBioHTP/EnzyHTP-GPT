@@ -52,7 +52,7 @@ export const ElementLandingScreen = () => {
     }
     
     const handleGoogleLogin = async() => {
-      let path = '/api/auth/oauth/google/login';
+      let path = '/googlelogin';
       navigate(path);
     }
     const savedId = Cookies.get('rememberedId') || '';
