@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useState, useReducer, useEffect} from 'react';
+import { useState, useReducer} from 'react';
 // Components
 import { IconArrowRight } from "./icons/IconArrowRight/IconArrowRight";
 import { Button } from "./components/Button/Button";
@@ -15,7 +15,7 @@ import hexagonDottedConnectLineBackground1 from "../../assets/images/Login/hexag
 // Styles
 import "./style.css";
 
-export const ElementLandingScreen = () => {
+export const ElementLoginScreen = () => {
     let navigate = useNavigate(); 
     const handleSubmit = async() => {
       if (rememberId) {
@@ -23,45 +23,54 @@ export const ElementLandingScreen = () => {
       } else {
         Cookies.remove('rememberedId');
       }
-    
+
       const formData = new FormData();
-        formData.append('email', email);
-        formData.append('password', pwd);
-        try {
-          const response = await fetch('/api/auth/register', {
-              method: 'POST',          
-              body: formData,
-          });
-          if (response.ok) {
-            let path = '/login'; 
-            navigate(path);
-          } else {
-            if ('Notification' in window) {
-              Notification.requestPermission().then((permission) => {
-                if (permission === 'granted') {
-                  new Notification('ERROR', {
-                    body: 'Register failed',
-                  });
-                }
-              });
-            }
+      formData.append('email', email);
+      formData.append('password', pwd);
+      await fetch('/api/auth/login', {
+        method: 'POST',
+        body: formData,   
+      })
+      .then(response => {
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw dispatch("pwd_error");
+          } else if (response.status === 404) {
+            throw dispatch("email_notfound");
           }
-        }catch (error) {
-          console.error('Error sending data:', error);
+        } else {
+          var session = response.headers.get("Set-Cookie");
+          console.log(session);
+          Cookies.set('session', session, 1);
         }
-    }
     
+        return response.json();
+      })
+      .then(data => {
+          let userToken = data.id;
+          const currentTime = new Date();
+          const expirationTime = new Date(currentTime.getTime() + 60 * 60 * 1000);        
+          Cookies.set('userToken', userToken, { expires: expirationTime });
+          let path = '/key';
+          navigate(path);
+      })
+      .catch(error => {
+          console.error('Error sending data:', error);
+      });
+    }
+  
     const handleGoogleLogin = async() => {
-      let path = '/googlelogin';
+      let path = '/api/auth/oauth/google/login';
       navigate(path);
     }
+  
     const savedId = Cookies.get('rememberedId') || '';
   
     const [rememberId, setRememberId] = useState(savedId? true: false);
-
-    const [email, setEmail] = useState('');
-    const [pwd, setPwd] = useState('');
     
+    const [email, setEmail] = useState(savedId);
+    const [pwd, setPwd] = useState('');
+
     const handleCheckboxChange = () => {
       setRememberId(prev => !prev);
     };
@@ -69,7 +78,8 @@ export const ElementLandingScreen = () => {
     const initState = {
         emailState:"enabled",
         pwdState:"enabled",
-        emailValid: false,
+        emailValid: savedId? true: false,
+        errorText: "Error Text",
         pwdValid: false,
         bottonDisabled: true,
         bottonState: "disabled",
@@ -90,12 +100,10 @@ export const ElementLandingScreen = () => {
     };
 
     const onChangePwd = (pwd) => {
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
-      const regexValid = passwordRegex.test(pwd);
       
-      dispatch((!pwd)? "pwd_empty": regexValid? "pwd_valid": "pwd_error");
+      dispatch(pwd? "pwd_valid": "pwd_empty");
 
-      dispatch((regexValid && state.emailValid)? "button_enabled": "button_disabled");
+      dispatch((pwd && state.emailValid)? "button_enabled": "button_disabled");
 
       setPwd(pwd);
 
@@ -120,26 +128,28 @@ export const ElementLandingScreen = () => {
                     </p>
                     <div className="frame-2">
                         <div className="frame-3">
-                            <div className="text-wrapper-3">Create an account</div>
+                            <div className="text-wrapper-3">Log in</div>
                             <div className="frame-4">
-                                <div className="text-wrapper-4">Have an account?</div>
-                                <div className="text-wrapper-5"><Link to="/login">Log in</Link></div>
+                                <div className="text-wrapper-4">New to EnzyHTP?</div>
+                                <div className="text-wrapper-5"><Link to="/">Sign up</Link></div>
                             </div>
                         </div>
                         <div className="frame-5">
                             <div className="frame-6">
-                                <TextInputDefault
+                            <TextInputDefault
                                     backgroundClassName="text-input-default-2"
                                     className="text-input-default-instance"
                                     placeholderText=""
                                     showHelper={false}
                                     showLabel={true}
                                     labelText="Email address"
-                                    errorText="Please provide a vaild email"
+                                    inputDefault={savedId}
+                                    errorText={state.errorText}
                                     size="large"
                                     spacerClassName="design-component-instance-node"
                                     state={state.emailState}
                                     textFilled={false}
+                                    textDefault={true}
                                     onInputChange={onChangeEmail}
                                 />
                                 <TextInputDefault
@@ -148,8 +158,11 @@ export const ElementLandingScreen = () => {
                                     placeholderText=""
                                     showHelper={false}
                                     showLabel={true}
+                                    showLink={true}
+                                    linkText="Forgot password?"
+                                    linkHerf="/forgotpwd"
                                     labelText="Password"
-                                    errorText="Your password needs to be at least 8 characters including a lower-case letter, an upper case letter, a number and one special chatacter (!@#$%^&*)"
+                                    errorText="Your password was incorrect. Please try again or tap Forgot password to reset it."
                                     size="large"
                                     spacerClassName="design-component-instance-node"
                                     state={state.pwdState}
@@ -194,74 +207,12 @@ export const ElementLandingScreen = () => {
                                 format="tertiary"
                                 type="text-icon"
                             />
-                            
                         </div>
                     </div>
                 </div>
             </div>
-            <div className="frame-5">
-              <div className="frame-6">
-                <TextInputDefault
-                  backgroundClassName="text-input-default-2"
-                  className="text-input-default-instance"
-                  placeholderText="Email address"
-                  showHelper={false}
-                  showLabel={false}
-                  size="large"
-                  spacerClassName="design-component-instance-node"
-                  state="enabled"
-                  textFilled={false}
-                />
-                <TextInputDefault
-                  backgroundClassName="text-input-default-2"
-                  className="text-input-default-instance"
-                  placeholderText="Password"
-                  showHelper={false}
-                  showLabel={false}
-                  size="large"
-                  spacerClassName="design-component-instance-node"
-                  state="enabled"
-                  textFilled={false}
-                />
-              </div>
-              <div className="frame-6" onClick={routeChange}>
-                <Button
-                  buttonText="Continue"
-                  className="button-instance"
-                  iconClassName="button-2"
-                  override={<IconArrowRight className="icon-arrow-right" />}
-                  size="large"
-                  stateProp="enabled"
-                  format="primary"
-                  type="text-icon"
-                />
-              </div>
-            </div>
-            <div className="frame-6">
-              <Button
-                buttonText="Log in with Google"
-                className="button-instance"
-                iconClassName="button-2"
-                override={<IconArrowRight className="icon-arrow-right" />}
-                size="large"
-                stateProp="enabled"
-                format="tertiary"
-                type="text-icon"
-              />
-              <Button
-                buttonText="Log in with Facebook"
-                className="button-instance"
-                iconClassName="button-2"
-                override={<IconArrowRight className="icon-arrow-right" />}
-                size="large"
-                stateProp="enabled"
-                format="tertiary"
-                type="text-icon"
-              />
-            </div>
         </div>
-          
-  );
+    );
 };
 
 function reducer(state, action) {
@@ -271,6 +222,14 @@ function reducer(state, action) {
           ...state,
           emailState: "error",
           emailValid: false,
+          errorText: "Please provide a vaild email",
+        };
+      case "email_notfound":
+        return {
+          ...state,
+          emailState: "error",
+          emailValid: false,
+          errorText: "The email does not exist. Please sign up for a new account.",
         };
       case "email_empty":
         return {
@@ -319,4 +278,4 @@ function reducer(state, action) {
     return state;
 }
 
-export default ElementLandingScreen;
+export default ElementLoginScreen;

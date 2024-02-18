@@ -141,6 +141,7 @@
     --buttonbutton-tertiary: var(--theme-button-button-tertiary);
     --buttonbutton-tertiary-active: var(--theme-button-button-tertiary-active);
     --buttonbutton-tertiary-hover: var(--theme-button-button-tertiary-hover);
+    --theme-button-button-secondary-hover: rgba(22, 22, 22, 1);
     --colors-default-blue-40: rgba(120, 169, 255, 1);
     --colors-default-blue-60: rgba(15, 98, 254, 1);
     --colors-default-gray-10: rgba(244, 244, 244, 1);
@@ -305,7 +306,8 @@
     --support-inversesupport-warning-inverse: var(--theme-support-support-warning-inverse);
     --supportsupport-caution-major: rgba(255, 131, 43, 1);
     --supportsupport-caution-minor: rgba(241, 194, 27, 1);
-    --supportsupport-error: var(--theme-support-support-error);
+    /* --supportsupport-error: var(--theme-support-support-error); */
+    --supportsupport-error: rgba(218, 30, 40, 1);
     --supportsupport-info: var(--theme-support-support-info);
     --supportsupport-success: var(--theme-support-support-success);
     --supportsupport-undefined: rgba(138, 63, 252, 1);
@@ -341,7 +343,7 @@
     --tagwarm-gray-hover: var(--theme-tag-warm-gray-tag-hover-gray);
     --tagwarm-gray-text: var(--theme-tag-warm-gray-tag-color-warm-gray);
     --texttext-disabled: var(--theme-text-text-disabled);
-    --texttext-error: var(--theme-text-text-error);
+    --texttext-error: rgba(218, 30, 40, 1);
     --texttext-helper: var(--theme-text-text-helper);
     --texttext-inverse: var(--theme-text-text-inverse);
     --texttext-on-color: var(--theme-text-text-on-color);
@@ -419,10 +421,10 @@
     --theme-text-text-inverse: var(--colors-default-neutral-white);
     --theme-text-text-on-color: var(--colors-default-neutral-white);
     --theme-text-text-on-color-disabled: var(--colors-default-gray-50);
-    --theme-text-text-placeholder: var(--colors-default-gray-40);
-    --theme-text-text-primary: var(--colors-default-gray-100);
+    --theme-text-text-placeholder: var(--colors-default-gray-90);
+    --theme-text-text-primary: var(--colors-default-gray-90);
     --theme-text-text-secondary: var(--colors-default-gray-70);
-    --transparenttransparent: rgba(255, 255, 255, 1);
+    --transparenttransparent: rgba(255, 255, 255, 0.1);
     --utility-helper-text-01-font-family: "IBMPlex Sans-Regular", Helvetica;
     --utility-helper-text-01-font-size: 12px;
     --utility-helper-text-01-font-style: normal;
@@ -762,7 +764,7 @@ You can apply the theme on any DOM node, not just the `body`
     --theme-text-text-helper: var(--colors-default-gray-50);
     --theme-text-text-inverse: var(--colors-default-gray-100);
     --theme-text-text-on-color-disabled: rgba(255, 255, 255, 0.25);
-    --theme-text-text-placeholder: var(--colors-default-gray-60);
+    --theme-text-text-placeholder: var(--colors-default-gray-90);
     --theme-text-text-primary: var(--colors-default-gray-10);
     --theme-text-text-secondary: var(--colors-default-gray-30);
 }

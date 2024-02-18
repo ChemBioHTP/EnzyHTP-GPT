@@ -20,7 +20,7 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 file_path = ""
 
 import settings
-app = Flask(__name__)
+app = Flask(__name__, template_folder='../public')
 app.config.from_object(settings)
 
 from context import db, login_manager, ssl_context
@@ -138,7 +138,7 @@ def generate_muts(file, pattern):
  
 @app.route("/")
 def home():
-    return render_template("../client/public/index.html")
+    return render_template("index.html")
 
 @app.route("/api/key")
 def api_key():

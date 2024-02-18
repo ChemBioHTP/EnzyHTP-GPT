@@ -14,6 +14,7 @@ import "./style.css";
 export const Button = ({
   icon = true,
   resizer = false,
+  disabled = false,
   buttonText = "Button",
   format,
   type,
@@ -21,7 +22,7 @@ export const Button = ({
   stateProp,
   className,
   iconClassName,
-  override = <Add1 className="add-1" color="white" />,
+  override,
 }) => {
   const [state, dispatch] = useReducer(reducer, {
     format: format || "primary",
@@ -29,16 +30,24 @@ export const Button = ({
     size: size || "large",
     state: stateProp || "enabled",
   });
-
+  
+  if(state.state!=="disabled" && disabled){
+    dispatch("button_disabled");
+  } else if (state.state === "disabled" && !disabled) {
+    dispatch("button_enabled");
+  }
+  
   return (
     <button
       className={`button state-8-${state.state} ${state.format} size-2-${state.size} ${state.type} ${className}`}
       onMouseEnter={() => {
-        dispatch("mouse_enter");
+        dispatch(disabled? "button_disabled": "mouse_enter");
       }}
       onMouseLeave={() => {
-        dispatch("mouse_leave");
+        dispatch(disabled? "button_disabled": "mouse_leave");
       }}
+
+      disabled = {disabled}
     >
       {((state.size === "expressive" && state.state === "hover") ||
         (state.size === "extra-large" && state.state === "hover") ||
@@ -236,6 +245,16 @@ function reducer(state, action) {
       };
 
     case "mouse_leave":
+      return {
+        ...state,
+        state: "enabled",
+      };
+    case "button_disabled":
+      return {
+        ...state,
+        state: "disabled",
+      };
+    case "button_enabled":
       return {
         ...state,
         state: "enabled",
