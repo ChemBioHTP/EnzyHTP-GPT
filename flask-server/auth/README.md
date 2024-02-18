@@ -568,7 +568,7 @@ Before developing or testing OAuth, some preparations should be done. Please che
         "has_openai_secret_key": false,
         "is_openai_secret_key_valid": true,
         "openai_status_code": 200,
-        "openai_response_description": "Welcome to ChatGPT! We are thrilled to have you."
+        "openai_response_description": "Welcome to ChatGPT! We are thrilled to have you.",
         "oauth_email": "yinjie.zhong.cn@gmail.com",
         "oauth_vendor": "Google"
     }
@@ -588,7 +588,7 @@ Before developing or testing OAuth, some preparations should be done. Please che
         "has_openai_secret_key": false,
         "is_openai_secret_key_valid": true,
         "openai_status_code": 200,
-        "openai_response_description": "Welcome to ChatGPT! We are thrilled to have you."
+        "openai_response_description": "Welcome to ChatGPT! We are thrilled to have you.",
         "oauth_email": "yinjie.zhong.cn@gmail.com",
         "oauth_vendor": "Google"
     }
@@ -608,7 +608,7 @@ Before developing or testing OAuth, some preparations should be done. Please che
         "has_openai_secret_key": false,
         "is_openai_secret_key_valid": true,
         "openai_status_code": 200,
-        "openai_response_description": "Welcome to ChatGPT! We are thrilled to have you."
+        "openai_response_description": "Welcome to ChatGPT! We are thrilled to have you.",
         "oauth_email": "yinjie.zhong.cn@gmail.com",
         "oauth_vendor": "Google"
     }
