@@ -27,3 +27,15 @@ A web application that serves as an interface between a user and EnzyHTP's workf
   * kill %1;kill %2
 * That's it! The website should begin running on `localhost:3000`.
   * If you use WSL or virtual machine, the address should be `<ip.to.your.vm>:3000`.
+
+# 2. Server Manager: Production Deployment
+
+We are to use docker container to deploy the website to ensure environmental independence.
+
+## 2.1 Nginx Server (Website and Frontend)
+
+... To be continued.
+
+## 2.2 Flask Server (Backend)
+
+To deploy the flask server for production environment using docker, please follow the instructions in [Production Deployment (Flask Server)](./flask-server/README.md#5-production-deployment-flask-server).

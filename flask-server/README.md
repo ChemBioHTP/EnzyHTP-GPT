@@ -68,15 +68,7 @@ Currently, only Google Login is available in our backend. There's a template jso
 
 Please reach out to `yinjie.zhong@vanderbilt.edu` if you need a `google_login_client.json` file. The file should be saved in the `oauth_clients` directory. Any questions are welcome about authentication module.
 
-## 5. Production Deployment
-
-We are to use docker container to deploy the website to ensure environmental independence.
-
-## 5.1 Nginx Server (Website and Frontend)
-
-... To be continued.
-
-## 5.2 Flask Server (Backend)
+## 5. Production Deployment (Flask Server)
 
 To build the `enzyhtp.web.flask` (i.e., backend) docker image, enter and run the following `docker build` command. 
 
