@@ -5,9 +5,8 @@
 # If there is inconvenience in international Internet communication in your current location, 
 # you can enable (uncomment) the following lines or modify them according to your own needs 
 # to download dependent packages through the mirror address.
-# conda config --add channels https://mirrors.ustc.edu.cn/anaconda/pkgs/free/
-# conda config --add channels https://mirrors.ustc.edu.cn/anaconda/pkgs/main/
-# conda config --add channels https://mirrors.ustc.edu.cn/anaconda/cloud/conda-forge/
+# conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
+# conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/
 # conda config --set show_channel_urls yes
 
 # Install required packages on Ubuntu.
@@ -39,7 +38,7 @@ echo Configuring EnzyHTP to environment...
 cd "$enzyhtp_base_dir/EnzyHTP"
 bash dev-tools/conda-install --name enzyhtp-gpt
 
-# If you think it is too slow, you can comment them, and then enable the next line, before executing the `docker build`; 
+# If you think it is too slow, you can comment them, and then enable the next line, before executing the `docker build`; (continue)
 # conda develop "$enzyhtp_base_dir/EnzyHTP"
 
 # but if there is any dependency package of `EnzyHTP` that have not been updated
