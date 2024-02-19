@@ -43,7 +43,7 @@ class AuthResponseInfo():
             username: str =  str(),
             is_successful: bool = True,
             message: str = str(),
-            timestamp = datetime.utcnow(),
+            timestamp = datetime.__new__(datetime, 1970, 1, 1),
             is_authenticated: bool = False,
             verify_openai_secret_key: bool = False
             ) -> None:
@@ -64,7 +64,11 @@ class AuthResponseInfo():
         self.username = username
         self.is_successful = is_successful
         self.message = message
-        self.timestamp = str(timestamp)
+        if (timestamp == datetime.__new__(datetime, 1970, 1, 1)):
+            # Here we might as well assume that 1970-01-01 is a time that will not be triggered in actual business.
+            self.timestamp = str(datetime.utcnow())
+        else:        
+            self.timestamp = str(timestamp)
         self.is_authenticated = is_authenticated
         if (is_authenticated):
             user: User = current_user
@@ -114,8 +118,7 @@ def register() -> Response:
             email=email,
             username=user.username,
             is_successful=False,
-            message=f'New user `{user.email}` conflicted with an existing account.',
-            timestamp=datetime.utcnow())
+            message=f'New user `{user.email}` conflicted with an existing account.')
         return Response(response=response_info.serialize(), status=400, mimetype='application/json')
     else:
         db.session.add(user)

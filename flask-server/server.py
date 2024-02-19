@@ -13,6 +13,14 @@ app.config.from_object(settings)
 from context import db, login_manager, ssl_context
 login_manager.login_message_category = "info"
 
+# Create database tables
+app.app_context().push()
+db.init_app(app=app)
+db.create_all()
+
+# Initialize LoginManager.
+login_manager.init_app(app)
+
 # Example API route - to start server, run "python server.py"
 # @app.route("/members")
 # def members():
@@ -84,16 +92,9 @@ def api_key():
     return {'foo': 'bar'}
 
 if __name__ == "__main__":
-    # Create database tables
-    app.app_context().push()
-    db.init_app(app=app)
-    db.create_all()
-
-    # Initialize LoginManager.
-    login_manager.init_app(app)
 
     # Set SSL Context and run server.
-    app.run(host='localhost',
+    app.run(host=settings.APP_HOST,
         port=5000,
         debug=True,
         ssl_context=ssl_context)
