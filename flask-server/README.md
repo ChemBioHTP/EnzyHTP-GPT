@@ -70,6 +70,8 @@ Please reach out to `yinjie.zhong@vanderbilt.edu` if you need a `google_login_cl
 
 ## 5. Production Deployment (Flask Server)
 
+In the production environment, we use uWSGI to run the Flask Server. Thus, we build `uwsgi.ini` config file and `start.sh` script to run it.
+
 To build the `enzyhtp.web.flask` (i.e., backend) docker image, enter and run the following `docker build` command. 
 
 ```bash
