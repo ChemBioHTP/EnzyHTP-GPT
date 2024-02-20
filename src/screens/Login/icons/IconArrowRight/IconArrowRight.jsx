@@ -15,14 +15,14 @@ export const IconArrowRight = ({ className }) => {
       width="16"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <rect
+      {/* <rect
         className="rect"
         fill="white"
         height="16"
         style={{mixBlendMode: 'multiply'}}
         transform="translate(0 0.000976562)"
         width="16"
-      />
+      /> */}
       <path className="path" d="M3.33331 8.00098H12.6666" stroke="white" strokeLinecap="round" strokeLinejoin="round" />
       <path
         className="path"

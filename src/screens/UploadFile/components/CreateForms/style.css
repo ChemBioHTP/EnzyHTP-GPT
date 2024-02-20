@@ -1,0 +1,215 @@
+.create-forms {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 16px;
+  position: relative;
+  width: 642px;
+}
+
+.create-forms .instance-node-6 {
+  align-self: stretch !important;
+  flex: 0 0 auto !important;
+  width: 100% !important;
+}
+
+.create-forms .frame-9 {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  width: 100%;
+}
+
+.create-forms .label-text-wrapper {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  padding: 0px 0px 4px;
+  position: relative;
+  width: 100%;
+}
+
+.create-forms .label-text-3 {
+  align-self: stretch;
+  color: var(--texttext-secondary);
+  font-family: var(--utility-styles-label-01-font-family);
+  font-size: var(--utility-styles-label-01-font-size);
+  font-style: var(--utility-styles-label-01-font-style);
+  font-weight: var(--utility-styles-label-01-font-weight);
+  letter-spacing: var(--utility-styles-label-01-letter-spacing);
+  line-height: var(--utility-styles-label-01-line-height);
+  margin-top: -1px;
+  position: relative;
+}
+
+.create-forms .file-uploader-file {
+  align-items: flex-start;
+  align-self: stretch;
+  background-color: var(--layerlayer-02);
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+}
+
+.create-forms .file-name {
+  align-items: center;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 16px;
+  padding: 15px 16px;
+  position: relative;
+  width: 100%;
+}
+
+.create-forms .file-name-wrapper {
+  align-items: flex-start;
+  display: flex;
+  flex: 1;
+  flex-grow: 1;
+  height: 18px;
+  position: relative;
+}
+
+.create-forms .file-name-2 {
+  color: var(--texttext-primary);
+  flex: 1;
+  font-family: var(--body-styles-body-compact-01-font-family);
+  font-size: var(--body-styles-body-compact-01-font-size);
+  font-style: var(--body-styles-body-compact-01-font-style);
+  font-weight: var(--body-styles-body-compact-01-font-weight);
+  height: 18px;
+  letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+  line-height: var(--body-styles-body-compact-01-line-height);
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+}
+
+.create-forms .icons {
+  align-items: flex-start;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  position: relative;
+}
+
+.create-forms .class-845 {
+  background-blend-mode: unset !important;
+  background-color: var(--layerlayer-03) !important;
+  position: relative !important;
+}
+
+.create-forms .class-846 {
+  position: relative !important;
+}
+
+.create-forms .checkmark-filled {
+  height: 16px !important;
+  left: 0 !important;
+  position: absolute !important;
+  top: 0 !important;
+  width: 16px !important;
+}
+
+.create-forms .warning-filled {
+  background-blend-mode: multiply !important;
+  height: 16px !important;
+  left: 0 !important;
+  position: absolute !important;
+  top: 0 !important;
+  width: 16px !important;
+}
+
+.create-forms .close-21 {
+  height: 16px !important;
+  position: relative !important;
+  width: 16px !important;
+}
+
+.create-forms .close-19 {
+  background-blend-mode: multiply !important;
+  height: 16px !important;
+  position: relative !important;
+  width: 16px !important;
+}
+
+.create-forms .divider-overflow {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  padding: 0px 2px;
+  position: relative;
+  width: 100%;
+}
+
+.create-forms .img {
+  align-self: stretch;
+  height: 1px;
+  object-fit: cover;
+  position: relative;
+  width: 100%;
+}
+
+.create-forms .error-message {
+  align-items: center;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  padding: 16px;
+  position: relative;
+  width: 100%;
+}
+
+.create-forms .error-short {
+  align-self: stretch;
+  font-family: var(--utility-styles-label-01-font-family);
+  font-size: var(--utility-styles-label-01-font-size);
+  font-style: var(--utility-styles-label-01-font-style);
+  font-weight: var(--utility-styles-label-01-font-weight);
+  letter-spacing: var(--utility-styles-label-01-letter-spacing);
+  line-height: var(--utility-styles-label-01-line-height);
+  margin-top: -1px;
+  position: relative;
+}
+
+.create-forms .error-description {
+  align-self: stretch;
+  color: var(--texttext-error);
+  font-family: var(--utility-styles-label-01-font-family);
+  font-size: var(--utility-styles-label-01-font-size);
+  font-style: var(--utility-styles-label-01-font-style);
+  font-weight: var(--utility-styles-label-01-font-weight);
+  letter-spacing: var(--utility-styles-label-01-letter-spacing);
+  line-height: var(--utility-styles-label-01-line-height);
+  position: relative;
+}
+
+.create-forms .error {
+  border: 2px solid;
+  border-color: var(--supportsupport-error);
+}
+
+.create-forms .file-uploader-file.success .error-short {
+  color: var(--texttext-secondary);
+}
+
+.create-forms .file-uploader-file.empty .error-short {
+  color: var(--texttext-primary);
+}
+
+.create-forms .file-uploader-file.error .error-short {
+  color: var(--texttext-primary);
+}

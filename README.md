@@ -11,7 +11,7 @@ A web application that serves as an interface between a user and EnzyHTP's workf
 * To configure the environment of the flask server, please follow the instructions in [Flask Server Environment Configuration](./flask-server/README.md#21-environment-configuration).
 
 * We also need to install `npm`.
-  * Taking Ubuntu (or WSL Ubuntu) for instance, install `npm` using command `sudo apt-get install npm`.
+  - Taking Ubuntu (or WSL Ubuntu) for instance, install `npm` using command `sudo apt-get install npm`.
 
 ## 1.2 Launch.
 
