@@ -9,19 +9,18 @@
 '''
 
 # Here put the import lib.
-from flask import Response, url_for, request, redirect
+from flask import Response, request, redirect
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
 from uuid import uuid4
 from requests import get, post
-from json import dumps, loads
+from json import dumps
 
 # Here put local imports.
 from . import auth
 from .models import User, OAuthUser
 from context import db, login_manager
 from settings import OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI
-from server import app
 
 class AuthResponseInfo():
     """Authentication Response Information.

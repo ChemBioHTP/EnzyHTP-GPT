@@ -1,15 +1,19 @@
+# Here put the import lib.
 import os
-from flask import Flask, request, jsonify, render_template
 import openai
 import config
+from flask import Flask, request, jsonify, render_template
+
+# Here put local imports.
 import enzy_htp.structure
 import enzy_htp.mutation.api as mapi
 import enzy_htp.mutation.mutation as mt
 import enzy_htp.mutation.mutation_pattern.api as pattern_api
 from enzy_htp.preparation import validity as vd
-from flask import Flask
-from enzy_htp.core import general as eg
-from enzy_htp.core import _LOGGER
+from enzy_htp.core import (
+    general as eg,
+    _LOGGER
+)
 
 app = Flask(__name__)
 
@@ -18,19 +22,10 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 file_path = ""
 
 import settings
-app = Flask(__name__, template_folder='../public')
 app.config.from_object(settings)
 
 from context import db, login_manager, ssl_context
 login_manager.login_message_category = "info"
-
-# Create database tables
-app.app_context().push()
-db.init_app(app=app)
-db.create_all()
-
-# Initialize LoginManager.
-login_manager.init_app(app)
 
 # Example API route - to start server, run "python server.py"
 # @app.route("/members")
@@ -39,7 +34,9 @@ login_manager.init_app(app)
 
 # Import and define your routes and views
 from auth import auth as auth_blueprint
-app.register_blueprint(auth_blueprint, url_prefix='/api/auth')
+app.register_blueprint(auth_blueprint, url_prefix="/api/auth")
+from experiment import experiment as experiment_blueprint
+app.register_blueprint(experiment_blueprint, url_prefix="/api/experiment")
 
 # Validate File
 @app.route("/api/validate_file", methods=["POST"])
@@ -156,6 +153,17 @@ def api_key():
     return {'foo': 'bar'}
 
 if __name__ == "__main__":
+
+    # # Entities have to be explicitly imported so as to create tables.
+    # from auth.models import User, OAuthUser
+    # from experiment.models import Experiment
+    # Create database tables.
+    app.app_context().push()
+    db.init_app(app=app)
+    db.create_all()
+
+    # Initialize LoginManager.
+    login_manager.init_app(app)
 
     # Set SSL Context and run server.
     app.run(host=settings.APP_HOST,

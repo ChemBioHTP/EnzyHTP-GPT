@@ -302,10 +302,4 @@ class OAuthUser(db.Model):
         self.user = User.get(user_id)
         return
 
-
-if __name__ == '__main__':
-    user = User('y.z@vu', '123456')
-    print(user.email)
-    print(user.password)
-
 # Reference: https://www.askpython.com/python-modules/flask/flask-user-authentication
