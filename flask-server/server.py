@@ -8,12 +8,10 @@ import enzy_htp.mutation.mutation as mt
 import enzy_htp.mutation.mutation_pattern.api as pattern_api
 from enzy_htp.preparation import validity as vd
 from flask import Flask
-from flask_cors import CORS
 from enzy_htp.core import general as eg
 from enzy_htp.core import _LOGGER
 
 app = Flask(__name__)
-CORS(app)
 
 # TODO: Update method for getting files - global variable for now, integrate into database
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -25,6 +23,19 @@ app.config.from_object(settings)
 
 from context import db, login_manager, ssl_context
 login_manager.login_message_category = "info"
+
+# Create database tables
+app.app_context().push()
+db.init_app(app=app)
+db.create_all()
+
+# Initialize LoginManager.
+login_manager.init_app(app)
+
+# Example API route - to start server, run "python server.py"
+# @app.route("/members")
+# def members():
+#     return {"members": ["Member1", "Member2"]}
 
 # Import and define your routes and views
 from auth import auth as auth_blueprint
@@ -145,17 +156,9 @@ def api_key():
     return {'foo': 'bar'}
 
 if __name__ == "__main__":
-    # Create database tables
-    app.app_context().push()
-    db.init_app(app=app)
-    db.create_all()
-
-    # Initialize LoginManager.
-    login_manager.init_app(app)
-    app.run(debug=True)
 
     # Set SSL Context and run server.
-    app.run(host='localhost',
-       port=5000,
-       debug=True,
-       ssl_context=ssl_context)
+    app.run(host=settings.APP_HOST,
+        port=5000,
+        debug=True,
+        ssl_context=ssl_context)

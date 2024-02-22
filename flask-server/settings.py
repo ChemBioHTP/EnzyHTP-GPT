@@ -31,3 +31,4 @@ SQLALCHEMY_TRACK_MODIFICATIONS=False
 # Uri
 OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI = "/api/auth/profile"
 OPENAI_API_URI = "https://api.openai.com/v1/chat/completions"
+APP_HOST = "localhost"
