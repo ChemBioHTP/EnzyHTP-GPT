@@ -13,7 +13,7 @@ from __future__ import annotations  # To enable the annotation that a staticmeth
 from flask_login import UserMixin
 from context import db
 from datetime import datetime
-from typing import List, overload
+from typing import List
 import uuid
 
 # Here put local imports.
@@ -34,7 +34,7 @@ class Experiment(db.Model):
     user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
     user = db.relationship('User', backref=db.backref('experiments'))
 
-    def __init__(self, user_id: str, name: str, type: int = 0, status: int = 0, metrics: List[float] = list(), description: str = None):
+    def __init__(self, user_id: str, name: str, type: int = 0, status: int = 0, metrics: List[float] = list(), description: str = None, id: str = None, **kwargs):
         """Initializes an instance of Experiment with the provided parameters.
 
         Args:
@@ -44,10 +44,11 @@ class Experiment(db.Model):
             status (int, optional): The status of the experiment (default is 0).
             metrics (str, optional): Additional metrics information (default is None).
             description (str, optional): A description of the experiment (default is None).
+            kwargs: A placeholder to avoid TypeError caused by unexpected keyword arguments.
         """
         self.id = str(uuid.uuid4())
         self.type = type
-        self.name=name
+        self.name = name
         self.status = status
         self.metrics = str(metrics)
         self.description = description
@@ -67,20 +68,8 @@ class Experiment(db.Model):
             return experiment
         else:
             return None
-    
-    @overload
-    @staticmethod
-    def get_user_experiments(user_id: str) -> List[Experiment]:
-        """Get a list of Experiment instance of the certain user by `user_id`.
-        
-        Args:
-            user_id (str): The `id` to identify a user.
-        """
-        experiments = Experiment.query.filter_by(user_id=user_id).order_by(Experiment.id).all()
-        experiment_list = [experiment for experiment in experiments]
-        return experiment_list
-    
-    @overload
+
+    # @overload
     @staticmethod
     def get_user_experiments(user: User) -> List[Experiment]:
         """Get a list of Experiment instance of the certain user by `user_id`.
@@ -88,11 +77,24 @@ class Experiment(db.Model):
         Args:
             user: A `User` instance.
         """
-        experiment_list = Experiment.get_user_experiments(user.id)
-        return experiment_list
+        if hasattr(user, 'id'):
+            experiment_query_result = Experiment.query.filter_by(user_id=user.id).order_by(Experiment.created_time).all()
+            experiments = [experiment for experiment in experiment_query_result]
+            return experiments
+        else:
+            return []
 
+    def as_dict(self) -> str:
+        """Serialize the current instance to a dictionary."""
+        dict_data = self.__dict__
+        del dict_data["_sa_instance_state"]
+        dict_data["created_time"] = str(self.created_time)
+        dict_data["updated_time"] = str(self.updated_time)
+        return dict_data
+    
     def serialize(self) -> str:
         """Serialize the current instance to json string."""
         from json import dumps
-        serialized_data = self.__dict__
+        serialized_data = self.as_dict()
         return dumps(serialized_data)
+        
