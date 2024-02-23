@@ -1,4 +1,4 @@
-# Authentication Module.
+# Authentication Module
 
 Author: Zhong, Yinjie.  
 Email: yinjie.zhong@vanderbilt.edu
@@ -7,7 +7,7 @@ Email: yinjie.zhong@vanderbilt.edu
 
 ## 1. Introduction
 
-This component serves as a basic authentication for EnzyHTP Webapp.
+This component serves as the authentication module for EnzyHTP Webapp.
 
 This component provides following methods.
 
