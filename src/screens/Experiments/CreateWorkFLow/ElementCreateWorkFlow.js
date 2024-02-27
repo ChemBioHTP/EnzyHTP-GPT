@@ -1,17 +1,17 @@
 import React from "react";
-import { Button } from "./components/Button";
-import { DirectionHorizontalWrapper } from "./components/DirectionHorizontalWrapper";
-import { NavigationHeader } from "./components/NavigationHeader";
-import { NavigationPage } from "./components/NavigationPage";
-import { NavigationSideNav } from "./components/NavigationSideNav";
-import { TabsItems } from "./components/TabsItems";
-import { Tile } from "./components/Tile";
-import { CheckmarkOutline } from "./icons/CheckmarkOutline";
-import { IconAlertCircle2 } from "./icons/IconAlertCircle2";
-import { IconArrowRight } from "./icons/IconArrowRight";
-import { IconEdit3 } from "./icons/IconEdit3";
-import { IconMoreHorizontal } from "./icons/IconMoreHorizontal";
-import { Incomplete } from "./icons/Incomplete";
+import { Button } from "../components/Button";
+import { DirectionHorizontalWrapper } from "../components/DirectionHorizontalWrapper";
+import { NavigationHeader } from "../components/NavigationHeader";
+import { NavigationPage } from "../components/NavigationPage";
+import { NavigationSideNav } from "../components/NavigationSideNav";
+import { TabsItems } from "../components/TabsItems";
+import { Tile } from "../components/Tile";
+import { CheckmarkOutline } from "../icons/CheckmarkOutline";
+import { IconAlertCircle2 } from "../icons/IconAlertCircle2";
+import { IconArrowRight } from "../icons/IconArrowRight";
+import { IconEdit3 } from "../icons/IconEdit3";
+import { IconMoreHorizontal } from "../icons/IconMoreHorizontal";
+import { Incomplete } from "../icons/Incomplete";
 import "./style.css";
 
 export const ElementCreateWorkFlow = () => {

@@ -1,8 +1,8 @@
-import { NavigationSideNav } from ".";
+import { NavigationSideBar } from ".";
 
 export default {
-  title: "Components/NavigationSideNav",
-  component: NavigationSideNav,
+  title: "Components/NavigationSideBar",
+  component: NavigationSideBar,
 };
 
 export const Default = {

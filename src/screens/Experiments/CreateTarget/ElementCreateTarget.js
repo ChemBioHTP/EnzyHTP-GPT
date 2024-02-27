@@ -1,20 +1,21 @@
 import React from "react";
-import { Accordion } from "./components/Accordion";
+import { Accordion } from "../components/Accordion";
 import { Button } from "../components/Button";
 import { DirectionHorizontalWrapper } from "../components/DirectionHorizontalWrapper";
-import { ModalPanel } from "./components/ModalPanel";
-import { ModalPanelTargets } from "./components/ModalPanelTargets";
+import { ModalPanel } from "../components/ModalPanel";
+import { ModalPanelTargets } from "../components/ModalPanelTargets";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { NavigationPage } from "../components/NavigationPage";
 import { NavigationSideNav } from "../components/NavigationSideNav";
-import { TabsItems } from "./components/TabsItems";
-import { CircleDash1 } from "./icons/CircleDash1";
-import { IconAlertCircle2 } from "./icons/IconAlertCircle2";
-import { IconArrowRight } from "./icons/IconArrowRight";
-import { IconMoreHorizontal } from "./icons/IconMoreHorizontal";
-import { IconSend } from "./icons/IconSend";
-import { Incomplete } from "./icons/Incomplete";
+import { TabsItems } from "../components/TabsItems";
+import { CircleDash1 } from "../icons/CircleDash1";
+import { IconAlertCircle2 } from "../icons/IconAlertCircle2";
+import { IconArrowRight } from "../icons/IconArrowRight";
+import { IconMoreHorizontal } from "../icons/IconMoreHorizontal";
+import { IconSend } from "../icons/IconSend";
+import { Incomplete } from "../icons/Incomplete";
 import "./style.css";
+import { NavigationSideBar } from "../components/NavigationSideBar/NavigationSideBar";
 
 export const ElementCreateTarget = () => {
   return (
@@ -48,7 +49,7 @@ export const ElementCreateTarget = () => {
             type="text-icon"
           />
         </div>
-        <NavigationSideNav className="navigation-side-nav-instance" version="version-4" />
+        <NavigationSideBar className="navigation-side-nav-instance" />
         <div className="text-area-content">
           <div className="text-2">Type in anything</div>
           <div className="frame-12">
