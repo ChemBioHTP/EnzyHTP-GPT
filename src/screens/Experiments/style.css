@@ -6,6 +6,26 @@
   width: 100%;
 }
 
+.element-experiments .data-table-toolbar-instance {
+  left: 154px !important;
+  position: absolute !important;
+  top: 300px !important;
+}
+
+.element-experiments .data-table-row-item-instance {
+  left: 294px !important;
+  position: absolute !important;
+  top: 341px !important;
+  width: 700px !important;
+  background-color: #A9A9A9;
+}
+.element-experiments .data-table-row-item-9 {
+  /* margin-top: 0px !important; */
+  left: 294px !important;
+  top: 341px !important;
+  width: 700px !important;
+}
+
 .element-experiments .div-2 {
   background-color: var(--layerlayer-01);
   height: 900px;
