@@ -1,0 +1,1 @@
+export { TabsItems } from "./TabsItems";

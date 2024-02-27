@@ -1,0 +1,208 @@
+.element-create-target {
+  background-color: #f4f4f4;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  width: 100%;
+}
+
+.element-create-target .div-2 {
+  background-color: var(--layerlayer-01);
+  height: 900px;
+  position: relative;
+  width: var(--breakpoints-viewport-size);
+}
+
+.element-create-target .navigation-header-instance {
+  left: 0 !important;
+  position: absolute !important;
+  top: 0 !important;
+  width: 1584px !important;
+}
+
+.element-create-target .navigation-page-header {
+  left: 262px !important;
+  position: absolute !important;
+  top: 48px !important;
+  width: 1322px !important;
+}
+
+.element-create-target .icon-instance-node-3 {
+  background-blend-mode: multiply !important;
+  height: 16px !important;
+  position: relative !important;
+  width: 16px !important;
+}
+
+.element-create-target .frame-11 {
+  align-items: flex-start;
+  display: flex;
+  gap: 4px;
+  left: 294px;
+  position: absolute;
+  top: 178px;
+  width: 324px;
+}
+
+.element-create-target .tabs-items-instance {
+  display: flex !important;
+  flex: 1 !important;
+  flex-grow: 1 !important;
+}
+
+.element-create-target .navigation-side-nav-instance {
+  left: 0 !important;
+  position: absolute !important;
+  top: 48px !important;
+}
+
+.element-create-target .text-area-content {
+  align-items: flex-end;
+  background-color: var(--theme-field-field-02);
+  border-radius: 8px;
+  box-shadow: 0px 1px 5px #0000001a;
+  display: flex;
+  flex-direction: column;
+  height: 140px;
+  justify-content: space-between;
+  left: 488px;
+  padding: 16px 16px 8px;
+  position: absolute;
+  top: 341px;
+  width: 480px;
+}
+
+.element-create-target .text-2 {
+  align-self: stretch;
+  color: var(--theme-text-text-on-color-disabled);
+  font-family: var(--body-body-02-font-family);
+  font-size: var(--body-body-02-font-size);
+  font-style: var(--body-body-02-font-style);
+  font-weight: var(--body-body-02-font-weight);
+  letter-spacing: var(--body-body-02-letter-spacing);
+  line-height: var(--body-body-02-line-height);
+  margin-top: -1px;
+  position: relative;
+  z-index: 1;
+}
+
+.element-create-target .frame-12 {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 16px;
+  position: relative;
+  z-index: 0;
+}
+
+.element-create-target .text-3 {
+  color: var(--texttext-placeholder);
+  font-family: var(--utility-label-01-font-family);
+  font-size: var(--utility-label-01-font-size);
+  font-style: var(--utility-label-01-font-style);
+  font-weight: var(--utility-label-01-font-weight);
+  letter-spacing: var(--utility-label-01-letter-spacing);
+  line-height: var(--utility-label-01-line-height);
+  position: relative;
+  text-align: right;
+  width: 98px;
+}
+
+.element-create-target .design-component-instance-node {
+  border-radius: 5px !important;
+  flex: 0 0 auto !important;
+  overflow: hidden !important;
+}
+
+.element-create-target .label-description {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  left: 488px;
+  position: absolute;
+  top: 250px;
+  width: 929px;
+}
+
+.element-create-target .label-3 {
+  align-self: stretch;
+  color: var(--texttext-primary);
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.16px;
+  line-height: 18px;
+  margin-top: -1px;
+  position: relative;
+}
+
+.element-create-target .description {
+  align-self: stretch;
+  color: var(--texttext-secondary);
+  font-family: var(--body-styles-body-compact-01-font-family);
+  font-size: var(--body-styles-body-compact-01-font-size);
+  font-style: var(--body-styles-body-compact-01-font-style);
+  font-weight: var(--body-styles-body-compact-01-font-weight);
+  letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+  line-height: var(--body-styles-body-compact-01-line-height);
+  position: relative;
+}
+
+.element-create-target .accordion-instance {
+  left: 488px !important;
+  position: absolute !important;
+  top: 497px !important;
+  width: 480px !important;
+}
+
+.element-create-target .design-component-instance-node-2 {
+  align-self: stretch !important;
+  flex: 0 0 auto !important;
+  width: 100% !important;
+}
+
+.element-create-target .modal-panel-targets-instance {
+  align-self: stretch !important;
+  height: 24px !important;
+  width: 100% !important;
+}
+
+.element-create-target .progress-indicator-2 {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  left: 294px;
+  position: absolute;
+  top: 252px;
+  width: 160px;
+}
+
+.element-create-target .frame-13 {
+  align-items: center;
+  background-color: var(--theme-layer-layer-03);
+  box-shadow: var(--shadows-menu);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  left: 262px;
+  padding: 24px 48px;
+  position: absolute;
+  top: 804px;
+  width: 1322px;
+}
+
+.element-create-target .button-2 {
+  left: 102px !important;
+}
+
+.element-create-target .button-3 {
+  display: flex !important;
+  width: 134px !important;
+}
+
+.element-create-target .navigation-side-nav-2 {
+  left: 48px !important;
+  position: absolute !important;
+  top: 48px !important;
+}
