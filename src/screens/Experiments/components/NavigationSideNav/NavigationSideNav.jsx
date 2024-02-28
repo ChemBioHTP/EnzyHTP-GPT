@@ -6,6 +6,7 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 import PropTypes from "prop-types";
 import React from "react";
 import { UiShellLeftPanel } from "../UiShellLeftPanel";
+import HideNav from "../../../../assets/images/Experiments/hide-nav.svg"
 import "./style.css";
 
 export const NavigationSideNav = ({
@@ -135,6 +136,7 @@ export const NavigationSideNav = ({
                 expanded={false}
                 level="level-1"
                 linkText="My experiments"
+                linkImg={HideNav}
                 selected={false}
                 stateProp="enabled"
                 type="link"

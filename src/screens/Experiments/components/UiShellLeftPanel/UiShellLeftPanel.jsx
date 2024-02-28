@@ -13,6 +13,7 @@ import "./style.css";
 
 export const UiShellLeftPanel = ({
   linkText = "Link",
+  linkImg = "",
   iconRight = false,
   iconLeft = false,
   type,
@@ -50,8 +51,8 @@ export const UiShellLeftPanel = ({
     >
       {(state.divider || !state.compact) && (
         <div className={`link-icon ${!state.divider ? linkIconClassName : undefined}`}>
-          {!state.divider && <div className="link-2">{linkText}</div>}
-
+          {linkImg!="" && <img className="link-2" src={linkImg} alt="img"/>}
+          {!state.divider && <div className="link-2">{linkText}</div>}       
           {!state.expanded && state.type === "sub-menu" && (
             <Chevron9
               className="instance-node"

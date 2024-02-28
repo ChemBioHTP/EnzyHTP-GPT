@@ -6,6 +6,11 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 import PropTypes from "prop-types";
 import React from "react";
 import { UiShellLeftPanel } from "../UiShellLeftPanel";
+import Grid from "../../../../assets/images/Experiments/grid.svg"
+import GitMerge from "../../../../assets/images/Experiments/git-merge.svg"
+import Help from "../../../../assets/images/Experiments/help.svg"
+import Feedback from "../../../../assets/images/Experiments/feedback.svg"
+import Settings from "../../../../assets/images/Experiments/settings.svg"
 import "./style.css";
 
 export const NavigationSideBar = ({
@@ -21,7 +26,8 @@ export const NavigationSideBar = ({
           expanded={false}
           level="level-1"
           linkIconClassName="UI-shell-left-panel-instance"
-          linkText="Grid"
+          linkText=""
+          linkImg={Grid}
           selected={false}
           stateProp="enabled"
           type="link"
@@ -33,7 +39,8 @@ export const NavigationSideBar = ({
           expanded={false}
           level="level-1"
           linkIconClassName="UI-shell-left-panel-instance"
-          linkText="Git Merge"
+          linkText=""
+          linkImg={GitMerge}
           selected={false}
           stateProp="enabled"
           type="link"
@@ -47,7 +54,8 @@ export const NavigationSideBar = ({
           expanded={false}
           level="level-1"
           linkIconClassName="UI-shell-left-panel-instance"
-          linkText="Help"
+          linkText=""
+          linkImg={Help}
           selected={false}
           stateProp="enabled"
           type="link"
@@ -59,7 +67,8 @@ export const NavigationSideBar = ({
           expanded={false}
           level="level-1"
           linkIconClassName="UI-shell-left-panel-instance"
-          linkText="Feedback"
+          linkText=""
+          linkImg={Feedback}
           selected={false}
           stateProp="enabled"
           type="link"
@@ -71,7 +80,8 @@ export const NavigationSideBar = ({
           expanded={false}
           level="level-1"
           linkIconClassName="UI-shell-left-panel-instance"
-          linkText="Settings"
+          linkText=""
+          linkImg={Settings}
           selected={false}
           stateProp="enabled"
           type="link"
