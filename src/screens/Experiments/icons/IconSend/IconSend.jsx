@@ -16,7 +16,7 @@ export const IconSend = ({ className }) => {
       xmlns="http://www.w3.org/2000/svg"
     >
       <g className="g" clipPath="url(#clip0_150_3499)">
-        <rect className="rect" fill="white" height="16" style={{mixBlendMode:'multiply'}} width="16" />
+        {/* <rect className="rect" fill="white" height="16" style={{mixBlendMode:'multiply'}} width="16" /> */}
         <path
           className="path"
           d="M13.428 8.21401H4.39256"

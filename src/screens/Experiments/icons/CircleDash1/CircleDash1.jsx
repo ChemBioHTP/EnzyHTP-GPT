@@ -16,14 +16,14 @@ export const CircleDash1 = ({ opacity = "unset", className }) => {
       width="16"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <rect
+      {/* <rect
         className="rect"
         fill="white"
         fillOpacity={opacity}
         height="16"
         style={{mixBlendMode:'multiply'}}
         width="16"
-      />
+      /> */}
       <path
         className="path"
         d="M3.84997 2.35009C3.27647 2.79018 2.77103 3.31247 2.34997 3.90009L3.14997 4.50009C3.5172 3.99081 3.9549 3.53627 4.44997 3.15009L3.84997 2.35009Z"

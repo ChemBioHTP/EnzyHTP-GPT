@@ -16,7 +16,7 @@ export const IconAlertCircle2 = ({ className }) => {
       xmlns="http://www.w3.org/2000/svg"
     >
       <g className="g" clipPath="url(#clip0_147_6197)">
-        <rect className="rect" fill="white" height="16" style={{mixBlendMode:'multiply'}} width="16" />
+        {/* <rect className="rect" fill="white" height="16" style={{mixBlendMode:'multiply'}} width="16" /> */}
         <path
           className="path"
           d="M8.00016 14.6668C11.6821 14.6668 14.6668 11.6821 14.6668 8.00016C14.6668 4.31826 11.6821 1.3335 8.00016 1.3335C4.31826 1.3335 1.3335 4.31826 1.3335 8.00016C1.3335 11.6821 4.31826 14.6668 8.00016 14.6668Z"

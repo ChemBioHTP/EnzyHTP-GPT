@@ -15,9 +15,22 @@
   display: -webkit-box;
   flex: 1;
   height: 18px;
+  width: 218px !important;
   margin-top: -1px;
-  overflow: hidden;
   position: relative;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.UI-shell-left-panel .link-3 {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  display: -webkit-box;
+  flex: 1;
+  height: 18px;
+  width: 18px !important;
+  margin-top: -1px;
+  position:relative;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

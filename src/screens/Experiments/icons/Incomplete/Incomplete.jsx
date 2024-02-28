@@ -16,14 +16,14 @@ export const Incomplete = ({ opacity = "unset", color = "#0F62FE", className }) 
       width="16"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <rect
+      {/* <rect
         className="rect"
         fill="white"
         fillOpacity={opacity}
         height="16"
         style={{mixBlendMode:'multiply'}}
         width="16"
-      />
+      /> */}
       <path
         className="path"
         d="M11.8821 3.42965L12.5246 2.6639C11.904 2.13853 11.1963 1.72553 10.4336 1.4435L10.0918 2.3823C10.745 2.62459 11.3508 2.97902 11.8821 3.42965Z"
