@@ -16,7 +16,7 @@ export const Chevron4 = ({ color = "#525252", opacity = "unset", className }) =>
       width="16"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <rect className="rect" fill="white" height="16" style={{mixBlendMode:'multiply'}} width="16" />
+      {/* <rect className="rect" fill="white" height="16" style={{mixBlendMode:'multiply'}} width="16" /> */}
       <path className="path" d="M8 5L13 10L12.3 10.7L8 6.4L3.7 10.7L3 10L8 5Z" fill={color} fillOpacity={opacity} />
     </svg>
   );

@@ -5,7 +5,7 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 
 import PropTypes from "prop-types";
 import React from "react";
-import { useReducer } from "react";
+import { useReducer, useState } from "react";
 import { Checkbox3 } from "../../icons/Checkbox3";
 import { Chevron4 } from "../../icons/Chevron4";
 import { Chevron9 } from "../../icons/Chevron9";
@@ -27,6 +27,7 @@ export const UiShellLeftPanel = ({
   divider,
   className,
   linkIconClassName,
+  onButtonClick = () => {},
 }) => {
   const [state, dispatch] = useReducer(reducer, {
     type: type || "link",
@@ -38,6 +39,17 @@ export const UiShellLeftPanel = ({
     divider: divider || false,
   });
 
+  const [isClicked, setIsClicked] = useState(false);
+
+  const handleButtonClick = () => {
+    // dispatch("click");
+    setIsClicked(true);
+    onButtonClick();
+    if (linkText === "Example experiment 02") {
+      console.log(state.state);
+    }
+  };
+
   return (
     <div
       className={`UI-shell-left-panel state-8-${state.state} divider-${state.divider} compact-${state.compact} ${state.level} selected-2-${state.selected} ${state.type} ${className}`}
@@ -47,13 +59,11 @@ export const UiShellLeftPanel = ({
       onMouseEnter={() => {
         dispatch("mouse_enter");
       }}
-      onClick={() => {
-        dispatch("click");
-      }}
+      onClick={handleButtonClick}
     >
       {(state.divider || !state.compact) && (
         <div className={`link-icon ${!state.divider ? linkIconClassName : undefined}`}>
-          {!state.divider && !hideText && <div className="link-2">{linkText}</div>}
+          {!state.divider && !hideText && <div className={`link-2 ${state.state}`}>{linkText}</div>}
           {!hideImg && <img className="link-3" src={linkImg} alt="img" />}
           {!state.expanded && state.type === "sub-menu" && (
             <Chevron9

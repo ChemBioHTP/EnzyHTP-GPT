@@ -1,6 +1,7 @@
 .element-create {
   background-color: #f4f4f4;
   display: flex;
+  text-align: left;
   flex-direction: row;
   justify-content: center;
   width: 100%;
@@ -10,6 +11,9 @@
   background-color: var(--layerlayer-01);
   height: 900px;
   position: relative;
+  border-right-style: solid;
+  border-right-width: 1px;
+  border-color: var(--theme-border-border-subtle-00);
   width: var(--breakpoints-viewport-size);
 }
 

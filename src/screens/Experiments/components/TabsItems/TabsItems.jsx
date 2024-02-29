@@ -38,10 +38,10 @@ export const TabsItems = ({
     <div
       className={`tabs-items state-3-${state.state} ${state.style} type-1-${state.type} ${state.alignment} selected-${state.selected} size-3-${state.size} ${className}`}
       onMouseEnter={() => {
-        dispatch("mouse_enter");
+        dispatch(selected?"mouse_selected": "mouse_enter");
       }}
       onMouseLeave={() => {
-        dispatch("mouse_leave");
+        dispatch(selected?"mouse_selected": "mouse_leave");
       }}
     >
       {((state.state === "disabled" && state.style === "line" && state.type === "text-icon") ||
@@ -156,6 +156,12 @@ function reducer(state, action) {
       return {
         ...state,
         state: "enabled",
+      };
+
+    case "mouse_select":
+      return {
+        ...state,
+        state: "selected",
       };
   }
 

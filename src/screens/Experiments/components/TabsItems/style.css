@@ -136,7 +136,7 @@
 .tabs-items.state-3-enabled.line {
   align-items: center;
   border-bottom-style: solid;
-  border-bottom-width: 2px;
+  border-bottom-width: 3px;
   border-color: var(--borderborder-subtle-01);
   gap: 8px;
 }
@@ -159,7 +159,7 @@
 
 .tabs-items.line.state-3-disabled {
   border-bottom-style: solid;
-  border-bottom-width: 2px;
+  border-bottom-width: 3px;
 }
 
 .tabs-items.state-3-disabled.grid-aware {
@@ -169,7 +169,7 @@
 .tabs-items.state-3-selected.line {
   align-items: center;
   border-bottom-style: solid;
-  border-bottom-width: 2px;
+  border-bottom-width: 3px;
 }
 
 .tabs-items.contained.state-3-disabled {

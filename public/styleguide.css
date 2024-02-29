@@ -47,7 +47,7 @@
     --border-disabled-inner-top-right-bottom: ;
     --border-interactive-inner-border-all: ;
     --border-interactive-inner-border-bottom: ;
-    --border-interactive-inner-border-left: ;
+    --border-interactive-inner-border-left: var(--theme-border-border-interactive);
     --border-interactive-inner-border-right: ;
     --border-interactive-inner-border-top: ;
     --border-interactive-outer-border-all: 0px 0px 0px 3px rgba(15, 98, 254, 1);
@@ -418,7 +418,9 @@
     --theme-border-border-strong-01: var(--colors-default-gray-50);
     --theme-border-border-strong-02: var(--colors-default-gray-50);
     --theme-border-border-strong-03: var(--colors-default-gray-50);
+    --theme-border-border-subtle-00: var(--colors-default-gray-20);
     --theme-border-border-subtle-01: var(--colors-default-gray-30);
+    --theme-border-border-subtle-02: var(--colors-default-gray-40);
     --theme-border-border-subtle-03: var(--colors-default-gray-30);
     --theme-border-border-subtle-selected-01: var(--colors-default-gray-30);
     --theme-border-border-subtle-selected-02: var(--colors-default-gray-30);

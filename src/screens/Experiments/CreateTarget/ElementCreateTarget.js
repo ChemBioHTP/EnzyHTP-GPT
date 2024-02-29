@@ -1,5 +1,6 @@
 import React from "react";
-import { Accordion } from "../components/Accordion";
+import { Accordion } from "../components/Accordion"
+import { useState, useReducer, useEffect} from 'react';
 import { Button } from "../components/Button";
 import { DirectionHorizontalWrapper } from "../components/DirectionHorizontalWrapper";
 import { ModalPanel } from "../components/ModalPanel";
@@ -18,8 +19,28 @@ import "./style.css";
 import { NavigationSideBar } from "../components/NavigationSideBar/NavigationSideBar";
 
 export const ElementCreateTarget = () => {
+  const [isVisible, setIsVisible] = useState(true);
+
+  const [UIShellLeftPanelStateProp1, setUIShellLeftPanelStateProp1] = useState(["selected", "enabled", "enabled", "enabled", "enabled"]);
+  const [UIShellLeftPanelLinkText, setUIShellLeftPanelLinkText] = useState(["My awesome experime...", "Example experiment 02", "Example experiment 03", "Example experiment 04", "Example experiment 05"]);
+  const [UIShellLeftPanelSelected1, setUIShellLeftPanelSelected1] = useState([true, false, false, false, false]);
+
+  const handleButtonClick = (buttonId) => {
+
+    if (buttonId === 0) {
+      setIsVisible(!isVisible);
+    } else {
+      const newListItems = ["enabled", "enabled", "enabled", "enabled", "enabled"];
+      newListItems[buttonId - 1] = "selected";
+      setUIShellLeftPanelStateProp1(newListItems);
+      const newListItems1 = [false, false, false, false, false];
+      newListItems1[buttonId - 1] = true;
+      setUIShellLeftPanelSelected1(newListItems1);
+    }
+  };
+
   return (
-    <div className="element-create-target">
+    <div className="element-create-target" data-theme-mode="white-theme">
       <div className="div-2" data-breakpoints-mode="max-max-plus-1584px-1784px">
         <NavigationHeader className="navigation-header-instance" />
         <NavigationPage
@@ -116,15 +137,16 @@ export const ElementCreateTarget = () => {
             type="text-icon"
           />
         </div>
-        <NavigationSideNav
-          UIShellLeftPanelLinkText="My awesome experime..."
+        {isVisible && <NavigationSideNav
+          UIShellLeftPanelLinkText={UIShellLeftPanelLinkText}
           UIShellLeftPanelSelected={false}
-          UIShellLeftPanelSelected1
+          UIShellLeftPanelSelected1={UIShellLeftPanelSelected1}
           UIShellLeftPanelStateProp="enabled"
-          UIShellLeftPanelStateProp1="selected"
+          UIShellLeftPanelStateProp1={UIShellLeftPanelStateProp1}
           className="navigation-side-nav-2"
           version="version-5"
-        />
+          onButtonClick={handleButtonClick}
+        />}
       </div>
     </div>
   );

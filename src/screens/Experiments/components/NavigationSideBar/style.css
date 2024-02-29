@@ -3,7 +3,9 @@
   background-color: var(--theme-background-background);
   border-color: var(--theme-border-border-subtle-00);
   border-right-style: solid;
+  border-bottom-style: solid;
   border-right-width: 1px;
+  border-bottom-width: 1px;
   flex-direction: column;
   height: 852px;
   padding: 24px 0px;

@@ -11,6 +11,9 @@
   background-color: var(--layerlayer-01);
   height: 900px;
   position: relative;
+  border-right-style: solid;
+  border-right-width: 1px;
+  border-color: var(--theme-border-border-subtle-00);
   width: var(--breakpoints-viewport-size);
 }
 

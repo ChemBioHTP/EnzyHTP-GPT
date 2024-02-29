@@ -21,6 +21,10 @@
   white-space: nowrap;
 }
 
+.UI-shell-left-panel .link-2.selected {
+  margin-left: -4px;
+}
+
 .UI-shell-left-panel .link-3 {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
@@ -78,6 +82,10 @@
 .UI-shell-left-panel.selected-2-true {
   background-color: var(--backgroundbackground-selected);
   box-shadow: var(--border-interactive-inner-border-left);
+  box-sizing: border-box;
+  border-left-style: solid;
+  border-left-width: 4px;
+  border-color: var(--borderborder-interactive);
 }
 
 .UI-shell-left-panel.compact-true.divider-false {

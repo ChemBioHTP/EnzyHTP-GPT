@@ -163,7 +163,7 @@
 
 .direction-horizontal-wrapper.vertical {
   border-left-style: solid;
-  border-left-width: 2px;
+  border-left-width: 3px;
   display: flex;
 }
 

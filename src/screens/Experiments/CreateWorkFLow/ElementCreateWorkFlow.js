@@ -12,7 +12,9 @@ import { IconArrowRight } from "../icons/IconArrowRight";
 import { IconEdit3 } from "../icons/IconEdit3";
 import { IconMoreHorizontal } from "../icons/IconMoreHorizontal";
 import { Incomplete } from "../icons/Incomplete";
+import line15 from "../../../assets/images/Experiments/ElementCreate/line-15.svg"
 import "./style.css";
+import { NavigationSideBar } from "../components/NavigationSideBar/NavigationSideBar";
 
 export const ElementCreateWorkFlow = () => {
   return (
@@ -46,7 +48,7 @@ export const ElementCreateWorkFlow = () => {
             type="text-icon"
           />
         </div>
-        <NavigationSideNav className="navigation-side-nav-instance" version="version-4" />
+        <NavigationSideBar className="navigation-side-nav-instance" version="version-4" />
         <div className="progress-indicator-2">
           <DirectionHorizontalWrapper
             className="progress-indicator-item"
@@ -121,7 +123,7 @@ export const ElementCreateWorkFlow = () => {
                 titleText="Structure preparation"
                 type="base"
               />
-              <img className="line-2" alt="Line" src="/img/line-15.svg" />
+              <img className="line-2" alt="Line" src={line15} />
               <Tile
                 accessible={false}
                 className="tile-instance"
@@ -138,7 +140,7 @@ export const ElementCreateWorkFlow = () => {
                 titleText="Structure operation"
                 type="base"
               />
-              <img className="line-2" alt="Line" src="/img/line-16.svg" />
+              <img className="line-2" alt="Line" src={line15} />
               <Tile
                 accessible={false}
                 className="tile-4"
@@ -149,7 +151,7 @@ export const ElementCreateWorkFlow = () => {
                 titleText="Conformation exploration"
                 type="base"
               />
-              <img className="line-2" alt="Line" src="/img/line-17.svg" />
+              <img className="line-2" alt="Line" src={line15} />
               <Tile
                 accessible={false}
                 className="tile-instance"
