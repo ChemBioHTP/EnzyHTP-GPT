@@ -5,7 +5,7 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 
 import PropTypes from "prop-types";
 import React from "react";
-import { useReducer, useState } from "react";
+import { useReducer, useState, useEffect} from "react";
 import { Checkbox3 } from "../../icons/Checkbox3";
 import { Chevron4 } from "../../icons/Chevron4";
 import { Chevron9 } from "../../icons/Chevron9";
@@ -39,15 +39,15 @@ export const UiShellLeftPanel = ({
     divider: divider || false,
   });
 
-  const [isClicked, setIsClicked] = useState(false);
-
-  const handleButtonClick = () => {
-    // dispatch("click");
-    setIsClicked(true);
-    onButtonClick();
-    if (linkText === "Example experiment 02") {
-      console.log(state.state);
+  useEffect(() => {
+    if (selected === false) {
+      dispatch("unselect");
     }
+  }, [selected]);
+
+  const handleButtonClick = () => {   
+    onButtonClick();
+    dispatch("select");
   };
 
   return (
@@ -189,6 +189,45 @@ function reducer(state, action) {
           selected: false,
           state: "enabled",
           type: "link",
+        };
+    }
+  }
+
+
+  if (
+    state.compact === false &&
+    state.divider === false &&
+    state.expanded === false &&
+    state.level === "level-2" &&
+    state.selected === false &&
+    state.state === "hover" &&
+    state.type === "link"
+  ) {
+    switch (action) {
+      case "select":
+        return {
+          ...state,
+          selected: true,
+          state: "selected",
+        };
+    }
+  }
+
+  if (
+    state.compact === false &&
+    state.divider === false &&
+    state.expanded === false &&
+    state.level === "level-2" &&
+    state.selected === true &&
+    state.state === "selected" &&
+    state.type === "link"
+  ) {
+    switch (action) {
+      case "unselect":
+        return {
+          ...state,
+          selected: false,
+          state: "enabled",
         };
     }
   }

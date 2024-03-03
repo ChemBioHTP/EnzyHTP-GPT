@@ -21,21 +21,9 @@ import { NavigationSideBar } from "../components/NavigationSideBar/NavigationSid
 export const ElementCreateTarget = () => {
   const [isVisible, setIsVisible] = useState(true);
 
-  const [UIShellLeftPanelStateProp1, setUIShellLeftPanelStateProp1] = useState(["selected", "enabled", "enabled", "enabled", "enabled"]);
-  const [UIShellLeftPanelLinkText, setUIShellLeftPanelLinkText] = useState(["My awesome experime...", "Example experiment 02", "Example experiment 03", "Example experiment 04", "Example experiment 05"]);
-  const [UIShellLeftPanelSelected1, setUIShellLeftPanelSelected1] = useState([true, false, false, false, false]);
-
   const handleButtonClick = (buttonId) => {
-
     if (buttonId === 0) {
       setIsVisible(!isVisible);
-    } else {
-      const newListItems = ["enabled", "enabled", "enabled", "enabled", "enabled"];
-      newListItems[buttonId - 1] = "selected";
-      setUIShellLeftPanelStateProp1(newListItems);
-      const newListItems1 = [false, false, false, false, false];
-      newListItems1[buttonId - 1] = true;
-      setUIShellLeftPanelSelected1(newListItems1);
     }
   };
 
@@ -138,11 +126,9 @@ export const ElementCreateTarget = () => {
           />
         </div>
         {isVisible && <NavigationSideNav
-          UIShellLeftPanelLinkText={UIShellLeftPanelLinkText}
-          UIShellLeftPanelSelected={false}
-          UIShellLeftPanelSelected1={UIShellLeftPanelSelected1}
-          UIShellLeftPanelStateProp="enabled"
-          UIShellLeftPanelStateProp1={UIShellLeftPanelStateProp1}
+          UIShellLeftPanelLinkText={["Example experiment 01", "Example experiment 02", "Example experiment 03", "Example experiment 04", "Example experiment 05"]}
+          UIShellLeftPanelSelected1={[true, false, false, false, false]}
+          UIShellLeftPanelStateProp1={["selected", "enabled", "enabled", "enabled", "enabled"]}
           className="navigation-side-nav-2"
           version="version-5"
           onButtonClick={handleButtonClick}

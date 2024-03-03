@@ -11,18 +11,41 @@ import "./style.css";
 
 export const NavigationSideNav = ({
   className,
-  UIShellLeftPanelStateProp = "enabled",
-  UIShellLeftPanelSelected = true,
-  UIShellLeftPanelStateProp1 = ["selected", "enabled", "enabled", "enabled", "enabled"],
-  UIShellLeftPanelLinkText = ["Example experiment 01", "Example experiment 02", "Example experiment 03", "Example experiment 04", "Example experiment 05"],
-  UIShellLeftPanelSelected1 = [false,false, false, false, false],
+  UIShellLeftPanelStateProp = ["enabled", "enabled", "enabled", "enabled", "enabled"],
+  UIShellLeftPanelSelected = [false, false, false, false, false],
+  UIShellLeftPanelStateProp1 = ["enabled", "enabled", "enabled", "enabled", "enabled"],
+  UIShellLeftPanelLinkText = ["01", "02", "03", "04", "05"],
+  UIShellLeftPanelSelected1 = [false, false, false, false, false],
+  // call back function for button id which indicates selected tab (from 1-10)
   onButtonClick = () => {},
 }) => {
-  const [isStyled, setIsStyled] = useState(false);
+  const [StateProp, setStateProp] = useState(UIShellLeftPanelStateProp);
+  const [Selected, setSelected] = useState(UIShellLeftPanelSelected);
+  const [StateProp1, setStateProp1] = useState(UIShellLeftPanelStateProp1);
+  const [Selected1, setSelected1] = useState(UIShellLeftPanelSelected1);
 
   const handleButtonClick = (buttonId) => {
     onButtonClick(buttonId);
-    setIsStyled(!isStyled);
+    const listItems = ["enabled", "enabled", "enabled", "enabled", "enabled"];
+    const listItems1 = [false, false, false, false, false];
+    const newListItems = ["enabled", "enabled", "enabled", "enabled", "enabled"];
+    const newListItems1 = [false, false, false, false, false];
+
+    if (buttonId < 6) {      
+      setStateProp1(listItems);
+      newListItems[buttonId - 1] = "selected";
+      setStateProp(newListItems);  
+      setSelected1(listItems1);
+      newListItems1[buttonId - 1] = true;
+      setSelected(newListItems1);
+    } else {
+      setStateProp(listItems);   
+      newListItems[buttonId - 6] = "selected";
+      setStateProp1(newListItems);  
+      setSelected(listItems1);
+      newListItems1[buttonId - 6] = true;
+      setSelected1(newListItems1);
+    }
   };
 
   return (
@@ -66,8 +89,9 @@ export const NavigationSideNav = ({
             expanded={false}
             level="level-2"
             linkText="All"
-            selected={UIShellLeftPanelSelected}
-            stateProp={UIShellLeftPanelStateProp}
+            selected={Selected[0]}
+            stateProp={StateProp[0]}
+            onButtonClick={() => handleButtonClick(1)}
             type="link"
           />
           <UiShellLeftPanel
@@ -77,8 +101,9 @@ export const NavigationSideNav = ({
             expanded={false}
             level="level-2"
             linkText="In progress"
-            selected={false}
-            stateProp="enabled"
+            selected={Selected[1]}
+            stateProp={StateProp[1]}
+            onButtonClick={() => handleButtonClick(2)}
             type="link"
           />
           <UiShellLeftPanel
@@ -88,8 +113,9 @@ export const NavigationSideNav = ({
             expanded={false}
             level="level-2"
             linkText="With error"
-            selected={false}
-            stateProp="enabled"
+            selected={Selected[2]}
+            stateProp={StateProp[2]}
+            onButtonClick={() => handleButtonClick(3)}
             type="link"
           />
           <UiShellLeftPanel
@@ -99,8 +125,9 @@ export const NavigationSideNav = ({
             expanded={false}
             level="level-2"
             linkText="Complete"
-            selected={false}
-            stateProp="enabled"
+            selected={Selected[3]}
+            stateProp={StateProp[3]}
+            onButtonClick={() => handleButtonClick(4)}
             type="link"
           />
           <UiShellLeftPanel
@@ -110,8 +137,9 @@ export const NavigationSideNav = ({
             expanded={false}
             level="level-2"
             linkText="Archived"
-            selected={false}
-            stateProp="enabled"
+            selected={Selected[4]}
+            stateProp={StateProp[4]}
+            onButtonClick={() => handleButtonClick(5)}
             type="link"
           />
         </div>       
@@ -135,9 +163,9 @@ export const NavigationSideNav = ({
             expanded={false}
             level="level-2"
             linkText={UIShellLeftPanelLinkText[0]}
-            selected={UIShellLeftPanelSelected1[0]}
-            stateProp={UIShellLeftPanelStateProp1[0]}
-            onButtonClick={() => handleButtonClick(1)}
+            selected={Selected1[0]}
+            stateProp={StateProp1[0]}
+            onButtonClick={() => handleButtonClick(6)}
             type="link"
           />
           <UiShellLeftPanel
@@ -147,9 +175,9 @@ export const NavigationSideNav = ({
             expanded={false}
             level="level-2"
             linkText={UIShellLeftPanelLinkText[1]}
-            selected={UIShellLeftPanelSelected1[1]}
-            stateProp={UIShellLeftPanelStateProp1[1]}
-            onButtonClick={() => handleButtonClick(2)}
+            selected={Selected1[1]}
+            stateProp={StateProp1[1]}
+            onButtonClick={() => handleButtonClick(7)}
             type="link"
           />
           <UiShellLeftPanel
@@ -159,9 +187,9 @@ export const NavigationSideNav = ({
             expanded={false}
             level="level-2"
             linkText={UIShellLeftPanelLinkText[2]}
-            selected={UIShellLeftPanelSelected1[2]}
-            stateProp={UIShellLeftPanelStateProp1[2]}
-            onButtonClick={() => handleButtonClick(3)}
+            selected={Selected1[2]}
+            stateProp={StateProp1[2]}
+            onButtonClick={() => handleButtonClick(8)}
             type="link"
           />
           <UiShellLeftPanel
@@ -171,9 +199,9 @@ export const NavigationSideNav = ({
             expanded={false}
             level="level-2"
             linkText={UIShellLeftPanelLinkText[3]}
-            selected={UIShellLeftPanelSelected1[3]}
-            stateProp={UIShellLeftPanelStateProp1[3]}
-            onButtonClick={() => handleButtonClick(4)}
+            selected={Selected1[3]}
+            stateProp={StateProp1[3]}
+            onButtonClick={() => handleButtonClick(9)}
             type="link"
           />
           <UiShellLeftPanel
@@ -183,9 +211,9 @@ export const NavigationSideNav = ({
             expanded={false}
             level="level-2"
             linkText={UIShellLeftPanelLinkText[4]}
-            selected={UIShellLeftPanelSelected1[4]}
-            stateProp={UIShellLeftPanelStateProp1[4]}
-            onButtonClick={() => handleButtonClick(5)}
+            selected={Selected1[4]}
+            stateProp={StateProp1[4]}
+            onButtonClick={() => handleButtonClick(10)}
             type="link"
           />
         </div>
