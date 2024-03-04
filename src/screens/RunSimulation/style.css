@@ -17,14 +17,14 @@
   left: 0 !important;
   position: absolute !important;
   top: 0 !important;
-  width: 1584px !important;
+  width: 100% !important;
 }
 
 .element-create .navigation-page-header {
   left: 262px !important;
   position: absolute !important;
   top: 48px !important;
-  width: 1322px !important;
+  width: 100% !important;
 }
 
 .element-create .icon-instance-node-3 {

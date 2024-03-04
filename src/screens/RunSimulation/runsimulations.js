@@ -64,6 +64,18 @@ export const RunSimulation = () => {
           <div className="frame-13">
             <div style={{ cursor: "pointer" }}>
               <Button
+                buttonText="Back"
+                className="button-3"
+                icon1={""}
+                iconClassName="button-2"
+                stateProp="enabled"
+                size="large"
+                type="text-icon"
+                style="tertiary"
+              />
+            </div>
+            <div style={{ cursor: "pointer" }}>
+              <Button
                 buttonText="Run experiment"
                 className="button-3"
                 icon1={""}
