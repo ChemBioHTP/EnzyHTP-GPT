@@ -1,0 +1,33 @@
+.modal-panel-targets {
+  align-items: flex-start;
+  display: flex;
+  gap: 4px;
+  height: 25px;
+  position: relative;
+  width: 206px;
+}
+
+.modal-panel-targets .div-wrapper {
+  align-items: center;
+  background-color: var(--theme-miscellaneous-highlight);
+  border-radius: 53px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  padding: 4px 16px;
+  position: relative;
+}
+
+.modal-panel-targets .label-2 {
+  color: var(--theme-tag-blue-tag-color-blue);
+  font-family: var(--utility-styles-label-01-font-family);
+  font-size: var(--utility-styles-label-01-font-size);
+  font-style: var(--utility-styles-label-01-font-style);
+  font-weight: var(--utility-styles-label-01-font-weight);
+  letter-spacing: var(--utility-styles-label-01-letter-spacing);
+  line-height: var(--utility-styles-label-01-line-height);
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
