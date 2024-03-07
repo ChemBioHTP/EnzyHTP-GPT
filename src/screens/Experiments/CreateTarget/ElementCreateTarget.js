@@ -21,12 +21,30 @@ import { NavigationSideBar } from "../components/NavigationSideBar/NavigationSid
 export const ElementCreateTarget = () => {
   const [isVisible, setIsVisible] = useState(true);
 
+  const [titleText, setTitleText] = useState("Example experiment 01");
+
+  const [sideLabel, setSideLabel] = useState(["Example experiment 01", "Example experiment 02", "Example experiment 03", "Example experiment 04", "Example experiment 05"]);
   const handleButtonClick = (buttonId) => {
     if (buttonId === 0) {
       setIsVisible(!isVisible);
     }
+    if (buttonId > 5) {
+      setTitleText(sideLabel[buttonId - 6]);
+    }
   };
 
+  const handleSubmitButtonClick = () => {
+    console.log(textInputValue);
+  };
+
+  const [textInputValue, setTextInputValue] = useState("");
+
+  const handleInputChange = (event) => {
+    const value = event.target.value;
+    if (event.target.value.length <= 200) {
+      setTextInputValue(value);
+    }
+  };
   return (
     <div className="element-create-target" data-theme-mode="white-theme">
       <div className="div-2" data-breakpoints-mode="max-max-plus-1584px-1784px">
@@ -35,6 +53,7 @@ export const ElementCreateTarget = () => {
           buttonIcon={<IconMoreHorizontal className="icon-instance-node-3" />}
           className="navigation-page-header"
           override={<IconAlertCircle2 className="icon-instance-node-3" />}
+          titleText={titleText}
         />
         <div className="frame-11">
           <TabsItems
@@ -60,9 +79,14 @@ export const ElementCreateTarget = () => {
         </div>
         <NavigationSideBar className="navigation-side-nav-instance" />
         <div className="text-area-content">
-          <div className="text-2">Type in anything</div>
+          <textarea
+            className="text-2"
+            placeholder="Type in anything"
+            value={textInputValue}
+            onChange={handleInputChange}
+          />
           <div className="frame-12">
-            <div className="text-3">0/200</div>
+            <div className="text-3">{textInputValue.length}/200</div>
             <Button
               className="design-component-instance-node"
               override={<IconSend className="icon-instance-node-3" />}
@@ -70,6 +94,7 @@ export const ElementCreateTarget = () => {
               stateProp="enabled"
               style="primary"
               type="icon-only"
+              onClick={handleSubmitButtonClick}
             />
           </div>
         </div>
@@ -126,7 +151,7 @@ export const ElementCreateTarget = () => {
           />
         </div>
         {isVisible && <NavigationSideNav
-          UIShellLeftPanelLinkText={["Example experiment 01", "Example experiment 02", "Example experiment 03", "Example experiment 04", "Example experiment 05"]}
+          UIShellLeftPanelLinkText={sideLabel}
           UIShellLeftPanelSelected1={[true, false, false, false, false]}
           UIShellLeftPanelStateProp1={["selected", "enabled", "enabled", "enabled", "enabled"]}
           className="navigation-side-nav-2"

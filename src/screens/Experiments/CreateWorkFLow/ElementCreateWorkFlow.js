@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "../components/Button";
 import { DirectionHorizontalWrapper } from "../components/DirectionHorizontalWrapper";
 import { NavigationHeader } from "../components/NavigationHeader";
@@ -17,6 +17,7 @@ import "./style.css";
 import { NavigationSideBar } from "../components/NavigationSideBar/NavigationSideBar";
 
 export const ElementCreateWorkFlow = () => {
+  const [sideLabel, setSideLabel] = useState(["Example experiment 01", "Example experiment 02", "Example experiment 03", "Example experiment 04", "Example experiment 05"]);
   return (
     <div className="element-create">
       <div className="div-2" data-breakpoints-mode="max-max-plus-1584px-1784px">
@@ -98,11 +99,11 @@ export const ElementCreateWorkFlow = () => {
           />
         </div>
         <NavigationSideNav
-          UIShellLeftPanelLinkText="My awesome experime..."
-          UIShellLeftPanelSelected={false}
-          UIShellLeftPanelSelected1
-          UIShellLeftPanelStateProp="enabled"
-          UIShellLeftPanelStateProp1="selected"
+          UIShellLeftPanelLinkText={sideLabel}
+          //UIShellLeftPanelSelected={false}
+          UIShellLeftPanelSelected1={[true, false, false, false, false]}
+          //UIShellLeftPanelStateProp="enabled"     
+          UIShellLeftPanelStateProp1={["selected", "enabled", "enabled", "enabled", "enabled"]}
           className="navigation-side-nav-2"
           version="version-5"
         />

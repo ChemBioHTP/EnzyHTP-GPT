@@ -11,6 +11,7 @@ import "./style.css";
 
 export const NavigationPage = ({
   className,
+  titleText="My awesome experiment",
   buttonIcon = <IconMoreHorizontal className="icon-instance-node-2" />,
   override = <IconAlertCircle2 className="icon-instance-node-2" />,
 }) => {
@@ -18,7 +19,7 @@ export const NavigationPage = ({
     <div className={`navigation-page ${className}`}>
       <div className="frame-2">
         <div className="text-wrapper-4">Back to all experiments</div>
-        <div className="text-wrapper-5">My awesome experiment 01</div>
+        <div className="text-wrapper-5">{titleText}</div>
       </div>
       <div className="frame-3">
         <Button

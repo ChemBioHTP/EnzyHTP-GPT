@@ -23,6 +23,7 @@ export const Button = ({
   override = <Add className="add-56" color="#161616" />,
   iconClassName,
   icon1 = <Add className="add-56" color="#8D8D8D" />,
+  onClick,
 }) => {
   const [state, dispatch] = useReducer(reducer, {
     style: style || "primary",
@@ -40,6 +41,7 @@ export const Button = ({
       onMouseLeave={() => {
         dispatch("mouse_leave");
       }}
+      onClick={onClick}
     >
       {((state.size === "expressive" && state.state === "hover") ||
         (state.size === "extra-large" && state.state === "hover") ||

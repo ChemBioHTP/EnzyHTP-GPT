@@ -37,18 +37,20 @@ export const AccordionItem = ({
   return (
     <div
       className={`accordion-item state-10-${state.state} flush-${state.flush} expanded-${state.expanded} size-9-${state.size} ${state.alignment} ${className}`}
-      onMouseEnter={() => {
-        dispatch("mouse_enter");
-      }}
-      onClick={() => {
-        dispatch("click_3440");
-      }}
-      onMouseLeave={() => {
-        dispatch("mouse_leave");
-      }}
+      
     >
       {(!state.expanded || state.state === "skeleton") && (
-        <div className="accordion-header">
+        <div className="accordion-header"
+          onMouseEnter={() => {
+            dispatch("mouse_enter");
+          }}
+          onClick={() => {
+            dispatch("click_3440");
+          }}
+          onMouseLeave={() => {
+            dispatch("mouse_leave");
+          }}
+        >
           {state.state === "skeleton" && (
             <div className="accordion-header-2">
               {state.alignment === "right" && <div className="title-line" />}

@@ -78,7 +78,13 @@
 
 .element-create-target .text-2 {
   align-self: stretch;
-  color: var(--theme-text-text-on-color-disabled);
+  border: none;
+  outline: none;
+  height: 85px;
+  resize: none;
+  word-wrap: break-word;
+  width: 440px;
+  color: var(--theme-text-text-on-color-enabled);
   font-family: var(--body-body-02-font-family);
   font-size: var(--body-body-02-font-size);
   font-style: var(--body-body-02-font-style);
