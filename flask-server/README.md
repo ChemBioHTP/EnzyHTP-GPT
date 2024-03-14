@@ -107,3 +107,5 @@ docker run -d --name enzyhtp.web.flask -v .../EnzyHTP-GPT/flask-server:/var/www/
 To test the backend, please set the address to the host server and the port to 12306.
 
 Functions that require HTTPS, such as Google Login, need to work with a website server loaded with an SSL certificate and use a reverse proxy to test and run.
+
+**Attention:** You must have your database instance and oauth_client files ready before running the docker container!

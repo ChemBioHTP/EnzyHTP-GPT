@@ -21,7 +21,7 @@ import settings
 app = Flask(__name__, template_folder='../public')
 app.config.from_object(settings)
 
-from context import db, login_manager, ssl_context
+from context import db, login_manager
 login_manager.login_message_category = "info"
 
 # Create database tables
@@ -157,7 +157,16 @@ def api_key():
 
 if __name__ == "__main__":
 
-    # Set SSL Context and run server.
+    # Set SSL Context
+    from ssl import SSLContext, PROTOCOL_TLS_SERVER
+    __basedir = os.path.join(os.getcwd())
+    ssl_context = SSLContext(PROTOCOL_TLS_SERVER)
+    ssl_context.load_cert_chain(
+        os.path.join(__basedir, 'certs', 'server', 'server.crt'),
+        os.path.join(__basedir, 'certs', 'server', 'server.key')
+    )
+
+    # Run server.
     app.run(host=settings.APP_HOST,
         port=5000,
         debug=True,
