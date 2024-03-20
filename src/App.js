@@ -9,6 +9,7 @@ import Cookies from 'js-cookie';
 import ResetpwdScreen from "./screens/Login/resetpwdscreen";
 import ElementCreateWorkFlow from "./screens/Experiments/CreateWorkFLow/ElementCreateWorkFlow";
 import { ElementCreateTarget } from "./screens/Experiments/CreateTarget/ElementCreateTarget";
+import ElementExperiment from "./screens/Experiments/ExperimentPage/ElementExperiment";
 
 function App() {
   const [data, setData] = useState([{}]);
@@ -34,6 +35,7 @@ function App() {
         <Route path="/googlelogin" element={<GoogleLogin />} />
         <Route path="/flow" element={<ElementCreateWorkFlow />} />
         <Route path="/exp" element={<ElementCreateTarget />} />
+        <Route path="/boa" element={<ElementExperiment />} />
       </Routes>
     </div>    
     
