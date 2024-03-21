@@ -20,10 +20,14 @@ export const DirectionHorizontalWrapper = ({
   className,
   icon = <Incomplete2 className="instance-node-3" />,
   progressIndicatorStepText = "Step",
+  onClick = () => { }
 }) => {
+  const handleClick = () => {
+    onClick()
+  };
   return (
     <div className={`direction-horizontal-wrapper state-13-${state} ${direction} ${className}`}>
-      <div className="content">
+      <div className="content" onClick = {handleClick} >
         {["completed", "current", "disabled", "error", "incomplete"].includes(state) && (
           <>
             <div className="icon-label">

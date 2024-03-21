@@ -48,6 +48,25 @@
   width: 324px;
 }
 
+.element-create .frame-side {
+  position: absolute;
+  top: 48px !important;
+  right: 0px !important;
+  gap: 0px;
+  justify-content: flex-end;
+  z-index: 99;
+}
+
+.element-create .frame-cover {
+  position: absolute;
+  width: 1584px !important;
+  height: 900px !important;
+  background-color: var(--theme-background-background-inverse);
+  opacity: 50%;
+  z-index: 9;
+
+}
+
 .element-create .tabs-items-instance {
   display: flex !important;
   flex: 1 !important;
@@ -66,7 +85,7 @@
   flex-direction: column;
   left: 294px;
   position: absolute;
-  top: 267px;
+  top: 252px;
   width: 160px;
 }
 
@@ -95,7 +114,6 @@
   font-weight: 600;
   letter-spacing: 0.16px;
   line-height: 18px;
-  margin-top: -1px;
   position: relative;
 }
 

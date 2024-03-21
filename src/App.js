@@ -33,9 +33,7 @@ function App() {
         <Route path="/forgotpwd" element={<ForgotpwdScreen />} />
         <Route path="/resetpwd" element={<ResetpwdScreen />} />
         <Route path="/googlelogin" element={<GoogleLogin />} />
-        <Route path="/flow" element={<ElementCreateWorkFlow />} />
-        <Route path="/exp" element={<ElementCreateTarget />} />
-        <Route path="/boa" element={<ElementExperiment />} />
+        <Route path="/exp/*" element={<ElementExperiment />} />
       </Routes>
     </div>    
     
