@@ -124,6 +124,7 @@
   flex: 1 !important;
   flex-grow: 1 !important;
   width: unset !important;
+  background-color: #E0E0E0;
 }
 
 .data-table-row-item .class-3 {

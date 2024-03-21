@@ -3,7 +3,10 @@
   display: flex;
   justify-content: flex-end;
   position: relative;
-  width: 920px;
+  top: 290px !important;
+  left: 294px !important;
+  position: absolute !important;
+  width: 720px;
 }
 
 .data-table-toolbar .search-default-instance {
@@ -15,6 +18,7 @@
 
 .data-table-toolbar .button-instance {
   flex: 0 0 auto !important;
+  top: 300px;
 }
 
 .data-table-toolbar .add-2 {
@@ -26,4 +30,8 @@
 
 .data-table-toolbar .button-2 {
   z-index: unset !important;
+}
+.data-table-toolbar .new-experiment-modal-instance {
+  flex: 0 0 auto !important;
+  top: 300px;
 }

@@ -10,6 +10,8 @@ import { Search } from "../../icons/Search";
 import { Button } from "../Button";
 import { SearchDefault } from "../SearchDefault";
 import "./style.css";
+import { Icon } from "carbon-components-react";
+import { NewExperimentModal } from "../NewExperimentModal";
 
 export const DataTableToolbar = ({
   size,
@@ -32,43 +34,47 @@ export const DataTableToolbar = ({
         stateProp="enabled"
       />
       <Button
-        className="button-instance"
+        className="button-instance-1"
         override={buttonIcon}
         size={size === "SM-XS" ? "small" : "large"}
-        stateProp="enabled"
-        style="ghost"
+        stateProp="disabled"
+        style="secondary"
         type="icon-only"
+        iconClassName={"IconTrash2"}
+
       />
       {visible && (
         <Button
-          className="button-instance"
+          className="button-instance-1"
           override={<Add8 className="add-2" color="#161616" />}
           size={size === "SM-XS" ? "small" : "large"}
           stateProp="enabled"
-          style="ghost"
+          style="primary"
           type="icon-only"
         />
       )}
 
       <Button
-        className="button-instance"
+        className="button-instance-2"
         override={override}
         size={size === "SM-XS" ? "small" : "large"}
         stateProp="enabled"
-        style="ghost"
+        style="secondary"
         type="icon-only"
+        iconClassName={"IconSliders"}
       />
-      <Button
+      {/* <Button
         buttonText={buttonButtonText}
-        className="button-instance"
+        className="new-experiment-button"
         divClassName="button-2"
         icon={false}
-        iconClassName={buttonIconClassName}
+        iconClassName={IconTrash2}
         size={size === "SM-XS" ? "small" : "large"}
         stateProp="enabled"
         style="primary"
         type="text-icon"
-      />
+      /> */}
+      <NewExperimentModal blank={false} className="new-experiment-modal-instance" />
     </div>
   );
 };

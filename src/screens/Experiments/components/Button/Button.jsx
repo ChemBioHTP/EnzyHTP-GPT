@@ -9,6 +9,9 @@ import { useReducer } from "react";
 import { Add12 } from "../../icons/Add12";
 import { Add2 } from "../../icons/Add2";
 import { Add } from "../Add";
+import { Search } from "../../icons/Search";
+import { IconTrash2 } from "../../icons/IconTrash2";
+import { IconSliders } from "../../icons/IconSliders";
 import "./style.css";
 
 export const Button = ({
@@ -64,20 +67,70 @@ export const Button = ({
 
           {state.type === "icon-only" && ["primary", "secondary", "tertiary"].includes(state.style) && (
             <div className="icon">
-              <Add2
-                className={`${["extra-large", "large", "medium", "small"].includes(state.size) && "class-2"} ${
-                  state.size === "expressive" && "add-12"
-                }`}
-                color={
-                  state.style === "tertiary" && state.state === "enabled"
-                    ? "#0F62FE"
-                    : state.state === "disabled" && ["primary", "secondary"].includes(state.style)
-                    ? "#8D8D8D"
-                    : state.style === "tertiary" && state.state === "disabled"
-                    ? "#C6C6C6"
-                    : "white"
-                }
-              />
+              {iconClassName === "Add2" && (
+                <Add2
+                  className={`${["extra-large", "large", "medium", "small"].includes(state.size) && "class-2"} ${
+                    state.size === "expressive" && "add-12"
+                  }`}
+                  color={
+                    state.style === "tertiary" && state.state === "enabled"
+                      ? "#0F62FE"
+                      : state.state === "disabled" && ["primary", "secondary"].includes(state.style)
+                      ? "#8D8D8D"
+                      : state.style === "tertiary" && state.state === "disabled"
+                      ? "#C6C6C6"
+                      : "white"
+                  }
+                />)
+              }
+              {iconClassName === "Add" && (
+                    <Add2
+                    className={`${["extra-large", "large", "medium", "small"].includes(state.size) && "class-2"} ${
+                      state.size === "expressive" && "add-12"
+                    }`}
+                    color={
+                      state.style === "tertiary" && state.state === "enabled"
+                        ? "#0F62FE"
+                        : state.state === "disabled" && ["primary", "secondary"].includes(state.style)
+                        ? "#8D8D8D"
+                        : state.style === "tertiary" && state.state === "disabled"
+                        ? "#C6C6C6"
+                        : "white"
+                    }
+                  />)
+              }
+              {iconClassName === "IconTrash2" && (
+                  <IconTrash2
+                  className={`${["extra-large", "large", "medium", "small"].includes(state.size) && "class-2"} ${
+                    state.size === "expressive" && "add-12"
+                  }`}
+                  color={
+                    state.style === "tertiary" && state.state === "enabled"
+                      ? "#0F62FE"
+                      : state.state === "disabled" && ["primary", "secondary"].includes(state.style)
+                      ? "#8D8D8D"
+                      : state.style === "tertiary" && state.state === "disabled"
+                      ? "#C6C6C6"
+                      : "white"
+                  }
+                />
+              )}
+              {iconClassName === "IconSliders" && (
+                  <IconSliders
+                  className={`${["extra-large", "large", "medium", "small"].includes(state.size) && "class-2"} ${
+                    state.size === "expressive" && "add-12"
+                  }`}
+                  color={
+                    state.style === "tertiary" && state.state === "enabled"
+                      ? "#0F62FE"
+                      : state.state === "disabled" && ["primary", "secondary"].includes(state.style)
+                      ? "#8D8D8D"
+                      : state.style === "tertiary" && state.state === "disabled"
+                      ? "#C6C6C6"
+                      : "white"
+                  }
+                />
+              )}
             </div>
           )}
 
@@ -210,7 +263,7 @@ export const Button = ({
                             state.state === "enabled" ||
                             state.state === "focus" ||
                             state.state === "hover") && (
-                            <Add2
+                            <iconClassName
                               className={`${state.size === "expressive" ? "add-12" : "class-2"}`}
                               color={
                                 state.style === "ghost" && ["enabled", "focus"].includes(state.state)
@@ -226,7 +279,7 @@ export const Button = ({
                             />
                           )}
 
-                          {state.state === "disabled" && state.size === "expressive" && <Add12 className="add-12" />}
+                          {state.state === "disabled" && state.size === "expressive" && <iconClassName className="icon-class" />}
                         </>
                       </>
                     )}

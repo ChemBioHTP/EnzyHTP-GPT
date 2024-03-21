@@ -224,7 +224,7 @@
 }
 
 .button.secondary.state-0-disabled {
-  background-color: var(--theme-button-button-disabled);
+  background-color: #f4f4f4;
 }
 
 .button.state-0-skeleton.expressive {
@@ -278,7 +278,7 @@
 }
 
 .button.secondary.state-0-enabled {
-  background-color: var(--theme-button-button-secondary);
+  background-color: var(--theme-button-button-secondary-hover);
 }
 
 .button.state-0-active.danger-tertiary {

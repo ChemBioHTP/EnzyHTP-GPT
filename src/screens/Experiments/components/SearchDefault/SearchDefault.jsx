@@ -24,7 +24,7 @@ export const SearchDefault = ({
     size: size || "large",
     state: stateProp || "enabled",
     expandable: expandable || false,
-    expanded: expanded || true,
+    expanded: expanded || false,
   });
 
   return (

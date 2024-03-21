@@ -10,7 +10,7 @@ import './style.css';
 
 
 
-export function NewExperimentModal() {
+export function NewExperimentModal({ blank }) {
   const [open, setOpen] = React.useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
@@ -18,7 +18,7 @@ export function NewExperimentModal() {
     <div >
       <Button
           buttonText="New experiment"
-          className="button-instance"
+          className={blank ? "button-instance-blank" : "button-instance"}
           iconClassName="design-component-instance-node"
           size="large"
           stateProp="enabled"

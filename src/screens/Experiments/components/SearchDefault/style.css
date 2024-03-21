@@ -106,7 +106,7 @@
 
 .search-default.state-0-enabled.expanded-false {
   background-blend-mode: multiply;
-  background-color: var(--transparenttransparent);
+  background-color: var(--fieldfield-01);
 }
 
 .search-default.state-0-enabled.expanded-true {

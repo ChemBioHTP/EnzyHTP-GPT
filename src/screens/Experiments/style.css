@@ -6,24 +6,25 @@
   width: 100%;
 }
 
+
 .element-experiments .data-table-toolbar-instance {
-  left: 154px !important;
+  left: 294px !important;
   position: absolute !important;
   top: 300px !important;
 }
 
 .element-experiments .data-table-row-item-instance {
   left: 294px !important;
-  position: absolute !important;
+  /* position: absolute !important; */
   top: 341px !important;
-  width: 700px !important;
-  background-color: #A9A9A9;
+  width: 900px !important;
+  background-color: #ffffff;
 }
 .element-experiments .data-table-row-item-9 {
   /* margin-top: 0px !important; */
   left: 294px !important;
   top: 341px !important;
-  width: 700px !important;
+  width: 900px !important;
 }
 
 .element-experiments .div-2 {
@@ -109,10 +110,27 @@
 }
 
 .element-experiments .button-instance {
+  /* left: 699px !important; */
+  position: absolute !important;
+  top: 4px !important;
+}
+.element-experiments .button-instance-blank {
   left: 699px !important;
   position: absolute !important;
-  top: 664px !important;
+  top: 650px !important;
 }
+
+.element-experiments .new-experiment-button {
+  left: 715px !important;
+  position: absolute !important;
+  top: 0px !important;
+}
+.element-experiments .button-instance-2 {
+  /* /* left: 699px !important; */
+  /* position: absolute !important; */
+  top: 0px !important;
+}
+
 
 .element-experiments .design-component-instance-node {
   left: 154px !important;

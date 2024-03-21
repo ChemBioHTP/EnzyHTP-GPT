@@ -85,7 +85,7 @@ export const ElementExperiments = () => {
             <div className="text-wrapper-5">No experiments yet</div>
             <p className="p">Once you create experiments, they will show up here</p>
           </div>
-          <NewExperimentModal className="new-experiment-modal-instance" />
+          <NewExperimentModal blank={true} className="new-experiment-modal-instance" />
           <img className="group" alt="Group" src={chemistImage} />
         </>
       );
