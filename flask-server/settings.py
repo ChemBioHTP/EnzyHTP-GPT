@@ -27,3 +27,7 @@ JSONIFY_MIMETYPE = "application/json;charset=utf-8"
 # Database.
 SQLALCHEMY_DATABASE_URI=f'sqlite:///{os.path.join(__basedir, "instance", "enzyhtp_gpt.db")}'
 SQLALCHEMY_TRACK_MODIFICATIONS=False
+
+# Uri
+OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI = "/api/auth/profile"
+OPENAI_API_URI = "https://api.openai.com/v1/chat/completions"

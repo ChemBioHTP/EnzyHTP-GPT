@@ -1,0 +1,45 @@
+.navigation-header {
+  align-items: center;
+  background-color: var(--theme-background-background-inverse);
+  display: flex;
+  height: 48px;
+  justify-content: space-between;
+  padding: 0px 24px;
+  position: relative;
+  width: 1440px;
+}
+
+.navigation-header .frame {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 16px;
+  position: relative;
+}
+
+.navigation-header .text-wrapper {
+  color: var(--theme-text-text-on-color);
+  font-family: "Lexend Tera", Helvetica;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.16px;
+  line-height: 18px;
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.navigation-header .div {
+  align-items: flex-start;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 16px;
+  position: relative;
+}
+
+.navigation-header .icon-instance-node {
+  height: 16px !important;
+  position: relative !important;
+  width: 16px !important;
+}

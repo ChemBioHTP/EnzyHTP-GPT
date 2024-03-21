@@ -2,7 +2,7 @@
   "name": "client",
   "version": "0.1.0",
   "private": true,
-  "proxy": "http://127.0.0.1:5000",
+  "proxy": "https://127.0.0.1:5000",
   "dependencies": {
     "@carbon/icons-react": "^11.34.1",
     "@carbon/react": "^1.48.1",
@@ -13,8 +13,13 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "apexcharts": "^3.45.1",
+<<<<<<< HEAD
     "carbon-components-react": "^8.48.1",
+=======
+    "js-cookie": "^3.0.5",
+>>>>>>> develop
     "molstar": "^3.43.1",
+    "python": "^0.0.4",
     "react": "^18.2.0",
     "react-apexcharts": "^1.4.1",
     "react-dom": "^18.2.0",
