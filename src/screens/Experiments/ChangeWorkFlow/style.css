@@ -140,4 +140,6 @@
   flex: 0 0 auto !important;
   margin-right: -102px !important;
   width: 100% !important;
+  display: grid;
+  grid-template-columns: 3fr 2fr;
 }

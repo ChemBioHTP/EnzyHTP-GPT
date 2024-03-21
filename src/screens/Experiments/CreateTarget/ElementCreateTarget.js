@@ -96,17 +96,18 @@ export const ElementCreateTarget = ({ titleText= "Example experiment 01", onClic
         </p>
       </div>
       <Accordion
-        accordionItem={<ModalPanel className="design-component-instance-node-2" onClick={handleTagClick}/>}
+        accordionItem2={<ModalPanel className="design-component-instance-node-2" onClick={handleTagClick} />}
+        accordionItem3={<ModalPanelTargets className="modal-panel-targets-instance" />}
         accordionItemExpanded
         accordionItemExpanded1
         accordionItemHasDiv={false}
         accordionItemSize="medium"
         accordionItemSize1="medium"
-        accordionItemTitleText="Prompt templates"
-        accordionItemTitleText1="Targets"
+        accordionItemTitleText="Input with GUI"
+        accordionItemTitleText1="Prompt templates"
         accordionItemVisible={false}
         className="accordion-instance"
-        override={<ModalPanelTargets className="modal-panel-targets-instance" />}
+        
         visible={false}
         visible1={false}
       />

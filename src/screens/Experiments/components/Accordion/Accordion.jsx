@@ -14,12 +14,14 @@ export const Accordion = ({
   accordionItemHasDiv,
   accordionItemTitleText = "Title of accordion",
   accordionItemExpanded = false,
-  accordionItem,
+  accordionItem1,
+  accordionItem2,
+  accordionItem3,
   accordionItemSize1 = "large",
   accordionItemVisible,
   accordionItemTitleText1 = "Title of accordion",
+  accordionItemTitleText2 = "Title of accordion",
   accordionItemExpanded1 = false,
-  override,
   visible = true,
   visible1 = true,
 }) => {
@@ -28,22 +30,22 @@ export const Accordion = ({
       <AccordionItem
         alignment="right"
         className="accordion-item-instance"
-        expanded={accordionItemExpanded}
+        expanded={false}
         flush={false}
-        hasDiv={accordionItemHasDiv}
-        override={accordionItem}
-        size={accordionItemSize}
+        hasDiv={accordionItemVisible}
+        override=""
+        size={accordionItemSize1}
         stateProp="enabled"
         titleText={accordionItemTitleText}
       />
       <AccordionItem
         alignment="right"
         className="accordion-item-instance"
-        expanded={accordionItemExpanded1}
+        expanded={accordionItemExpanded}
         flush={false}
-        hasDiv={accordionItemVisible}
-        override={override}
-        size={accordionItemSize1}
+        hasDiv={accordionItemHasDiv}
+        override={accordionItem2}
+        size={accordionItemSize}
         stateProp="enabled"
         titleText={accordionItemTitleText1}
       />
@@ -51,11 +53,13 @@ export const Accordion = ({
         <AccordionItem
           alignment="right"
           className="accordion-item-instance"
-          expanded={false}
+          expanded={accordionItemExpanded1}
           flush={false}
-          size="large"
+          hasDiv={accordionItemVisible}
+          override={accordionItem3}
+          size={accordionItemSize1}
           stateProp="enabled"
-          titleText="Title of accordion"
+          titleText={accordionItemTitleText2}
         />
       )}
 
