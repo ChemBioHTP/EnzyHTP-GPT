@@ -6,6 +6,7 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 import PropTypes from "prop-types";
 import React from "react";
 import { AccordionItem } from "../AccordionItem";
+import { AccordionToggle } from "../AccordionToggle";
 import "./style.css";
 
 export const Accordion = ({
@@ -27,16 +28,9 @@ export const Accordion = ({
 }) => {
   return (
     <div className={`accordion ${className}`}>
-      <AccordionItem
-        alignment="right"
-        className="accordion-item-instance"
-        expanded={false}
-        flush={false}
-        hasDiv={accordionItemVisible}
-        override=""
-        size={accordionItemSize1}
-        stateProp="enabled"
-        titleText={accordionItemTitleText}
+      <AccordionToggle 
+        className="accordion-with-toggle"
+        state="on" 
       />
       <AccordionItem
         alignment="right"
