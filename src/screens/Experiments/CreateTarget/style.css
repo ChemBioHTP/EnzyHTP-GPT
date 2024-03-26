@@ -361,3 +361,58 @@
   margin-top: -1px;
   position: relative;
 }
+
+.element-create-target .frame-17 {
+  align-items: flex-end;
+  background-color: var(--theme-background-background-inverse-hover);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 852px;
+  left: 1320px;
+  padding: 24px 16px;
+  position: absolute;
+  top: 48px;
+  width: 264px;
+  z-index: 99;
+}
+
+.element-create-target .frame-18 {
+  align-items: center;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: space-between;
+  padding: 24px 16px;
+  position: relative;
+  width: 100%;
+}
+
+.element-create-target .text-wrapper-9 {
+  color: var(--theme-text-text-on-color);
+  font-family: var(--utility-label-02-bold-font-family);
+  font-size: var(--utility-label-02-bold-font-size);
+  font-style: var(--utility-label-02-bold-font-style);
+  font-weight: var(--utility-label-02-bold-font-weight);
+  letter-spacing: var(--utility-label-02-bold-letter-spacing);
+  line-height: var(--utility-label-02-bold-line-height);
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.element-create-target .icon-x {
+  height: 16px !important;
+  position: relative !important;
+  width: 16px !important;
+}
+
+.element-create-target .experiment-overview-instance {
+  font-family: var(--body-body-01-font-family) !important;
+  font-size: var(--body-body-01-font-size) !important;
+  font-style: var(--body-body-01-font-style) !important;
+  font-weight: var(--body-body-01-font-weight) !important;
+  letter-spacing: var(--body-body-01-letter-spacing) !important;
+  line-height: var(--body-body-01-line-height) !important;
+}

@@ -19,6 +19,7 @@ import { Incomplete } from "../icons/Incomplete";
 import "./style.css";
 import line3 from "../../../assets/images/Experiments/line-1.svg"
 import { AccordionToggle } from "../components/AccordionToggle";
+import { ExperimentOverview } from "../components/ExperimentOverview";
 
 export const ElementCreateTarget = ({ titleText= "Example experiment 01", onClickWrapper = () => { }}) => {
 
@@ -29,6 +30,13 @@ export const ElementCreateTarget = ({ titleText= "Example experiment 01", onClic
   const [textInputValue, setTextInputValue] = useState("");
   const [inputWithGUI, setInputWithGUI] = useState(false);
 
+  const cellData = [
+    "NA22K EA24K KA162L RA163L", 
+    "NA23K EA24K KA162L RA1A3L", 
+    "NA24K EA26K KA152L RA163L",
+    "NA25K EA25K KA162L RA173L",
+    "NA26K EA27K KA162L RA183L"
+  ];
   const handleInputGUISwitch = (state) => {
     setInputWithGUI(state);
     
@@ -146,28 +154,31 @@ export const ElementCreateTarget = ({ titleText= "Example experiment 01", onClic
               stateProp="enabled"
             />
           </div>
-          <div className="data-table-row-item-2">
-            <div className="data-table-row">
-              <DataTableRowCell
-                cellText="01"
-                className="data-table-row-cell-item"
-                minHeightClassName="data-table-row-cell-instance"
-                resizerResizerClassName="col-2"
-                size="small"
-                state="enabled"
-              />
-              <DataTableRowCell
-                cellText="NA22K EA24K KA162L RA163L"
-                className="data-table-row-cell-item-instance"
-                minHeightClassName="col-4"
-                resizerResizerClassName="col-3"
-                size="small"
-                state="enabled"
-              />
+          {cellData.map((item, index) => (
+            <div className="data-table-row-item-2" key={index}>
+              <div className="data-table-row">
+                <DataTableRowCell
+                  cellText={(index+1).toString().padStart(2, '0')}
+                  className="data-table-row-cell-item"
+                  minHeightClassName="data-table-row-cell-instance"
+                  resizerResizerClassName="col-2"
+                  size="small"
+                  state="enabled"
+                />
+                <DataTableRowCell
+                  cellText={item}
+                  className="data-table-row-cell-item-instance"
+                  minHeightClassName="col-4"
+                  resizerResizerClassName="col-3"
+                  size="small"
+                  state="enabled"
+                />
+              </div>
+              <div className="divider-3" />
             </div>
-            <div className="divider-3" />
-          </div>
-          <div className="data-table-row-item-2">
+          ))}
+          
+          {/* <div className="data-table-row-item-2">
             <div className="data-table-row">
               <DataTableRowCell
                 cellText="02"
@@ -250,7 +261,7 @@ export const ElementCreateTarget = ({ titleText= "Example experiment 01", onClic
               />
             </div>
             <div className="divider-3" />
-          </div>
+          </div> */}
         </div>
         <AccordionToggle 
           text= "Show mutation in GUI"
@@ -296,8 +307,32 @@ export const ElementCreateTarget = ({ titleText= "Example experiment 01", onClic
           style="primary"
           type="text-icon"
         />
-      </div>       
       </div>
+      <div className="frame-17">
+        <div className="frame-18">
+          <div className="text-wrapper-9">Experiment overview</div>
+          {/* <IconX1 className="icon-x" color="white" /> */}
+        </div>
+        <ExperimentOverview
+          className="design-component-instance-node-2"
+          frameClassName="experiment-overview-instance"
+          heading1={false}
+          stateProp="default"
+          text="Description"
+          text1="Click to give a description."
+          type="text"
+        />
+        <ExperimentOverview
+          className="design-component-instance-node-2"
+          divClassName="experiment-overview-instance"
+          heading1
+          stateProp="default"
+          text="Status"
+          text1="Please provide the prompt and run the experiment."
+          type="text"
+        />
+      </div>     
+    </div>
   );
 };
 

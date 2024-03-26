@@ -411,6 +411,7 @@
     --theme-background-background-brand: var(--colors-default-blue-60);
     --theme-background-background-hover: rgba(141, 141, 141, 0.12);
     --theme-background-background-inverse: var(--colors-default-gray-100);
+    --theme-background-background-inverse-hover: var(--colors-hover-gray-80);
     --theme-background-background-selected: rgba(141, 141, 141, 0.2);
     --theme-background-background-selected-hover: rgba(141, 141, 141, 0.32);
     --theme-border-border-disabled: var(--colors-default-gray-30);
