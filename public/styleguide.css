@@ -461,9 +461,15 @@
     --theme-icon-icon-primary: var(--colors-default-gray-100);
     --theme-icon-icon-secondary: var(--colors-default-gray-70);
     --theme-inverse-white-black-white-in-light-themes: var(--colors-default-neutral-white);
+    --theme-layer-accent-layer-accent-01: var(--colors-default-gray-20);
+    --theme-layer-accent-layer-accent-02: var(--colors-default-gray-20);
+    --theme-layer-accent-layer-accent-03: var(--colors-default-gray-20);
     --theme-layer-accent-layer-accent-active-01: var(--colors-default-gray-40);
     --theme-layer-accent-layer-accent-active-02: var(--colors-default-gray-40);
     --theme-layer-accent-layer-accent-active-03: var(--colors-default-gray-40);
+    --theme-layer-accent-layer-accent-hover-01: var(--colors-hover-gray-20);
+    --theme-layer-accent-layer-accent-hover-02: var(--colors-hover-gray-20);
+    --theme-layer-accent-layer-accent-hover-03: var(--colors-hover-gray-20);
     --theme-layer-layer-01: var(--colors-default-gray-10);
     --theme-layer-layer-02: var(--colors-default-neutral-white);
     --theme-layer-layer-03: var(--colors-default-gray-10);

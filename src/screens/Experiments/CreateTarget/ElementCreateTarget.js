@@ -3,6 +3,9 @@ import { Accordion } from "../components/Accordion"
 import { useState, useReducer, useEffect} from 'react';
 import { Button } from "../components/Button";
 import { DirectionHorizontalWrapper } from "../components/DirectionHorizontalWrapper";
+import { DataTableHeader } from "../components/DataTableHeader"
+import { DataTableRowCell } from "../components/DataTableRowCell"
+import { FileUploaderFile } from "../components/FileUploaderFile"
 import { ModalPanel } from "../components/ModalPanel";
 import { ModalPanelTargets } from "../components/ModalPanelTargets";
 import { NavigationPage } from "../components/NavigationPage";
@@ -14,6 +17,8 @@ import { IconMoreHorizontal } from "../icons/IconMoreHorizontal";
 import { IconSend } from "../icons/IconSend";
 import { Incomplete } from "../icons/Incomplete";
 import "./style.css";
+import line3 from "../../../assets/images/Experiments/line-1.svg"
+import { AccordionToggle } from "../components/AccordionToggle";
 
 export const ElementCreateTarget = ({ titleText= "Example experiment 01", onClickWrapper = () => { }}) => {
 
@@ -22,6 +27,12 @@ export const ElementCreateTarget = ({ titleText= "Example experiment 01", onClic
   };
 
   const [textInputValue, setTextInputValue] = useState("");
+  const [inputWithGUI, setInputWithGUI] = useState(false);
+
+  const handleInputGUISwitch = (state) => {
+    setInputWithGUI(state);
+    
+  };
 
   const handleInputChange = (event) => {
     const value = event.target.value;
@@ -107,9 +118,151 @@ export const ElementCreateTarget = ({ titleText= "Example experiment 01", onClic
         accordionItemTitleText1="Prompt templates"
         accordionItemVisible={false}
         className="accordion-instance"
-        
+        onSwitchClick={handleInputGUISwitch}
         visible={false}
         visible1={false}
+      />
+      <img className="line-3" alt="Line" src={line3} />
+      <div className="frame-14">
+        <div className="label-6">Mutation generated</div>
+        <div className="frame-15">
+          <div className="data-table-row-item">
+            <DataTableHeader
+              cellText="Number"
+              className="col"
+              resizerResizerClassName="col-2"
+              size="small"
+              sortable={false}
+              sorted="none"
+              stateProp="enabled"
+            />
+            <DataTableHeader
+              cellText="Pattern"
+              className="data-table-header-cell-item"
+              resizerResizerClassName="col-3"
+              size="small"
+              sortable={false}
+              sorted="none"
+              stateProp="enabled"
+            />
+          </div>
+          <div className="data-table-row-item-2">
+            <div className="data-table-row">
+              <DataTableRowCell
+                cellText="01"
+                className="data-table-row-cell-item"
+                minHeightClassName="data-table-row-cell-instance"
+                resizerResizerClassName="col-2"
+                size="small"
+                state="enabled"
+              />
+              <DataTableRowCell
+                cellText="NA22K EA24K KA162L RA163L"
+                className="data-table-row-cell-item-instance"
+                minHeightClassName="col-4"
+                resizerResizerClassName="col-3"
+                size="small"
+                state="enabled"
+              />
+            </div>
+            <div className="divider-3" />
+          </div>
+          <div className="data-table-row-item-2">
+            <div className="data-table-row">
+              <DataTableRowCell
+                cellText="02"
+                className="data-table-row-cell-item"
+                minHeightClassName="col-5"
+                resizerResizerClassName="col-2"
+                size="small"
+                state="enabled"
+              />
+              <DataTableRowCell
+                cellText="NA22K EA24K KA162L RA163L"
+                className="data-table-row-cell-item-instance"
+                minHeightClassName="col-6"
+                resizerResizerClassName="col-3"
+                size="small"
+                state="enabled"
+              />
+            </div>
+            <div className="divider-3" />
+          </div>
+          <div className="data-table-row-item-2">
+            <div className="data-table-row">
+              <DataTableRowCell
+                cellText="03"
+                className="data-table-row-cell-item"
+                minHeightClassName="col-7"
+                resizerResizerClassName="col-2"
+                size="small"
+                state="enabled"
+              />
+              <DataTableRowCell
+                cellText="NA22K EA24K KA162L RA163L"
+                className="data-table-row-cell-item-instance"
+                minHeightClassName="col-8"
+                resizerResizerClassName="col-3"
+                size="small"
+                state="enabled"
+              />
+            </div>
+            <div className="divider-3" />
+          </div>
+          <div className="data-table-row-item-2">
+            <div className="data-table-row">
+              <DataTableRowCell
+                cellText="04"
+                className="data-table-row-cell-item"
+                minHeightClassName="col-9"
+                resizerResizerClassName="col-2"
+                size="small"
+                state="enabled"
+              />
+              <DataTableRowCell
+                cellText="NA22K EA24K KA162L RA163L"
+                className="data-table-row-cell-item-instance"
+                minHeightClassName="col-10"
+                resizerResizerClassName="col-3"
+                size="small"
+                state="enabled"
+              />
+            </div>
+            <div className="divider-3" />
+          </div>
+          <div className="data-table-row-item-2">
+            <div className="data-table-row">
+              <DataTableRowCell
+                cellText="05"
+                className="data-table-row-cell-item"
+                minHeightClassName="col-11"
+                resizerResizerClassName="col-2"
+                size="small"
+                state="enabled"
+              />
+              <DataTableRowCell
+                cellText="NA22K EA24K KA162L RA163L"
+                className="data-table-row-cell-item-instance"
+                minHeightClassName="col-12"
+                resizerResizerClassName="col-3"
+                size="small"
+                state="enabled"
+              />
+            </div>
+            <div className="divider-3" />
+          </div>
+        </div>
+        <AccordionToggle 
+          text= "Show mutation in GUI"
+          className="accordion-with-toggle"
+          state="off"
+        />
+      </div>
+      <FileUploaderFile
+        className="file-uploader-file-item"
+        fileName="Your prompt has been successfully parsed."
+        size="large"
+        state="success"
       />
       <div className="progress-indicator-2">
         <DirectionHorizontalWrapper

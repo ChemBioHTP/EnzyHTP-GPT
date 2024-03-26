@@ -4,7 +4,7 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 */
 
 import PropTypes from "prop-types";
-import React from "react";
+import React, { useState } from "react";
 import { AccordionItem } from "../AccordionItem";
 import { AccordionToggle } from "../AccordionToggle";
 import "./style.css";
@@ -25,12 +25,20 @@ export const Accordion = ({
   accordionItemExpanded1 = false,
   visible = true,
   visible1 = true,
+  onSwitchClick=()=>{},
 }) => {
+  const [toggleState, setToggleState] = useState(false);
+
+  const handelSwitchClick = () => {
+    setToggleState(toggleState => !toggleState);
+    onSwitchClick(toggleState);
+  }
   return (
     <div className={`accordion ${className}`}>
       <AccordionToggle 
         className="accordion-with-toggle"
-        state="on" 
+        state={toggleState?"on":"off"} 
+        onSwitchClick={handelSwitchClick}
       />
       <AccordionItem
         alignment="right"

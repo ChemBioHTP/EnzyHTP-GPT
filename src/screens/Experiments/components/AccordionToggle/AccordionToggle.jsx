@@ -8,11 +8,14 @@ import React from "react";
 import { ToggleItem } from "../ToggleItem";
 import "./style.css";
 
-export const AccordionToggle = ({ state, className }) => {
+export const AccordionToggle = ({ text="Input with GUI", state, className, onSwitchClick=()=>{} }) => {
+  const handleClick=() => {
+    onSwitchClick();
+  }
   return (
-    <div className={`accordion-with ${className}`}>
+    <div className={`accordion-with ${className}`} onClick={handleClick}>
       <div className="accordion-header">
-        <div className="text-wrapper">Input with GUI</div>
+        <div className="text-wrapper">{text}</div>
         {state === "off" && <ToggleItem className="toggle-item-instance" size="small" state="enabled" />}
 
         {state === "on" && (
