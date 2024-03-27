@@ -427,8 +427,8 @@
 }
 
 .accordion-item.flush-false .background {
-  left: 0;
-  width: 400px;
+  left: 430px;
+  width: 50px;
 }
 
 .accordion-item.size-9-large .background {
@@ -690,8 +690,8 @@
 }
 
 .accordion-item.flush-false .background-3 {
-  left: 0;
-  width: 400px;
+  left: 430px;
+  width: 50px;
 }
 
 .accordion-item.size-9-large .background-3 {

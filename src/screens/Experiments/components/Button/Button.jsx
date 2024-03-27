@@ -15,6 +15,7 @@ export const Button = ({
   icon = true,
   resizer = false,
   buttonText = "Button",
+  disabled = false,
   style,
   type,
   size,
@@ -23,6 +24,7 @@ export const Button = ({
   override = <Add className="add-56" color="#161616" />,
   iconClassName,
   icon1 = <Add className="add-56" color="#8D8D8D" />,
+  onClick,
 }) => {
   const [state, dispatch] = useReducer(reducer, {
     style: style || "primary",
@@ -30,6 +32,12 @@ export const Button = ({
     size: size || "large",
     state: stateProp || "enabled",
   });
+
+  if(state.state!=="disabled" && disabled){
+    dispatch("button_disabled");
+  } else if (state.state === "disabled" && !disabled) {
+    dispatch("button_enabled");
+  }
 
   return (
     <button
@@ -40,6 +48,7 @@ export const Button = ({
       onMouseLeave={() => {
         dispatch("mouse_leave");
       }}
+      onClick={onClick}
     >
       {((state.size === "expressive" && state.state === "hover") ||
         (state.size === "extra-large" && state.state === "hover") ||
@@ -206,6 +215,16 @@ function reducer(state, action) {
       };
 
     case "mouse_leave":
+      return {
+        ...state,
+        state: "enabled",
+      };
+    case "button_disabled":
+      return {
+        ...state,
+        state: "disabled",
+      };
+    case "button_enabled":
       return {
         ...state,
         state: "enabled",

@@ -1,0 +1,270 @@
+.experiment-overview {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  position: relative;
+}
+
+.experiment-overview .target-metrics {
+  align-self: stretch;
+  position: relative;
+}
+
+.experiment-overview .target-metrics-2 {
+  align-self: stretch;
+  font-family: var(--utility-label-01-font-family);
+  font-size: var(--utility-label-01-font-size);
+  font-style: var(--utility-label-01-font-style);
+  font-weight: var(--utility-label-01-font-weight);
+  letter-spacing: var(--utility-label-01-letter-spacing);
+  line-height: var(--utility-label-01-line-height);
+  margin-top: -1px;
+  position: relative;
+}
+
+.experiment-overview .text-wrapper-6 {
+  align-self: stretch;
+  color: var(--theme-text-text-on-color);
+  font-family: var(--body-body-02-font-family);
+  font-size: var(--body-body-02-font-size);
+  font-style: var(--body-body-02-font-style);
+  font-weight: var(--body-body-02-font-weight);
+  letter-spacing: var(--body-body-02-letter-spacing);
+  line-height: var(--body-body-02-line-height);
+  position: relative;
+}
+
+.experiment-overview .frame-11 {
+  align-self: stretch;
+  position: relative;
+}
+
+.experiment-overview .tag-content-wrapper {
+  align-items: flex-start;
+  background-color: var(--theme-layer-layer-selected-02);
+  border-radius: 1000px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  position: relative;
+}
+
+.experiment-overview .tag-content {
+  align-items: center;
+  border-radius: 24px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  height: 18px;
+  position: relative;
+}
+
+.experiment-overview .label-3 {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  padding: 0px 8px 2px;
+  position: relative;
+}
+
+.experiment-overview .label-4 {
+  color: var(--theme-text-text-primary);
+  font-family: var(--utility-styles-label-01-font-family);
+  font-size: var(--utility-styles-label-01-font-size);
+  font-style: var(--utility-styles-label-01-font-style);
+  font-weight: var(--utility-styles-label-01-font-weight);
+  letter-spacing: var(--utility-styles-label-01-letter-spacing);
+  line-height: var(--utility-styles-label-01-line-height);
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.experiment-overview .resizer-instance {
+  flex: 0 0 auto !important;
+  gap: 16px !important;
+  margin-bottom: -1px !important;
+}
+
+.experiment-overview .line-2 {
+  height: 7.36px;
+  object-fit: cover;
+  position: relative;
+  width: 12.5px;
+}
+
+.experiment-overview .label-5 {
+  color: var(--texttext-primary);
+  font-family: var(--utility-label-01-font-family);
+  font-size: var(--utility-label-01-font-size);
+  font-style: var(--utility-label-01-font-style);
+  font-weight: var(--utility-label-01-font-weight);
+  letter-spacing: var(--utility-label-01-letter-spacing);
+  line-height: var(--utility-label-01-line-height);
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.experiment-overview .target-metrics-3 {
+  align-self: stretch;
+  font-family: var(--utility-label-01-font-family);
+  font-size: var(--utility-label-01-font-size);
+  font-style: var(--utility-label-01-font-style);
+  font-weight: var(--utility-label-01-font-weight);
+  letter-spacing: var(--utility-label-01-letter-spacing);
+  line-height: var(--utility-label-01-line-height);
+  margin-top: -1px;
+  position: relative;
+}
+
+.experiment-overview .please-provide-the {
+  align-self: stretch;
+  color: var(--texttext-on-color);
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.16px;
+  line-height: 20px;
+  position: relative;
+}
+
+.experiment-overview.tags {
+  gap: 12px;
+  width: 296px;
+}
+
+.experiment-overview.text {
+  gap: 8px;
+  width: 296px;
+}
+
+.experiment-overview.heading-true {
+  width: 296px;
+}
+
+.experiment-overview.flow {
+  gap: 12px;
+}
+
+.experiment-overview.heading-true.state-12-hover {
+  background-color: var(--theme-button-button-secondary-active);
+}
+
+.experiment-overview.state-12-hover.flow {
+  background-color: var(--theme-button-button-secondary-active);
+}
+
+.experiment-overview.flow.heading-false {
+  width: 310px;
+}
+
+.experiment-overview.text.state-12-hover {
+  background-color: var(--theme-button-button-secondary-active);
+}
+
+.experiment-overview.tags.state-12-hover.heading-false {
+  background-color: var(--buttonbutton-secondary-active);
+}
+
+.experiment-overview.heading-true .target-metrics {
+  align-items: flex-start;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.experiment-overview.heading-false .target-metrics {
+  font-family: var(--utility-label-01-font-family);
+  font-size: var(--utility-label-01-font-size);
+  font-style: var(--utility-label-01-font-style);
+  font-weight: var(--utility-label-01-font-weight);
+  letter-spacing: var(--utility-label-01-letter-spacing);
+  line-height: var(--utility-label-01-line-height);
+  margin-top: -1px;
+}
+
+.experiment-overview.heading-true.tags .target-metrics {
+  color: var(--theme-text-text-on-color);
+}
+
+.experiment-overview.heading-true.flow .target-metrics {
+  color: var(--theme-text-text-on-color);
+}
+
+.experiment-overview.state-12-hover.flow .target-metrics {
+  color: var(--theme-text-text-on-color);
+}
+
+.experiment-overview.text.state-12-hover .target-metrics {
+  color: var(--theme-text-text-inverse);
+}
+
+.experiment-overview.state-12-default.heading-false .target-metrics {
+  color: var(--layerlayer-active-01);
+}
+
+.experiment-overview.heading-true.state-12-default .target-metrics {
+  color: var(--theme-text-text-on-color);
+}
+
+.experiment-overview.tags.state-12-hover.heading-false .target-metrics {
+  color: var(--backgroundbackground);
+}
+
+.experiment-overview.state-12-default .target-metrics-2 {
+  color: var(--layerlayer-active-01);
+}
+
+.experiment-overview.state-12-hover.flow .target-metrics-2 {
+  color: var(--theme-text-text-on-color);
+}
+
+.experiment-overview.text.state-12-hover .target-metrics-2 {
+  color: var(--theme-text-text-on-color);
+}
+
+.experiment-overview.tags.state-12-hover .target-metrics-2 {
+  color: var(--texttext-on-color);
+}
+
+.experiment-overview.tags .frame-11 {
+  align-items: flex-start;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 4px 4px;
+  width: 100%;
+}
+
+.experiment-overview.text .frame-11 {
+  align-items: flex-start;
+  color: var(--texttext-on-color);
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.16px;
+  line-height: 20px;
+}
+
+.experiment-overview.flow .frame-11 {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 4px 4px;
+  width: 100%;
+}
+
+.experiment-overview.state-12-default .target-metrics-3 {
+  color: var(--layerlayer-active-01);
+}
+
+.experiment-overview.state-12-hover .target-metrics-3 {
+  color: var(--theme-text-text-on-color);
+}

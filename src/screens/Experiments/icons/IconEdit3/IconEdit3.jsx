@@ -6,7 +6,10 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 import PropTypes from "prop-types";
 import React from "react";
 
-export const IconEdit3 = ({ color = "#0F62FE", className }) => {
+export const IconEdit3 = ({ color = "#0F62FE", className, onClick=()=>{}}) => {
+  const handleClick = () => {
+    onClick();
+  };
   return (
     <svg
       className={`icon-edit-3 ${className}`}
@@ -15,6 +18,7 @@ export const IconEdit3 = ({ color = "#0F62FE", className }) => {
       viewBox="0 0 16 16"
       width="16"
       xmlns="http://www.w3.org/2000/svg"
+      onClick={handleClick}
     >
       <g className="g" clipPath="url(#clip0_11307_11273)">
         <path

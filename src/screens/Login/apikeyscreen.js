@@ -16,12 +16,6 @@ import hexagonDottedConnectLineBackground1 from "../../assets/images/Login/hexag
 import "./style.css";
 
 export const ApiKeyScreen = () => {
-    let navigate = useNavigate(); 
-    const routeChange = () =>{ 
-      let path = '/key'; 
-      navigate(path);
-    }
-    
     const [key, setKey] = useState('');
 
     const initState = {
@@ -39,6 +33,25 @@ export const ApiKeyScreen = () => {
 
     };
 
+    let navigate = useNavigate(); 
+    const handleSubmit = async () =>{ 
+      try {
+        const formData = new FormData();
+        formData.append('field', 'openai_secret_key');
+        formData.append('value', key);
+        const response = await fetch('/api/auth/profile/update',{
+          method: 'PUT',
+          body: formData,
+        });
+        if (response.ok) {
+          let path = '/exp'; 
+          navigate(path);
+        }
+      }catch (error) {
+        console.error('Error sending data:', error);
+      }
+    }
+  
     const handleSignout = async () => {   
       try {
         Cookies.remove('userToken');
@@ -89,21 +102,21 @@ export const ApiKeyScreen = () => {
                         <div className="frame-5">
                             <div className="frame-6">
                             <TextInputDefault
-                                    backgroundClassName="text-input-default-2"
-                                    className="text-input-default-instance"
-                                    placeholderText=""
-                                    showHelper={false}
-                                    showLabel={false}
-                                    errorText="Please provide a vaild email"
-                                    size="large"
-                                    spacerClassName="design-component-instance-node"
-                                    state="enabled"
-                                    textFilled={false}
-                                    onInputChange={onChangeKey}
-                                />
+                              backgroundClassName="text-input-default-2"
+                              className="text-input-default-instance"
+                              placeholderText=""
+                              showHelper={false}
+                              showLabel={false}
+                              errorText="Please provide a vaild email"
+                              size="large"
+                              spacerClassName="design-component-instance-node"
+                              state="enabled"
+                              textFilled={false}
+                              onInputChange={onChangeKey}
+                            />
                                 
                             </div>
-                            <div className="frame-6" onClick={routeChange}>
+                            <div className="frame-6" onClick={handleSubmit}>
                                 <Button
                                     buttonText="Continue"
                                     className="button-instance"

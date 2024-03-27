@@ -15,7 +15,11 @@ import "./style.css";
 
 export const NavigationSideBar = ({
   className,
+  onButtonClick = () => {},
 }) => {
+  const handleButtonClick = (buttonId) => {
+    onButtonClick(buttonId);
+  };
   return (
     <div className={`navigation-side-nav version-4 ${className}`}>
       <div className="frame-4">
@@ -32,6 +36,7 @@ export const NavigationSideBar = ({
           selected={false}
           stateProp="enabled"
           type="link"
+          onButtonClick={() => handleButtonClick(0)}
         />
         <UiShellLeftPanel
           className="UI-shell-left-panel-menu-item"
