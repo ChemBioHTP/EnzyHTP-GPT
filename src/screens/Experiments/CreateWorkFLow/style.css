@@ -5,6 +5,8 @@
   flex-direction: row;
   justify-content: center;
   width: 100%;
+  position: relative;
+  left: var(--flow-left-distance);
 }
 
 .element-create .div-2 {

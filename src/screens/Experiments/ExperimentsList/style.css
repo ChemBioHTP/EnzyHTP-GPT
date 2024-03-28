@@ -1,0 +1,168 @@
+.element-experiments-list {
+  background-color: #f4f4f4;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  width: 100%;
+  position: relative;
+  left: var(--list-left-distance);
+}
+
+
+.element-experiments-list .data-table-toolbar-instance {
+  /* left: 294px !important;
+  position: absolute !important;
+  top: 300px !important; */
+  left: 77px !important;
+  position: absolute !important;
+  top: 197px !important;
+  width: 1258px !important;
+}
+
+.element-experiments-list .data-table-row-item-instance {
+  /* left: 294px !important;
+  top: 341px !important; */
+  width: 100% !important;
+  background-color: #ffffff;
+}
+.element-experiments-list .data-table-row-item-9 {
+  /* margin-top: 0px !important; */
+  /* left: 294px !important;
+  top: 341px !important; */
+  width: 100% !important;
+  background-color: #ffffff !important;
+}
+
+.element-experiments-list .div-2 {
+  background-color: var(--layerlayer-01);
+  height: 900px;
+  position: relative;
+  width: var(--breakpoints-viewport-size);
+}
+
+.element-experiments-list .navigation-header-instance {
+  left: 0 !important;
+  position: absolute !important;
+  top: 0 !important;
+  /* width: 1584px !important; */
+}
+
+.element-experiments-list .navigation-side-nav-instance {
+  left: 0 !important;
+  position: absolute !important;
+  top: 48px !important;
+}
+
+.element-experiments-list .div-wrapper {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  left: 48px;
+  padding: 24px 32px;
+  position: absolute;
+  top: 48px;
+  width: 1536px;
+}
+
+.element-experiments-list .text-wrapper-4 {
+  color: #000000;
+  font-family: var(--heading-fluid-heading-05-font-family);
+  font-size: var(--heading-fluid-heading-05-font-size);
+  font-style: var(--heading-fluid-heading-05-font-style);
+  font-weight: var(--heading-fluid-heading-05-font-weight);
+  letter-spacing: var(--heading-fluid-heading-05-letter-spacing);
+  line-height: var(--heading-fluid-heading-05-line-height);
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.element-experiments-list .frame-9 {
+  align-items: center;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
+  left: 603px;
+  position: absolute;
+  top: 538px;
+}
+
+.element-experiments-list .text-wrapper-5 {
+  color: #000000;
+  font-family: var(--heading-fluid-heading-04-font-family);
+  font-size: var(--heading-fluid-heading-04-font-size);
+  font-style: var(--heading-fluid-heading-04-font-style);
+  font-weight: var(--heading-fluid-heading-04-font-weight);
+  letter-spacing: var(--heading-fluid-heading-04-letter-spacing);
+  line-height: var(--heading-fluid-heading-04-line-height);
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.element-experiments-list .p {
+  color: #000000;
+  font-family: var(--body-body-02-font-family);
+  font-size: var(--body-body-02-font-size);
+  font-style: var(--body-body-02-font-style);
+  font-weight: var(--body-body-02-font-weight);
+  letter-spacing: var(--body-body-02-letter-spacing);
+  line-height: var(--body-body-02-line-height);
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.element-experiments-list .button-instance {
+  /* left: 699px !important; */
+  /* position: absolute !important; */
+  top: 0.5px !important;
+}
+.element-experiments-list .button-instance-blank {
+  left: 699px !important;
+  position: absolute !important;
+  top: 650px !important;
+}
+
+.element-experiments-list .button-instance-1 {
+  background-color: none !important;
+}
+.element-experiments-list .button-instance-2 {
+  /* left: 715px !important;
+  position: absolute !important; */
+  top: 0px !important;
+}
+
+.element-experiments-list .new-experiment-button {
+  /* left: 715px !important;
+  position: absolute !important; */
+  top: 0px !important;
+}
+.element-experiments-list .button-instance-2 {
+  /* /* left: 699px !important; */
+  /* position: absolute !important; */
+  top: 0px !important;
+}
+
+
+.element-experiments-list .design-component-instance-node {
+  left: 154px !important;
+  top: 15.5px !important;
+}
+
+.element-experiments-list .group {
+  height: 229px;
+  left: 677px;
+  position: absolute;
+  top: 280px;
+  width: 218px;
+}
+
+.element-experiments-list .overlap-group {
+  left: 77px;
+  position: absolute;
+  top: 245px;
+  width: 1258px;
+}

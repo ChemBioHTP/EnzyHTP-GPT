@@ -8,6 +8,7 @@ import "./style.css";
 import { NavigationSideBar } from "../components/NavigationSideBar/NavigationSideBar";
 import ElementCreateWorkFlow from "../CreateWorkFLow/ElementCreateWorkFlow";
 import ElementCreateTarget from "../CreateTarget/ElementCreateTarget";
+import ElementExperimentsList from "../ExperimentsList/ElementExperimentsList";
 
 export const ElementExperiment = () => {
   const [isVisible, setIsVisible] = useState(true);
@@ -42,21 +43,24 @@ export const ElementExperiment = () => {
   return (
     <div className="element-experiment" data-theme-mode="white-theme">
       <div className="div-2" data-breakpoints-mode="max-max-plus-1584px-1784px">
+        <Routes>
+          <Route path="/" element={<ElementExperimentsList sideVisible={isVisible} />} />
+          <Route path="/flow" element={<ElementCreateWorkFlow sideVisible={isVisible} onClickWrapper={handleWrapperClick}/>} />
+          <Route path="/create" element={<ElementCreateTarget sideVisible={isVisible} titleText={titleText} onClickWrapper={handleWrapperClick} />} />
+        </Routes>
         <NavigationHeader className="navigation-header-instance" />
         
         <NavigationSideBar className="navigation-side-nav-instance" onButtonClick={handleSideBarClick} />
-        <Routes>      
-          <Route path="/flow" element={<ElementCreateWorkFlow onClickWrapper={handleWrapperClick}/>} />
-          <Route path="/create" element={<ElementCreateTarget titleText={titleText} onClickWrapper={handleWrapperClick} />} />
-        </Routes>
+        
         {isVisible && <NavigationSideNav
           UIShellLeftPanelLinkText={sideLabel}
-          UIShellLeftPanelSelected1={[true, false, false, false, false]}
-          UIShellLeftPanelStateProp1={["selected", "enabled", "enabled", "enabled", "enabled"]}
+          UIShellLeftPanelSelected1={[false, false, false, false, false]}
+          UIShellLeftPanelStateProp1={["enabled", "enabled", "enabled", "enabled", "enabled"]}
           className="navigation-side-nav-2"
           version="version-5"
           onButtonClick={handleButtonClick}
         />}
+        
       </div>
     </div>
   );

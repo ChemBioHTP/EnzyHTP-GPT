@@ -14,11 +14,15 @@ export const NavigationPage = ({
   titleText="My awesome experiment",
   buttonIcon = <IconMoreHorizontal className="icon-instance-node-2" />,
   override = <IconAlertCircle2 className="icon-instance-node-2" />,
+  onClick = ()=>{},
 }) => {
+  const handleClick=() => {
+    onClick();
+  }
   return (
     <div className={`navigation-page ${className}`}>
       <div className="frame-2">
-        <div className="text-wrapper-4">Back to all experiments</div>
+        <div className="text-wrapper-4" onClick={handleClick}>Back to all experiments</div>
         <div className="text-wrapper-5">{titleText}</div>
       </div>
       <div className="frame-3">

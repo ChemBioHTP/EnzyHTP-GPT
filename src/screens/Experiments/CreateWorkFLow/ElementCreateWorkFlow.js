@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "../components/Button";
 import { DirectionHorizontalWrapper } from "../components/DirectionHorizontalWrapper";
 import { NavigationHeader } from "../components/NavigationHeader";
@@ -15,16 +15,33 @@ import { Incomplete } from "../icons/Incomplete";
 import line15 from "../../../assets/images/Experiments/ElementCreate/line-15.svg"
 import "./style.css";
 import ElementChangeWorkFLow from "../ChangeWorkFlow/ElementChangeWorkFlow";
+import { useNavigate } from "react-router-dom";
 
-export const ElementCreateWorkFlow = ({onClickWrapper = () => { }}) => {
+export const ElementCreateWorkFlow = ({ sideVisible = true, onClickWrapper = () => { }}) => {
   const handleWrapperClick = (id) => {
     onClickWrapper(id);
   };
+
+  useEffect(() => {
+    if (sideVisible) {
+      document.body.style.setProperty('--flow-left-distance', '0px');
+    } else {
+      document.body.style.setProperty('--flow-left-distance', '-214px');
+    }
+
+  }, [sideVisible]);
+
+  let navigate = useNavigate();
 
   const [changeFlow, setChangeFlow] = useState(false);
 
   const handleChangeClick = () => {
     setChangeFlow(changeFlow => !changeFlow);
+  };
+
+  const handleBackToList = () => {
+    let path = '/exp'; 
+    navigate(path);
   };
 
   const [sideLabel, setSideLabel] = useState(["Example experiment 01", "Example experiment 02", "Example experiment 03", "Example experiment 04", "Example experiment 05"]);
@@ -34,6 +51,7 @@ export const ElementCreateWorkFlow = ({onClickWrapper = () => { }}) => {
         buttonIcon={<IconMoreHorizontal className="icon-instance-node-3" />}
         className="navigation-page-header"
         override={<IconAlertCircle2 className="icon-instance-node-3" />}
+        onClick={handleBackToList}
       />
       <div className="frame-11">
         <TabsItems

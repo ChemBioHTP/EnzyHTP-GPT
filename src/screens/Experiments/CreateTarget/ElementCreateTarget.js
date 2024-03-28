@@ -5,7 +5,7 @@ import { Button } from "../components/Button";
 import { DirectionHorizontalWrapper } from "../components/DirectionHorizontalWrapper";
 import { DataTableHeader } from "../components/DataTableHeader"
 import { DataTableRowCell } from "../components/DataTableRowCell"
-import { FileUploaderFile } from "../components/FileUploaderFile"
+import { GenerateStatusBar } from "../components/GenerateStatusBar"
 import { ModalPanel } from "../components/ModalPanel";
 import { ModalPanelTargets } from "../components/ModalPanelTargets";
 import { NavigationPage } from "../components/NavigationPage";
@@ -20,8 +20,9 @@ import "./style.css";
 import line3 from "../../../assets/images/Experiments/line-1.svg"
 import { AccordionToggle } from "../components/AccordionToggle";
 import { ExperimentOverview } from "../components/ExperimentOverview";
+import { useNavigate } from "react-router-dom";
 
-export const ElementCreateTarget = ({ titleText= "Example experiment 01", onClickWrapper = () => { }}) => {
+export const ElementCreateTarget = ({ sideVisible=true, titleText= "Example experiment 01", onClickWrapper = () => { }}) => {
 
   const handleSubmitButtonClick = () => {
     console.log(textInputValue);
@@ -30,6 +31,16 @@ export const ElementCreateTarget = ({ titleText= "Example experiment 01", onClic
   const [textInputValue, setTextInputValue] = useState("");
   const [inputWithGUI, setInputWithGUI] = useState(false);
 
+  useEffect(() => {
+    if (sideVisible) {
+      document.body.style.setProperty('--create-left-distance', '0px');
+    } else {
+      document.body.style.setProperty('--create-left-distance', '-214px');
+    }
+
+  }, [sideVisible]);
+
+  let navigate = useNavigate();
   const cellData = [
     "NA22K EA24K KA162L RA163L", 
     "NA23K EA24K KA162L RA1A3L", 
@@ -57,6 +68,10 @@ export const ElementCreateTarget = ({ titleText= "Example experiment 01", onClic
     onClickWrapper(id);
   };
 
+  const handleBackToList = () => {
+    let path = '/exp'; 
+    navigate(path);
+  };
   return (
     <div className="element-create-target" data-theme-mode="white-theme">
       <NavigationPage
@@ -64,6 +79,7 @@ export const ElementCreateTarget = ({ titleText= "Example experiment 01", onClic
         className="navigation-page-header"
         override={<IconAlertCircle2 className="icon-instance-node-3" />}
         titleText={titleText}
+        onClick={handleBackToList}
       />
       <div className="frame-11">
         <TabsItems
@@ -177,91 +193,7 @@ export const ElementCreateTarget = ({ titleText= "Example experiment 01", onClic
               <div className="divider-3" />
             </div>
           ))}
-          
-          {/* <div className="data-table-row-item-2">
-            <div className="data-table-row">
-              <DataTableRowCell
-                cellText="02"
-                className="data-table-row-cell-item"
-                minHeightClassName="col-5"
-                resizerResizerClassName="col-2"
-                size="small"
-                state="enabled"
-              />
-              <DataTableRowCell
-                cellText="NA22K EA24K KA162L RA163L"
-                className="data-table-row-cell-item-instance"
-                minHeightClassName="col-6"
-                resizerResizerClassName="col-3"
-                size="small"
-                state="enabled"
-              />
-            </div>
-            <div className="divider-3" />
-          </div>
-          <div className="data-table-row-item-2">
-            <div className="data-table-row">
-              <DataTableRowCell
-                cellText="03"
-                className="data-table-row-cell-item"
-                minHeightClassName="col-7"
-                resizerResizerClassName="col-2"
-                size="small"
-                state="enabled"
-              />
-              <DataTableRowCell
-                cellText="NA22K EA24K KA162L RA163L"
-                className="data-table-row-cell-item-instance"
-                minHeightClassName="col-8"
-                resizerResizerClassName="col-3"
-                size="small"
-                state="enabled"
-              />
-            </div>
-            <div className="divider-3" />
-          </div>
-          <div className="data-table-row-item-2">
-            <div className="data-table-row">
-              <DataTableRowCell
-                cellText="04"
-                className="data-table-row-cell-item"
-                minHeightClassName="col-9"
-                resizerResizerClassName="col-2"
-                size="small"
-                state="enabled"
-              />
-              <DataTableRowCell
-                cellText="NA22K EA24K KA162L RA163L"
-                className="data-table-row-cell-item-instance"
-                minHeightClassName="col-10"
-                resizerResizerClassName="col-3"
-                size="small"
-                state="enabled"
-              />
-            </div>
-            <div className="divider-3" />
-          </div>
-          <div className="data-table-row-item-2">
-            <div className="data-table-row">
-              <DataTableRowCell
-                cellText="05"
-                className="data-table-row-cell-item"
-                minHeightClassName="col-11"
-                resizerResizerClassName="col-2"
-                size="small"
-                state="enabled"
-              />
-              <DataTableRowCell
-                cellText="NA22K EA24K KA162L RA163L"
-                className="data-table-row-cell-item-instance"
-                minHeightClassName="col-12"
-                resizerResizerClassName="col-3"
-                size="small"
-                state="enabled"
-              />
-            </div>
-            <div className="divider-3" />
-          </div> */}
+
         </div>
         <AccordionToggle 
           text= "Show mutation in GUI"
@@ -269,7 +201,7 @@ export const ElementCreateTarget = ({ titleText= "Example experiment 01", onClic
           state="off"
         />
       </div>
-      <FileUploaderFile
+      <GenerateStatusBar
         className="file-uploader-file-item"
         fileName="Your prompt has been successfully parsed."
         size="large"
@@ -308,15 +240,15 @@ export const ElementCreateTarget = ({ titleText= "Example experiment 01", onClic
           type="text-icon"
         />
       </div>
-      <div className="frame-17">
+      {/* <div className="frame-17">
         <div className="frame-18">
           <div className="text-wrapper-9">Experiment overview</div>
-          {/* <IconX1 className="icon-x" color="white" /> */}
+          <IconX1 className="icon-x" color="white" />
         </div>
         <ExperimentOverview
           className="design-component-instance-node-2"
           frameClassName="experiment-overview-instance"
-          heading1={false}
+          heading={false}
           stateProp="default"
           text="Description"
           text1="Click to give a description."
@@ -325,13 +257,13 @@ export const ElementCreateTarget = ({ titleText= "Example experiment 01", onClic
         <ExperimentOverview
           className="design-component-instance-node-2"
           divClassName="experiment-overview-instance"
-          heading1
+          heading
           stateProp="default"
           text="Status"
           text1="Please provide the prompt and run the experiment."
           type="text"
         />
-      </div>     
+      </div>      */}
     </div>
   );
 };

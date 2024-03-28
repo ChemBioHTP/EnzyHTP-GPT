@@ -35,7 +35,7 @@
   position: relative;
 }
 
-.experiment-overview .frame-11 {
+.experiment-overview .frame-desc {
   align-self: stretch;
   position: relative;
 }
@@ -233,7 +233,7 @@
   color: var(--texttext-on-color);
 }
 
-.experiment-overview.tags .frame-11 {
+.experiment-overview.tags .frame-desc {
   align-items: flex-start;
   display: flex;
   flex: 0 0 auto;
@@ -242,7 +242,7 @@
   width: 100%;
 }
 
-.experiment-overview.text .frame-11 {
+.experiment-overview.text .frame-desc {
   align-items: flex-start;
   color: var(--texttext-on-color);
   font-family: "IBM Plex Sans", Helvetica;
@@ -252,7 +252,7 @@
   line-height: 20px;
 }
 
-.experiment-overview.flow .frame-11 {
+.experiment-overview.flow .frame-desc {
   align-items: center;
   display: flex;
   flex: 0 0 auto;
