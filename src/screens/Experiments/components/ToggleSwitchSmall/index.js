@@ -1,0 +1,1 @@
+export { ToggleSwitchSmall } from "./ToggleSwitchSmall";

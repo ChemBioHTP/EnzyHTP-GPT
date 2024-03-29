@@ -43,3 +43,6 @@ MAIL_PASSWORD = "ymyiwgzhxxpnlqcg"
 # https://mailtrap.io/blog/python-send-email-gmail/
 
 MAIL_PASSWORD_RESET_HTML_TEMPLATE = open(os.path.join(__basedir, "templates", "password_reset_email.html")).read()
+
+APP_HOST = "localhost"
+
