@@ -31,3 +31,15 @@ SQLALCHEMY_TRACK_MODIFICATIONS=False
 # Uri
 OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI = "/api/auth/profile"
 OPENAI_API_URI = "https://api.openai.com/v1/chat/completions"
+
+# Email for password reset.
+MAIL_SERVER = "smtp.gmail.com"
+MAIL_PORT = 465
+MAIL_USE_SSL = True
+MAIL_USE_TLS = False
+MAIL_USERNAME = "website.enzyhtp@gmail.com"
+MAIL_DEFAULT_SENDER = ("EnzyHTP Web Application", "website.enzyhtp@gmail.com")
+MAIL_PASSWORD = "ymyiwgzhxxpnlqcg"
+# https://mailtrap.io/blog/python-send-email-gmail/
+
+MAIL_PASSWORD_RESET_HTML_TEMPLATE = open(os.path.join(__basedir, "templates", "password_reset_email.html")).read()

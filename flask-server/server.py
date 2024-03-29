@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
+
 import openai
 import config
 import enzy_htp.structure
@@ -12,6 +13,9 @@ app.config.from_object(settings)
 
 from context import db, login_manager, ssl_context
 login_manager.login_message_category = "info"
+
+from flask_mail import Mail
+mail = Mail(app=app)
 
 # Example API route - to start server, run "python server.py"
 # @app.route("/members")
