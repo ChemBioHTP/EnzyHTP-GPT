@@ -1,0 +1,117 @@
+.progress-indicator {
+  align-items: flex-start;
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  display: inline-flex;
+  flex-direction: column;
+  height: 18px;
+  position: relative;
+}
+
+.progress-indicator .step-label {
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.progress-indicator .step-label-wrapper {
+  align-items: flex-start;
+  display: inline-flex;
+  height: 18px;
+  position: relative;
+}
+
+.progress-indicator .step-label-2 {
+  color: var(--texttext-primary);
+  font-family: var(--body-styles-body-compact-01-font-family);
+  font-size: var(--body-styles-body-compact-01-font-size);
+  font-style: var(--body-styles-body-compact-01-font-style);
+  font-weight: var(--body-styles-body-compact-01-font-weight);
+  letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+  line-height: var(--body-styles-body-compact-01-line-height);
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.progress-indicator .tooltip-overflow {
+  height: 1px;
+  left: 15px;
+  position: absolute;
+  top: 0;
+  width: 1px;
+}
+
+.progress-indicator .tooltip-item-instance {
+  left: -52px !important;
+  top: -30px !important;
+}
+
+.progress-indicator.state-21-focus {
+  box-shadow: var(--selected-inverse-outer-border-bottom);
+}
+
+.progress-indicator.state-21-active .step-label {
+  color: var(--texttext-primary);
+  font-family: var(--link-body-compact-01-font-family);
+  font-size: var(--link-body-compact-01-font-size);
+  font-style: var(--link-body-compact-01-font-style);
+  font-weight: var(--link-body-compact-01-font-weight);
+  letter-spacing: var(--link-body-compact-01-letter-spacing);
+  line-height: var(--link-body-compact-01-line-height);
+  text-decoration: underline;
+}
+
+.progress-indicator.state-21-disabled .step-label {
+  color: var(--texttext-disabled);
+  font-family: var(--body-styles-body-compact-01-font-family);
+  font-size: var(--body-styles-body-compact-01-font-size);
+  font-style: var(--body-styles-body-compact-01-font-style);
+  font-weight: var(--body-styles-body-compact-01-font-weight);
+  letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+  line-height: var(--body-styles-body-compact-01-line-height);
+}
+
+.progress-indicator.state-21-hover .step-label {
+  color: var(--linklink-primary);
+  font-family: var(--link-body-compact-01-font-family);
+  font-size: var(--link-body-compact-01-font-size);
+  font-style: var(--link-body-compact-01-font-style);
+  font-weight: var(--link-body-compact-01-font-weight);
+  letter-spacing: var(--link-body-compact-01-letter-spacing);
+  line-height: var(--link-body-compact-01-line-height);
+  margin-top: -1px;
+  text-decoration: underline;
+}
+
+.progress-indicator.state-21-focus .step-label {
+  color: var(--linklink-primary);
+  font-family: var(--body-styles-body-compact-01-font-family);
+  font-size: var(--body-styles-body-compact-01-font-size);
+  font-style: var(--body-styles-body-compact-01-font-style);
+  font-weight: var(--body-styles-body-compact-01-font-weight);
+  letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+  line-height: var(--body-styles-body-compact-01-line-height);
+}
+
+.progress-indicator.state-21-enabled .step-label {
+  color: var(--texttext-primary);
+  font-family: var(--body-styles-body-compact-01-font-family);
+  font-size: var(--body-styles-body-compact-01-font-size);
+  font-style: var(--body-styles-body-compact-01-font-style);
+  font-weight: var(--body-styles-body-compact-01-font-weight);
+  letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+  line-height: var(--body-styles-body-compact-01-line-height);
+  margin-top: -1px;
+}
+
+.progress-indicator.state-21-tooltip .step-label {
+  color: var(--texttext-primary);
+  font-family: var(--body-styles-body-compact-01-font-family);
+  font-size: var(--body-styles-body-compact-01-font-size);
+  font-style: var(--body-styles-body-compact-01-font-style);
+  font-weight: var(--body-styles-body-compact-01-font-weight);
+  letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+  line-height: var(--body-styles-body-compact-01-line-height);
+}

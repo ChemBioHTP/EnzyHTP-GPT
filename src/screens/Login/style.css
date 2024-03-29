@@ -230,3 +230,32 @@
     position: relative !important;
     width: 16px !important;
 }
+
+.element-landing-screen .custom-checkbox {
+
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+  
+    width: 15px;
+    height: 15px;
+    border: 2px solid #333;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+    margin-right: 10px !important;
+    margin-bottom: -2px !important;
+  }
+  
+  .custom-checkbox:checked {
+    background-color: #0075FF; 
+    border-color: #0075FF;
+  }
+
+  .custom-checkbox:checked::before {
+    content: '\2713';
+    position: absolute;
+    top: 2px;
+    font-size: 14px;
+    color: #FFF;
+  }
