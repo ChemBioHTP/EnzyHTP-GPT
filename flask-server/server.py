@@ -24,6 +24,9 @@ app.config.from_object(settings)
 from context import db, login_manager, ssl_context
 login_manager.login_message_category = "info"
 
+from flask_mail import Mail
+mail = Mail(app=app)
+
 # Create database tables
 app.app_context().push()
 db.init_app(app=app)
@@ -32,10 +35,6 @@ db.create_all()
 # Initialize LoginManager.
 login_manager.init_app(app)
 
-# Example API route - to start server, run "python server.py"
-# @app.route("/members")
-# def members():
-#     return {"members": ["Member1", "Member2"]}
 
 # Import and define your routes and views
 from auth import auth as auth_blueprint
