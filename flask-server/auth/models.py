@@ -388,6 +388,14 @@ class VerificationCode(db.Model):
             return code_record
         else:
             return None
+        
+    @staticmethod
+    def clean_expired_records() -> None:
+        """Clean up verification code records that have existed for more than a day."""
+        current_time = datetime.now()
+        time_checkpoint = current_time - timedelta(days=1)
+        VerificationCode.query.filter(VerificationCode.creation_time < time_checkpoint).delete()
+        db.session.commit()
 
     @staticmethod
     def generate_verification_code(length: int = 6) -> str:

@@ -315,6 +315,7 @@ def password_change() -> Response:
 @auth.route('/password/reset/generate', methods=['POST'])
 def password_reset_generate() -> Response:
     """Generate and send verification code for password reset."""
+    VerificationCode.clean_expired_records()    # Clean up expired records everytime before generating new one.
     code_length = 6
     valid_mins = 10
 
