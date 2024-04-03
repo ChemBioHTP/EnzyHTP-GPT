@@ -61,8 +61,8 @@ export const ElementExperiments = () => {
       try {
         // const response = await fetch(`http://localhost:5000/experiments/${user_id}`);
         // const data = await response.json();
-        const data = example_get_experiments;
-        setExperiments(data.experiments);
+        // const data = example_get_experiments;
+        // setExperiments(data.experiments);
       } catch (error) {
         console.error('Error fetching experiments:', error);
       }

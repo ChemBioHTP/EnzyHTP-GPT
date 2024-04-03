@@ -3,9 +3,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import ElementLandingScreen from "./screens/Login/landingscreen";
 import { ElementCreateTarget } from "./screens/CreateMutants/createmutants";
 import { RunSimulation } from "./screens/RunSimulation/runsimulations";
-// import { ElementExperimentsUpload } from "./screens/UploadFile/uploadfile";
 import { ElementExperiments } from "./screens/Experiments/ElementExperiments";
-// import { ElementExperiments } from "./screens/Experiments/ElementExperimentsList";
 
 const AppRouter = () => {
   return (
