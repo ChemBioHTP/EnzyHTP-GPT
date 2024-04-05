@@ -23,7 +23,7 @@ export const Button = ({
   className,
   override = <Add className="add-56" color="#161616" />,
   iconClassName,
-  icon1 = <Add className="add-56" color="#8D8D8D" />,
+  icon1 = <Add className="add-56" color="#FFFFFF" />,
   onClick,
 }) => {
   const [state, dispatch] = useReducer(reducer, {

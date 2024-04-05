@@ -13,7 +13,6 @@ export const ExperimentOverview = ({
   heading = true,
   type,
   stateProp,
-  heading1,
   className,
   text = "Target metrics",
   frameClassName,
@@ -23,7 +22,7 @@ export const ExperimentOverview = ({
   const [state, dispatch] = useReducer(reducer, {
     type: type || "tags",
     state: stateProp || "default",
-    heading: heading1 || false,
+    heading: heading || false,
   });
 
   return (
@@ -48,7 +47,7 @@ export const ExperimentOverview = ({
               </>
             )}
           </div>
-          <div className={`frame-11 ${frameClassName}`}>
+          <div className={`frame-desc ${frameClassName}`}>
             {["flow", "tags"].includes(state.type) && (
               <div className="tag-content-wrapper">
                 <div className="tag-content">

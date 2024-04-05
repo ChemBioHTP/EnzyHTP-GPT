@@ -14,7 +14,11 @@ export const ModalFooterItem = ({
   className,
   buttonButtonText = "Button",
   buttonButtonText1 = "Button",
+  onClick=()=>{},
 }) => {
+  const handleButtonClick = (id) => {
+    onClick(id);
+  }
   return (
     <div className={`modal-footer-item ${className}`}>
       {((cancel && actions === "one") || (!cancel && actions === "two")) && (
@@ -30,6 +34,7 @@ export const ModalFooterItem = ({
             stateProp="enabled"
             style={actions === "one" ? "ghost" : "secondary"}
             type="text-icon"
+            onClick={()=>handleButtonClick(0)}
           />
 
           <Button
@@ -41,6 +46,7 @@ export const ModalFooterItem = ({
             stateProp="enabled"
             style="primary"
             type="text-icon"
+            onClick={()=>handleButtonClick(1)}
           />
 
         </>
@@ -58,6 +64,7 @@ export const ModalFooterItem = ({
             stateProp="enabled"
             style={actions === "three" ? "secondary" : "primary"}
             type="text-icon"
+            onClick={()=>handleButtonClick(1)}
           />
         </>
       )}
@@ -73,6 +80,7 @@ export const ModalFooterItem = ({
             stateProp="enabled"
             style="secondary"
             type="text-icon"
+            onClick={()=>handleButtonClick(0)}
           />
           <Button
             buttonText={buttonButtonText1}
@@ -83,6 +91,7 @@ export const ModalFooterItem = ({
             stateProp="enabled"
             style="primary"
             type="text-icon"
+            onClick={()=>handleButtonClick(1)}
           />
         </>
       )}
@@ -97,6 +106,7 @@ export const ModalFooterItem = ({
           stateProp="enabled"
           style="ghost"
           type="text-icon"
+          onClick={()=>handleButtonClick(0)}
         />
       )}
 
@@ -113,6 +123,7 @@ export const ModalFooterItem = ({
             stateProp="enabled"
             style="secondary"
             type="text-icon"
+            onClick={()=>handleButtonClick(0)}
           />
           <Button
             buttonText={actions === "three" ? buttonButtonText : buttonButtonText1}
@@ -123,6 +134,7 @@ export const ModalFooterItem = ({
             stateProp="enabled"
             style={actions === "three" ? "secondary" : "primary"}
             type="text-icon"
+            onClick={()=>handleButtonClick(1)}
           />
         </>
       )}
@@ -137,6 +149,7 @@ export const ModalFooterItem = ({
           stateProp="enabled"
           style="primary"
           type="text-icon"
+          onClick={()=>handleButtonClick(1)}
         />
       )}
     </div>

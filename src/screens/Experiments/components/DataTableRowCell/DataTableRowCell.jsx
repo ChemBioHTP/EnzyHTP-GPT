@@ -16,14 +16,12 @@ export const DataTableRowCell = ({
   state,
   className,
   resizerResizerClassName,
-  minHeightClassName,
 }) => {
   return (
     <div className={`data-table-row-cell size-11-${size} state-6-${state} ${className}`}>
       <Resizer className={resizerResizerClassName} />
       <div className="cell-2">
         <div className="content-2">{showText && <div className="table-text">{cellText}</div>}</div>
-        <img className={`min-height-2 ${minHeightClassName}`} alt="Min height" src="/img/min-height-19.png" />
       </div>
     </div>
   );

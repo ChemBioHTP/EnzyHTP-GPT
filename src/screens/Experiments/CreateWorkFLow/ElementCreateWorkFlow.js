@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "../components/Button";
 import { DirectionHorizontalWrapper } from "../components/DirectionHorizontalWrapper";
 import { NavigationHeader } from "../components/NavigationHeader";
@@ -14,17 +14,59 @@ import { IconMoreHorizontal } from "../icons/IconMoreHorizontal";
 import { Incomplete } from "../icons/Incomplete";
 import line15 from "../../../assets/images/Experiments/ElementCreate/line-15.svg"
 import "./style.css";
+import { ModalPanelWorkflow } from "../components/ModalPanelWorkflow";
+import navRock from "../../../assets/images/Experiments/navigate-rock-the-boat-1.png"
 import ElementChangeWorkFLow from "../ChangeWorkFlow/ElementChangeWorkFlow";
+import { useNavigate } from "react-router-dom";
+import { ModalPanelMetrics } from "../components/ModalPanelMetrics/ModalPanelMetrics";
+import { ModalPanelBond } from "../components/ModalPanelBond/ModalPanelBond";
+import { ModalPanelMultiBonds } from "../components/ModalPanelMultiBonds/ModalPanelMultiBonds";
 
-export const ElementCreateWorkFlow = ({onClickWrapper = () => { }}) => {
+export const ElementCreateWorkFlow = ({ sideVisible = true, onClickWrapper = () => { }}) => {
   const handleWrapperClick = (id) => {
     onClickWrapper(id);
   };
 
-  const [changeFlow, setChangeFlow] = useState(false);
+  useEffect(() => {
+    if (sideVisible) {
+      document.body.style.setProperty('--flow-left-distance', '0px');
+    } else {
+      document.body.style.setProperty('--flow-left-distance', '-214px');
+    }
 
-  const handleChangeClick = () => {
+  }, [sideVisible]);
+
+  let navigate = useNavigate();
+
+  const [changeFlow, setChangeFlow] = useState(false);
+  const [changeTarget, setChangeTarget] = useState(false);
+  const [changeBond, setChangeBond] = useState(false);
+  const [changeBonds, setChangeBonds] = useState(false);
+
+  const handleChangeFlowClick = () => {
+    
     setChangeFlow(changeFlow => !changeFlow);
+  };
+
+  const handleChangeTargetClick = () => {
+    
+    setChangeTarget(changeTarget => !changeTarget);
+  };
+
+  const handleChangeBondClick = () => {
+    
+    setChangeBond(changeBond => !changeBond);
+  };
+
+  const handleChangeBondsClick = (value) => {
+    console.log(value);
+    setChangeBonds(changeBonds => !changeBonds);
+  };
+
+
+  const handleBackToList = () => {
+    let path = '/exp'; 
+    navigate(path);
   };
 
   const [sideLabel, setSideLabel] = useState(["Example experiment 01", "Example experiment 02", "Example experiment 03", "Example experiment 04", "Example experiment 05"]);
@@ -34,6 +76,7 @@ export const ElementCreateWorkFlow = ({onClickWrapper = () => { }}) => {
         buttonIcon={<IconMoreHorizontal className="icon-instance-node-3" />}
         className="navigation-page-header"
         override={<IconAlertCircle2 className="icon-instance-node-3" />}
+        onClick={handleBackToList}
       />
       <div className="frame-11">
         <TabsItems
@@ -59,8 +102,66 @@ export const ElementCreateWorkFlow = ({onClickWrapper = () => { }}) => {
       </div>
       {changeFlow && (
         <>
+          <div className="frame-cover" onClick={handleChangeFlowClick}></div>
+          <div className="frame-side">
+            <ElementChangeWorkFLow
+              title="Change workflow"
+              content="Choose a workflow to determine the processes to apply to the wild type."
+              slotItem={<ModalPanelWorkflow
+                backgroundClassName="modal-panel-workflow-2"
+                className="modal-panel-workflow-instance"
+                navigateRockThe={navRock}
+              />}
+              onCloseClick={handleChangeFlowClick}
+            />
+          </div>
+        </>
+      )}
+
+      {changeTarget && (
+        <>
           <div className="frame-cover"></div>
-          <div className="frame-side"><ElementChangeWorkFLow onCloseClick={handleChangeClick} /></div>
+          <div className="frame-side">
+            <ElementChangeWorkFLow
+              title="Select target metrics"
+              content="Choose the metrics you'd like to view following the experiment."
+              slotItem={
+                <ModalPanelMetrics
+                  className="modal-panel-metrics-instance"
+                  onClickEidt={(value)=>handleChangeBondsClick(value)}
+                />
+              }
+              onCloseClick={handleChangeTargetClick}
+            />
+          </div>
+        </>
+      )}
+
+      {changeBond && (
+        <>
+          <div className="frame-cover"></div>
+          <div className="frame-side">
+            <ElementChangeWorkFLow
+              title="Adding inputs for EF"
+              content="The metric you selected (EF) needs further details. Please provide the following inputs."
+              slotItem={<ModalPanelBond/>}
+              onCloseClick={handleChangeBondClick}
+            />
+          </div>
+        </>
+      )}
+
+      {changeBonds && (
+        <>
+          <div className="frame-cover"></div>
+          <div className="frame-side">
+            <ElementChangeWorkFLow
+              title="Adding inputs for EF"
+              content="The metric you selected (EF) needs further details. Please provide the following inputs."
+              slotItem={<ModalPanelMultiBonds/>}
+              onCloseClick={handleChangeBondsClick}
+            />
+          </div>
         </>
       )}
       <div className="progress-indicator-2">
@@ -118,7 +219,7 @@ export const ElementCreateWorkFlow = ({onClickWrapper = () => { }}) => {
         <div className="frame-14">
           <div className="frame-15">
             <div className="text-wrapper-7">Workflow</div>
-            <IconEdit3 className="icon-edit" color="#0F62FE" onClick={handleChangeClick}/>
+            <IconEdit3 className="icon-edit" color="#0F62FE" onClick={handleChangeFlowClick}/>
           </div>
           <div className="frame-16">
             <Tile
@@ -183,7 +284,7 @@ export const ElementCreateWorkFlow = ({onClickWrapper = () => { }}) => {
               <div className="text-wrapper-7">Target metrics</div>
               <p className="text-wrapper-8">SIP, AI metrics, MMPB/GBSA binding, Trajectories, Stabilities</p>
             </div>
-            <IconEdit3 className="icon-edit" color="#0F62FE" />
+            <IconEdit3 className="icon-edit" color="#0F62FE" onClick={handleChangeTargetClick} />
           </div>
         </div>
         <div className="frame-14">
@@ -192,7 +293,7 @@ export const ElementCreateWorkFlow = ({onClickWrapper = () => { }}) => {
               <div className="text-wrapper-9">Geometry constraint</div>
               <div className="text-wrapper-8">Whole enzyme</div>
             </div>
-            <IconEdit3 className="icon-edit" color="#0F62FE" />
+            <IconEdit3 className="icon-edit" color="#0F62FE" onClick={handleChangeBondClick} />
           </div>
         </div>
       </div>

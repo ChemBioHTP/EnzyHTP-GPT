@@ -1,0 +1,124 @@
+.modal-panel-bonds {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  padding: 16px;
+  position: relative;
+}
+
+.modal-panel-bonds .frame {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  width: 100%;
+}
+
+.modal-panel-bonds .frame-2 {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  width: 100%;
+}
+
+.modal-panel-bonds .text-wrapper {
+  align-self: stretch;
+  color: #525252;
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.16px;
+  line-height: 18px;
+  margin-top: -1px;
+  position: relative;
+}
+
+.modal-panel-bonds .frame-3 {
+  align-items: flex-start;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  position: relative;
+}
+
+.modal-panel-bonds .p {
+  color: var(--theme-text-text-secondary);
+  font-family: var(--utility-label-02-font-family);
+  font-size: var(--utility-label-02-font-size);
+  font-style: var(--utility-label-02-font-style);
+  font-weight: var(--utility-label-02-font-weight);
+  letter-spacing: var(--utility-label-02-letter-spacing);
+  line-height: var(--utility-label-02-line-height);
+  margin-top: -1px;
+  position: relative;
+  width: 270px;
+}
+
+.modal-panel-bonds .icon-help-circle {
+  height: 16px !important;
+  position: relative !important;
+  width: 16px !important;
+}
+
+.modal-panel-bonds .frame-wrapper {
+  align-items: flex-end;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  position: relative;
+  width: 100%;
+}
+
+.modal-panel-bonds .text-input-default-wrapper {
+  align-items: flex-start;
+  display: flex;
+  flex: 1;
+  flex-grow: 1;
+  gap: 8px;
+  position: relative;
+}
+
+.modal-panel-bonds .text-input-default-instance {
+  background-blend-mode: unset !important;
+  background-color: var(--fieldfield-01) !important;
+  flex: 1 !important;
+  flex-grow: 1 !important;
+  width: unset !important;
+}
+
+.modal-panel-bonds .design-component-instance-node {
+  margin-right: unset !important;
+}
+
+.modal-panel-bonds .text-input-default-2 {
+  background-color: var(--fieldfield-02) !important;
+  width: 424px !important;
+}
+
+.modal-panel-bonds .text-wrapper-2 {
+  align-self: stretch;
+  color: var(--theme-text-text-secondary);
+  font-family: var(--utility-label-02-font-family);
+  font-size: var(--utility-label-02-font-size);
+  font-style: var(--utility-label-02-font-style);
+  font-weight: var(--utility-label-02-font-weight);
+  letter-spacing: var(--utility-label-02-letter-spacing);
+  line-height: var(--utility-label-02-line-height);
+  position: relative;
+}
+
+.modal-panel-bonds .frame-4 {
+  align-self: stretch;
+  flex: 0 0 auto;
+  position: relative;
+  width: 100%;
+}

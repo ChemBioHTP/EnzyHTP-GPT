@@ -23,5 +23,9 @@ export const Default = {
     size: "large",
     stateProp: "success",
     className: {},
+    statusIconState: "warning-red",
+    statusIconStateSuccessGreenClassName: {},
+    divider: "/img/divider-7.svg",
+    errorShortClassName: {},
   },
 };
