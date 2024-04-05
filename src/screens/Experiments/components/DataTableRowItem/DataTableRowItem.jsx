@@ -7,7 +7,6 @@ import PropTypes from "prop-types";
 import React from "react";
 
 import { Checkbox23 } from "../../icons/Checkbox23";
-import { Checkbox24 } from "../../icons/Checkbox24";
 import { Checkbox3 } from "../../icons/Checkbox3";
 import { CheckboxCheckedFilled } from "../../icons/CheckboxCheckedFilled";
 import { CheckboxCheckedFilled14 } from "../../icons/CheckboxCheckedFilled14";
@@ -21,7 +20,6 @@ import { RadioButton } from "../../icons/RadioButton";
 import { RadioButton2 } from "../../icons/RadioButton2";
 import { RadioButtonChecked2 } from "../../icons/RadioButtonChecked2";
 import { RadioButtonChecked5 } from "../../icons/RadioButtonChecked5";
-import { Checkbox } from "../Checkbox";
 import { DataTableBodyRow } from "../DataTableBodyRow";
 import { DataTableHeader } from "../DataTableHeader";
 import { DataTableRowCell } from "../DataTableRowCell";
@@ -75,7 +73,7 @@ export const DataTableRowItem = ({
         <div className={`data-table-select select-type-${selectType} selectable-0-${selectable} size-12-${size}`}>
           {selection === "unchecked" && <Checkbox3 className="instance-node-2" color="#161616" />}
 
-          {["none", "radio-button"].includes(selectType) && <Checkbox />}
+          {["none", "radio-button"].includes(selectType) && <Checkbox3 />}
 
           {selection === "checked" && <CheckboxCheckedFilled className="instance-node-2" />}
 
@@ -532,7 +530,7 @@ export const DataTableRowItem = ({
               )}
 
               {selection === "unchecked" && size === "medium" && state === "enabled" && (
-                <Checkbox24 className="instance-node-4" />
+                <Checkbox23 className="instance-node-4" />
               )}
 
               {selection === "unchecked" && state === "hover" && size === "medium" && (
@@ -610,7 +608,7 @@ export const DataTableRowItem = ({
                   selection === "none") && <CheckboxCheckedFilled className="instance-node-2" />}
 
                 {selection === "unchecked" && state === "hover" && size === "medium" && (
-                  <Checkbox24 className="instance-node-2" />
+                  <Checkbox23 className="instance-node-2" />
                 )}
 
                 {state === "hover" && !expanded && size === "medium" && selection === "checked" && (
