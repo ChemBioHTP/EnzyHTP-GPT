@@ -1,0 +1,1 @@
+export { SizeLarge } from "./SizeLarge";

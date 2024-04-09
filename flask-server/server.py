@@ -24,19 +24,25 @@ file_path = ""
 import settings
 app.config.from_object(settings)
 
-from context import db, login_manager, ssl_context
+from context import db, login_manager, mail, ssl_context
 login_manager.login_message_category = "info"
-
-# Example API route - to start server, run "python server.py"
-# @app.route("/members")
-# def members():
-#     return {"members": ["Member1", "Member2"]}
 
 # Import and define your routes and views
 from auth import auth as auth_blueprint
 app.register_blueprint(auth_blueprint, url_prefix="/api/auth")
 from experiment import experiment as experiment_blueprint
 app.register_blueprint(experiment_blueprint, url_prefix="/api/experiment")
+
+# Initialize Mail Engine.
+mail.init_app(app)
+
+# Create database tables
+app.app_context().push()
+db.init_app(app=app)
+db.create_all()
+
+# Initialize LoginManager.
+login_manager.init_app(app)
 
 # Validate File
 @app.route("/api/validate_file", methods=["POST"])
@@ -153,17 +159,6 @@ def api_key():
     return {'foo': 'bar'}
 
 if __name__ == "__main__":
-
-    # # Entities have to be explicitly imported so as to create tables.
-    # from auth.models import User, OAuthUser
-    # from experiment.models import Experiment
-    # Create database tables.
-    app.app_context().push()
-    db.init_app(app=app)
-    db.create_all()
-
-    # Initialize LoginManager.
-    login_manager.init_app(app)
 
     # Set SSL Context and run server.
     app.run(host=settings.APP_HOST,

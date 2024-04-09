@@ -29,6 +29,9 @@ db = SQLAlchemy()
 from flask_login import LoginManager
 login_manager = LoginManager()
 
+from flask_mail import Mail
+mail = Mail()
+
 # Set SSL Context
 import ssl
 ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)

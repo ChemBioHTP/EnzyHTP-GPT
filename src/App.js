@@ -7,6 +7,9 @@ import ApiKeyScreen from "./screens/Login/apikeyscreen";
 import ForgotpwdScreen from "./screens/Login/forgotpwdscreen";
 import Cookies from 'js-cookie';
 import ResetpwdScreen from "./screens/Login/resetpwdscreen";
+import ElementCreateWorkFlow from "./screens/Experiments/CreateWorkFLow/ElementCreateWorkFlow";
+import { ElementCreateTarget } from "./screens/Experiments/CreateTarget/ElementCreateTarget";
+import ElementExperiment from "./screens/Experiments/ExperimentPage/ElementExperiment";
 
 function App() {
   const [data, setData] = useState([{}]);
@@ -30,6 +33,7 @@ function App() {
         <Route path="/forgotpwd" element={<ForgotpwdScreen />} />
         <Route path="/resetpwd" element={<ResetpwdScreen />} />
         <Route path="/googlelogin" element={<GoogleLogin />} />
+        <Route path="/exp/*" element={<ElementExperiment />} />
       </Routes>
     </div>    
     

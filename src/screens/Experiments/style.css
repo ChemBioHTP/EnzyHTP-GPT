@@ -1,0 +1,107 @@
+.element-experiments {
+  background-color: #f4f4f4;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  width: 100%;
+}
+
+.element-experiments .div-2 {
+  background-color: var(--layerlayer-01);
+  height: 900px;
+  position: relative;
+  width: var(--breakpoints-viewport-size);
+}
+
+.element-experiments .navigation-header-instance {
+  left: 0 !important;
+  position: absolute !important;
+  top: 0 !important;
+  width: 1584px !important;
+}
+
+.element-experiments .navigation-side-nav-instance {
+  left: 0 !important;
+  position: absolute !important;
+  top: 48px !important;
+}
+
+.element-experiments .div-wrapper {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  left: 48px;
+  padding: 24px 32px;
+  position: absolute;
+  top: 48px;
+  width: 1536px;
+}
+
+.element-experiments .text-wrapper-4 {
+  color: #000000;
+  font-family: var(--heading-fluid-heading-05-font-family);
+  font-size: var(--heading-fluid-heading-05-font-size);
+  font-style: var(--heading-fluid-heading-05-font-style);
+  font-weight: var(--heading-fluid-heading-05-font-weight);
+  letter-spacing: var(--heading-fluid-heading-05-letter-spacing);
+  line-height: var(--heading-fluid-heading-05-line-height);
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.element-experiments .frame-9 {
+  align-items: center;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
+  left: 603px;
+  position: absolute;
+  top: 538px;
+}
+
+.element-experiments .text-wrapper-5 {
+  color: #000000;
+  font-family: var(--heading-fluid-heading-04-font-family);
+  font-size: var(--heading-fluid-heading-04-font-size);
+  font-style: var(--heading-fluid-heading-04-font-style);
+  font-weight: var(--heading-fluid-heading-04-font-weight);
+  letter-spacing: var(--heading-fluid-heading-04-letter-spacing);
+  line-height: var(--heading-fluid-heading-04-line-height);
+  margin-top: -1px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.element-experiments .p {
+  color: #000000;
+  font-family: var(--body-body-02-font-family);
+  font-size: var(--body-body-02-font-size);
+  font-style: var(--body-body-02-font-style);
+  font-weight: var(--body-body-02-font-weight);
+  letter-spacing: var(--body-body-02-letter-spacing);
+  line-height: var(--body-body-02-line-height);
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.element-experiments .button-instance {
+  left: 699px !important;
+  position: absolute !important;
+  top: 664px !important;
+}
+
+.element-experiments .design-component-instance-node {
+  left: 154px !important;
+}
+
+.element-experiments .group {
+  height: 229px;
+  left: 677px;
+  position: absolute;
+  top: 280px;
+  width: 218px;
+}
