@@ -4,13 +4,13 @@
   box-shadow: var(--menu-transparent);
   display: flex;
   flex-direction: column;
-  height: 852px;
+  height: 100%;
   justify-content: space-between;
   position: relative;
-  width: 488px;
+  width: 100%;
 }
 
-.workflow-change .div-2 {
+.workflow-change .div-3 {
   align-items: flex-start;
   align-self: stretch;
   display: flex;

@@ -21,6 +21,11 @@ export const ElementExperiment = () => {
     }
     if (buttonId > 5) {
       setTitleText(sideLabel[buttonId - 6]);
+      let path = '/exp/create'; 
+      navigate(path);
+    } else {
+      let path = '/exp/'; 
+      navigate(path);
     }
   };
 
@@ -45,7 +50,7 @@ export const ElementExperiment = () => {
       <div className="div-2" data-breakpoints-mode="max-max-plus-1584px-1784px">
         <Routes>
           <Route path="/" element={<ElementExperimentsList sideVisible={isVisible} />} />
-          <Route path="/flow" element={<ElementCreateWorkFlow sideVisible={isVisible} onClickWrapper={handleWrapperClick}/>} />
+          <Route path="/flow" element={<ElementCreateWorkFlow sideVisible={isVisible} titleText={titleText} onClickWrapper={handleWrapperClick}/>} />
           <Route path="/create" element={<ElementCreateTarget sideVisible={isVisible} titleText={titleText} onClickWrapper={handleWrapperClick} />} />
         </Routes>
         <NavigationHeader className="navigation-header-instance" />

@@ -57,6 +57,19 @@
   gap: 0px;
   justify-content: flex-end;
   z-index: 99;
+  height: 852px;
+  width: 488px;
+}
+
+.element-create .frame-window {
+  position: absolute;
+  top: 169px !important;
+  left: 426px !important;
+  gap: 0px;
+  width: 793px;
+  height: 404px;
+  justify-content: flex-end;
+  z-index: 99;
 }
 
 .element-create .frame-cover {

@@ -4,7 +4,7 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 */
 
 import PropTypes from "prop-types";
-import React from "react";
+import React, { useEffect } from "react";
 import { useReducer } from "react";
 import { ArrowRight } from "../../icons/ArrowRight";
 import { Checkbox3 } from "../../icons/Checkbox3";
@@ -29,12 +29,24 @@ export const Tile = ({
   className,
   divClassName,
   divClassNameOverride,
+  onClick=()=>{}
 }) => {
   const [state, dispatch] = useReducer(reducer, {
     accessible: accessible || false,
     type: type || "base",
     state: stateProp || "enabled",
   });
+
+  const handleClick = () => {
+    dispatch("click");
+    onClick();
+  }
+
+  useEffect(() => {
+    if (stateProp === "enabled") {   
+      dispatch("unclick");
+    }
+  }, [stateProp]);
 
   return (
     <div
@@ -45,6 +57,8 @@ export const Tile = ({
       onMouseEnter={() => {
         dispatch("mouse_enter");
       }}
+
+      onClick={handleClick}
     >
       <div className="content-3">
         {((state.state === "disabled" && state.type === "single-select") ||
@@ -220,6 +234,28 @@ function reducer(state, action) {
   if (state.accessible === false && state.state === "hover" && state.type === "single-select") {
     switch (action) {
       case "mouse_leave":
+        return {
+          accessible: false,
+          state: "enabled",
+          type: "single-select",
+        };
+    }
+  }
+
+  if (state.accessible === false && state.state === "hover" && state.type === "single-select") {
+    switch (action) {
+      case "click":
+        return {
+          accessible: false,
+          state: "enabled-selected",
+          type: "single-select",
+        };
+    }
+  }
+
+  if (state.accessible === false && state.state === "enabled-selected" && state.type === "single-select") {
+    switch (action) {
+      case "unclick":
         return {
           accessible: false,
           state: "enabled",
