@@ -44,6 +44,19 @@ SSL Context (named `ssl_context`) is also declared here to enable HTTPS Protocol
 
 Those instances can only be declared in an individual file and imported into the main file and anywhere else in the server. Otherwise, a number of "Exception(s)", and a "Warning" prompt which will be set to "Exception" in the next version, will be triggered.
 
+#### 2.2.3 Database (on Ubuntu WSL)
+
+Install the MongoDB database by `sudo apt-get install -y mongodb-org`, and start it by `sudo service mongod start`.
+
+If you are faced with `mongod: unrecognized service` error when initializing or starting MongoDB, then try following commands. (This error is likely to happen when running MongoDB on Ubuntu WSL.)
+
+```bash
+sudo /usr/bin/mongod --fork --logpath /var/log/mongodb/mongodb.log --config /etc/mongod.conf
+```
+
+Reference:
+https://deepinout.com/mongodb/mongodb-questions/109_mongodb_mongod_is_not_a_service_ubuntu_wsl_error_mongod_unrecognized_service.html
+
 ## 3. SSL Certificates
 
 - Filepath: `/flask-server/settings.py`
