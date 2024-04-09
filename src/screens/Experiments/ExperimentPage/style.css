@@ -10,7 +10,7 @@
 .element-experiment .div-2 {
   background-color: var(--layerlayer-01);
   height: 900px;
-  position: relative;
+  position: absolute;
   border-right-style: solid;
   border-right-width: 1px;
   border-color: var(--theme-border-border-subtle-00);

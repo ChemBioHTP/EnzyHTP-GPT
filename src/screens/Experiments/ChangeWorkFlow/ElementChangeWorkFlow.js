@@ -18,7 +18,7 @@ export const ElementChangeWorkFLow = ({title="title", content="this is content",
   };
   return (
     <div className="workflow-change">
-      <div className="div-2">
+      <div className="div-3">
         <header className="header">
           <div className="label-title">
             <div className="text-wrapper-4">{title}</div>

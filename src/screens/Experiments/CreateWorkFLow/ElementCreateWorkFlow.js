@@ -21,8 +21,9 @@ import { useNavigate } from "react-router-dom";
 import { ModalPanelMetrics } from "../components/ModalPanelMetrics/ModalPanelMetrics";
 import { ModalPanelBond } from "../components/ModalPanelBond/ModalPanelBond";
 import { ModalPanelMultiBonds } from "../components/ModalPanelMultiBonds/ModalPanelMultiBonds";
+import { ModalPanelChoose } from "../components/ModalPanelChoose";
 
-export const ElementCreateWorkFlow = ({ sideVisible = true, onClickWrapper = () => { }}) => {
+export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awesome experiment", onClickWrapper = () => { }}) => {
   const handleWrapperClick = (id) => {
     onClickWrapper(id);
   };
@@ -42,6 +43,7 @@ export const ElementCreateWorkFlow = ({ sideVisible = true, onClickWrapper = () 
   const [changeTarget, setChangeTarget] = useState(false);
   const [changeBond, setChangeBond] = useState(false);
   const [changeBonds, setChangeBonds] = useState(false);
+  const [chooseMd, setchooseMd] = useState(false);
 
   const handleChangeFlowClick = () => {
     
@@ -59,8 +61,13 @@ export const ElementCreateWorkFlow = ({ sideVisible = true, onClickWrapper = () 
   };
 
   const handleChangeBondsClick = (value) => {
-    console.log(value);
+
     setChangeBonds(changeBonds => !changeBonds);
+  };
+
+  const handleSubmit = () => {
+
+    setchooseMd(chooseMd => !chooseMd);
   };
 
 
@@ -77,6 +84,7 @@ export const ElementCreateWorkFlow = ({ sideVisible = true, onClickWrapper = () 
         className="navigation-page-header"
         override={<IconAlertCircle2 className="icon-instance-node-3" />}
         onClick={handleBackToList}
+        titleText={titleText}
       />
       <div className="frame-11">
         <TabsItems
@@ -164,6 +172,22 @@ export const ElementCreateWorkFlow = ({ sideVisible = true, onClickWrapper = () 
           </div>
         </>
       )}
+
+      {chooseMd && (
+        <>
+          <div className="frame-cover"></div>
+          <div className="frame-window">
+            <ElementChangeWorkFLow
+              title="Choose Your MD Simulation Option"
+              content="Please select one of the options below based on your preference and resources:"
+              slotItem={
+                <ModalPanelChoose/>
+              }
+              onCloseClick={handleSubmit}
+            />
+          </div>
+        </>
+      )}
       <div className="progress-indicator-2">
         <DirectionHorizontalWrapper
           className="progress-indicator-item"
@@ -172,7 +196,7 @@ export const ElementCreateWorkFlow = ({ sideVisible = true, onClickWrapper = () 
           optionalLabel={false}
           progressIndicatorStepText="Target mutants"
           state="completed"
-          onClick={()=>handleWrapperClick(0)}
+
         />
         <DirectionHorizontalWrapper
           className="progress-indicator-item"
@@ -181,7 +205,7 @@ export const ElementCreateWorkFlow = ({ sideVisible = true, onClickWrapper = () 
           optionalLabel={false}
           progressIndicatorStepText="Workflow"
           state="current"
-          onClick={()=>handleWrapperClick(1)}
+
         />
       </div>
       <div className="label-description">
@@ -201,6 +225,7 @@ export const ElementCreateWorkFlow = ({ sideVisible = true, onClickWrapper = () 
           stateProp="enabled"
           style="tertiary"
           type="text-icon"
+          onClick={()=>handleWrapperClick(0)}
         />
         <Button
           buttonText="Run experiment"
@@ -212,6 +237,7 @@ export const ElementCreateWorkFlow = ({ sideVisible = true, onClickWrapper = () 
           stateProp="enabled"
           style="primary"
           type="text-icon"
+          onClick={handleSubmit}
         />
       </div>
       

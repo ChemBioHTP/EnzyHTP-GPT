@@ -215,7 +215,6 @@ export const ElementCreateTarget = ({ sideVisible=true, titleText= "Example expe
           optionalLabel={false}
           progressIndicatorStepText="Target mutants"
           state="current"
-          onClick={()=>handleWrapperClick(0)}
         />
         <DirectionHorizontalWrapper
           className="design-component-instance-node-2"
@@ -224,20 +223,20 @@ export const ElementCreateTarget = ({ sideVisible=true, titleText= "Example expe
           optionalLabel={false}
           progressIndicatorStepText="Workflow"
           state="incomplete"
-          onClick={()=>handleWrapperClick(1)}
         />
       </div>
       <div className="frame-13">
         <Button
           buttonText="Next"
           className="button-3"
-          disabled={true}
+          disabled={false}
           icon1={<IconArrowRight className="icon-instance-node-3" />}
           iconClassName="button-2"
           size="large"
-          stateProp="disabled"
+          stateProp="enabled"
           style="primary"
           type="text-icon"
+          onClick={()=>handleWrapperClick(1)}
         />
       </div>
       {/* <div className="frame-17">
