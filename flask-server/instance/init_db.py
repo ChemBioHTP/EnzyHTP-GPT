@@ -26,9 +26,22 @@ session = Session()
 
 # Add users.
 from auth.models import User
-session.add(User(email='san.zhang@example.com', password='123456'))
-session.add(User(email='tom.white@example.com', password='123456'))
+user_zhang = User(email='san.zhang@example.com', password='123456')
+session.add(user_zhang)
+user_white = User(email='tom.white@example.com', password='123456')
+session.add(user_white)
 session.add(User(email='lisa.green@example.com', password='123456'))
-session.commit()
+# session.commit()
 
+from experiment.models import Experiment
+session.add(Experiment(user_id=user_zhang.id, name="exp-test-01", description="Let's start a test."))
+session.add(Experiment(user_id=user_zhang.id, name="exp-test-02", description="Let's start a test."))
+session.add(Experiment(user_id=user_white.id, name="exp-test-11", description="Let's start a test."))
+session.add(Experiment(user_id=user_white.id, name="exp-test-12", description="Let's start a test."))
+session.add(Experiment(user_id=user_white.id, name="exp-test-13", description="Let's start a test."))
+session.add(Experiment(user_id=user_white.id, name="exp-test-14", description="Let's start a test."))
+
+# print(type(user_zhang.id))
+
+session.commit()
 session.close()

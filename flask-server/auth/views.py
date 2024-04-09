@@ -9,7 +9,7 @@
 '''
 
 # Here put the import lib.
-from flask import Response, url_for, request, redirect
+from flask import Response, request, redirect
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
 from uuid import uuid4
@@ -24,7 +24,6 @@ from context import db, login_manager
 from settings import (
     OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI,
 )
-from server import app
 
 class AuthResponseInfo():
     """Authentication Response Information.
@@ -69,7 +68,7 @@ class AuthResponseInfo():
         self.message = message
         if (timestamp == datetime.__new__(datetime, 1970, 1, 1)):
             # Here we might as well assume that 1970-01-01 is a time that will not be triggered in actual business.
-            self.timestamp = str(datetime.utcnow())
+            self.timestamp = str(datetime.now())
         else:        
             self.timestamp = str(timestamp)
         self.is_authenticated = is_authenticated

@@ -21,8 +21,7 @@ from random import choice
 from string import Template
 from os import getcwd, path
 
-from context import db
-from server import mail
+from context import db, mail
 from settings import (
     OPENAI_API_URI,
 
@@ -412,11 +411,5 @@ class VerificationCode(db.Model):
             verification_code += random_char
             continue
         return verification_code
-
-
-if __name__ == '__main__':
-    user = User('y.z@vu', '123456')
-    print(user.email)
-    print(user.password)
 
 # Reference: https://www.askpython.com/python-modules/flask/flask-user-authentication
