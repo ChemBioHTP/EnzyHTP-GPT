@@ -8,15 +8,22 @@ import { IconBell } from "../../icons/IconBell";
 import { IconUser1 } from "../../icons/IconUser1";
 import "./style.css";
 
-export const NavigationHeader = ({ className }) => {
+export const NavigationHeader = ({ className, onClick=()=>{} }) => {
+  const handleClick = (id) => {
+    onClick(id);
+  }
   return (
     <div className={`navigation-header ${className}`}>
       <div className="frame">
         <div className="text-wrapper">EnzyHTP</div>
       </div>
       <div className="div">
-        <IconBell className="icon-instance-node" color="white" />
-        <IconUser1 className="icon-instance-node" color="white" />
+        <div className="div-bell" onClick={()=>handleClick(0)}>
+          <IconBell className="icon-instance-node" color="white" />
+        </div>
+        <div className="div-user" onClick={()=>handleClick(1)}>
+          <IconUser1 className="icon-instance-node" color="white" />
+        </div>
       </div>
     </div>
   );

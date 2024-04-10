@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useState, useReducer} from 'react';
 // Components
@@ -38,10 +38,6 @@ export const ElementLoginScreen = () => {
           } else if (response.status === 404) {
             throw dispatch("email_notfound");
           }
-        } else {
-          var session = response.headers.get("Set-Cookie");
-          console.log(session);
-          Cookies.set('session', session, 1);
         }
     
         return response.json();
@@ -50,14 +46,10 @@ export const ElementLoginScreen = () => {
         let userToken = data.id;
         const currentTime = new Date();
         const expirationTime = new Date(currentTime.getTime() + 60 * 60 * 1000);        
-        Cookies.set('userToken', userToken, { expires: expirationTime });
-        if (data.openai_status_code === "200") {
-          let path = '/exp';
-          navigate(path);
-        } else {
-          let path = '/key';
-          navigate(path);
-        }
+        Cookies.set('userToken', userToken, { expires: expirationTime }); 
+        
+        let path = '/key';
+        navigate(path);
       })
       .catch(error => {
           console.error('Error sending data:', error);
@@ -68,6 +60,20 @@ export const ElementLoginScreen = () => {
       let path = '/api/auth/oauth/google/login';
       navigate(path);
     }
+  
+  /* hanlde enter press */
+  const handleKeyPress = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      document.getElementById("submitButton").click();
+    }
+  }
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyPress);
+    return () => document.removeEventListener("keydown", handleKeyPress);
+  }, []);
+  
+  /* end with key press*/
   
     const savedId = Cookies.get('rememberedId') || '';
   
@@ -176,7 +182,7 @@ export const ElementLoginScreen = () => {
                                     onInputChange={onChangePwd}
                                 />
                             </div>
-                            <div className="frame-6" onClick={handleSubmit}>
+                            <div className="frame-6" id="submitButton" onClick={handleSubmit} >
                                 <Button
                                     buttonText="Continue"
                                     className="button-instance"
