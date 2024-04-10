@@ -1,15 +1,19 @@
+# Here put the import lib.
 import os
-from flask import Flask, request, jsonify, render_template
 import openai
 import config
+from flask import Flask, request, jsonify, render_template
+
+# Here put local imports.
 import enzy_htp.structure
 import enzy_htp.mutation.api as mapi
 import enzy_htp.mutation.mutation as mt
 import enzy_htp.mutation.mutation_pattern.api as pattern_api
 from enzy_htp.preparation import validity as vd
-from flask import Flask
-from enzy_htp.core import general as eg
-from enzy_htp.core import _LOGGER
+from enzy_htp.core import (
+    general as eg,
+    _LOGGER
+)
 
 app = Flask(__name__)
 
@@ -18,11 +22,19 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 file_path = ""
 
 import settings
-app = Flask(__name__, template_folder='../public')
 app.config.from_object(settings)
 
-from context import db, login_manager
+from context import db, login_manager, mail, ssl_context
 login_manager.login_message_category = "info"
+
+# Import and define your routes and views
+from auth import auth as auth_blueprint
+app.register_blueprint(auth_blueprint, url_prefix="/api/auth")
+from experiment import experiment as experiment_blueprint
+app.register_blueprint(experiment_blueprint, url_prefix="/api/experiment")
+
+# Initialize Mail Engine.
+mail.init_app(app)
 
 # Create database tables
 app.app_context().push()
@@ -31,15 +43,6 @@ db.create_all()
 
 # Initialize LoginManager.
 login_manager.init_app(app)
-
-# Example API route - to start server, run "python server.py"
-# @app.route("/members")
-# def members():
-#     return {"members": ["Member1", "Member2"]}
-
-# Import and define your routes and views
-from auth import auth as auth_blueprint
-app.register_blueprint(auth_blueprint, url_prefix='/api/auth')
 
 # Validate File
 @app.route("/api/validate_file", methods=["POST"])

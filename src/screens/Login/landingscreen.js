@@ -193,71 +193,10 @@ export const ElementLandingScreen = () => {
                                 stateProp="enabled"
                                 format="tertiary"
                                 type="text-icon"
-                            />
-                            
+                            />                          
                         </div>
                     </div>
                 </div>
-            </div>
-            <div className="frame-5">
-              <div className="frame-6">
-                <TextInputDefault
-                  backgroundClassName="text-input-default-2"
-                  className="text-input-default-instance"
-                  placeholderText="Email address"
-                  showHelper={false}
-                  showLabel={false}
-                  size="large"
-                  spacerClassName="design-component-instance-node"
-                  state="enabled"
-                  textFilled={false}
-                />
-                <TextInputDefault
-                  backgroundClassName="text-input-default-2"
-                  className="text-input-default-instance"
-                  placeholderText="Password"
-                  showHelper={false}
-                  showLabel={false}
-                  size="large"
-                  spacerClassName="design-component-instance-node"
-                  state="enabled"
-                  textFilled={false}
-                />
-              </div>
-              <div className="frame-6" onClick={routeChange}>
-                <Button
-                  buttonText="Continue"
-                  className="button-instance"
-                  iconClassName="button-2"
-                  override={<IconArrowRight className="icon-arrow-right" />}
-                  size="large"
-                  stateProp="enabled"
-                  format="primary"
-                  type="text-icon"
-                />
-              </div>
-            </div>
-            <div className="frame-6">
-              <Button
-                buttonText="Log in with Google"
-                className="button-instance"
-                iconClassName="button-2"
-                override={<IconArrowRight className="icon-arrow-right" />}
-                size="large"
-                stateProp="enabled"
-                format="tertiary"
-                type="text-icon"
-              />
-              <Button
-                buttonText="Log in with Facebook"
-                className="button-instance"
-                iconClassName="button-2"
-                override={<IconArrowRight className="icon-arrow-right" />}
-                size="large"
-                stateProp="enabled"
-                format="tertiary"
-                type="text-icon"
-              />
             </div>
         </div>
           

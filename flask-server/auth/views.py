@@ -9,19 +9,21 @@
 '''
 
 # Here put the import lib.
-from flask import Response, url_for, request, redirect
+from flask import Response, request, redirect
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
 from uuid import uuid4
 from requests import get, post
 from json import dumps, loads
+from string import Template
 
 # Here put local imports.
 from . import auth
-from .models import User, OAuthUser
+from .models import User, OAuthUser, VerificationCode
 from context import db, login_manager
-from settings import OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI
-from server import app
+from settings import (
+    OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI,
+)
 
 class AuthResponseInfo():
     """Authentication Response Information.
@@ -66,7 +68,7 @@ class AuthResponseInfo():
         self.message = message
         if (timestamp == datetime.__new__(datetime, 1970, 1, 1)):
             # Here we might as well assume that 1970-01-01 is a time that will not be triggered in actual business.
-            self.timestamp = str(datetime.utcnow())
+            self.timestamp = str(datetime.now())
         else:        
             self.timestamp = str(timestamp)
         self.is_authenticated = is_authenticated
@@ -309,12 +311,49 @@ def password_change() -> Response:
         )
         return Response(response=response_info.serialize(), status=400, mimetype='application/json')
 
-@auth.route('/password/reset', methods=['POST, PUT'])
+@auth.route('/password/reset/generate', methods=['POST'])
+def password_reset_generate() -> Response:
+    """Generate and send verification code for password reset."""
+    VerificationCode.clean_expired_records()    # Clean up expired records everytime before generating new one.
+    code_length = 6
+    valid_mins = 10
+
+    email_to_match = request.form.get('email').lower()
+    user = User.get_by_email(email=email_to_match)
+    if (not user):    # Email doesn't exist.
+        response_info = AuthResponseInfo(
+            id=None,
+            email=email_to_match,
+            is_successful=False,
+            message=f'Target user `{email_to_match}` does not exist.',
+        )
+        return Response(response=response_info.serialize(), status=404, mimetype='application/json')
+    else:
+        verification_code_instance = VerificationCode(user=user, valid_minutes=valid_mins, length=code_length)
+        db.session.add(verification_code_instance)
+        is_sent = verification_code_instance.send_email()
+        if (is_sent):
+            response_info = AuthResponseInfo(
+                id=user.id,
+                email=user.email,
+                message=f'Verification code has been successfully sent to `{user.email}`.',
+            )
+            db.session.commit()
+            return Response(response=response_info.serialize(), status=200, mimetype='application/json')
+        else:
+            
+            response_info = AuthResponseInfo(
+                id=user.id,
+                email=user.email,
+                message=f'Error raised when sending verification code to `{user.email}`.',
+                is_successful=False,
+            )
+            return Response(response=response_info.serialize(), status=500, mimetype='application/json')
+
+@auth.route('/password/reset', methods=['POST', 'PUT'])
 def password_reset() -> Response:
     """Reset password (Not completed)
     The router should be commented to deactivate the method in Production environment.
-
-    TODO: (Yinjie) send recovery code via email using SMTP. We need something like noreply@domain.com mailbox.
     """
     email_to_match = request.form.get('email').lower()
     verification_code = request.form.get('verification_code')
@@ -326,25 +365,52 @@ def password_reset() -> Response:
             email=email_to_match,
             is_successful=False,
             message=f'Target user `{email_to_match}` does not exist.',
-            is_authenticated=True)
+            is_authenticated=False)
         return Response(response=response_info.serialize(), status=404, mimetype='application/json')
     elif (verification_code): # (Not completed.) Check if the code is verified.
-        user.set_password(new_password)
-        response_info = AuthResponseInfo(
-            id=user.id,
-            email=user.email,
-            message=f'User `{user.email}` succeeded to change the password.',
-            is_authenticated=True,
-        )
-        db.session.commit()
-        return Response(response=response_info.serialize(), status=200, mimetype='application/json')
+        if (code_record:=VerificationCode.get_by_user_and_code(user=user, verification_code=verification_code)):
+            if (code_record.expiration_time < datetime.now()):
+                response_info = AuthResponseInfo(
+                    id=user.id,
+                    email=user.email,
+                    is_successful=False,
+                    message=f'User `{user.username}` failed to reset the password. Verification code has expired!',
+                )
+                return Response(response=response_info.serialize(), status=403, mimetype='application/json')
+            elif (code_record.is_used):
+                response_info = AuthResponseInfo(
+                    id=user.id,
+                    email=user.email,
+                    is_successful=False,
+                    message=f'User `{user.username}` failed to reset the password. Verification code is used!',
+                )
+                return Response(response=response_info.serialize(), status=403, mimetype='application/json')
+            else:
+                user.set_password(new_password)
+                response_info = AuthResponseInfo(
+                    id=user.id,
+                    email=user.email,
+                    message=f'User `{user.username}` succeeded to change the password.',
+                )
+                code_record.is_used = True
+                db.session.commit()
+                return Response(response=response_info.serialize(), status=200, mimetype='application/json')
+        else:
+            response_info = AuthResponseInfo(
+                id=user.id,
+                email=user.email,
+                is_successful=False,
+                message=f'User `{user.username}` failed to reset the password due to unmatched verification code.',
+                
+            )
+            return Response(response=response_info.serialize(), status=403, mimetype='application/json')
+
     else:
         response_info = AuthResponseInfo(
             id=user.id,
             email=user.email,
             is_successful=False,
             message=f'User `{user.email}` failed to reset the password due to unmatched verification code.',
-            is_authenticated=True,
         )
         return Response(response=response_info.serialize(), status=400, mimetype='application/json')
 

@@ -47,12 +47,17 @@ export const ElementLoginScreen = () => {
         return response.json();
       })
       .then(data => {
-          let userToken = data.id;
-          const currentTime = new Date();
-          const expirationTime = new Date(currentTime.getTime() + 60 * 60 * 1000);        
-          Cookies.set('userToken', userToken, { expires: expirationTime });
+        let userToken = data.id;
+        const currentTime = new Date();
+        const expirationTime = new Date(currentTime.getTime() + 60 * 60 * 1000);        
+        Cookies.set('userToken', userToken, { expires: expirationTime });
+        if (data.openai_status_code === "200") {
+          let path = '/exp';
+          navigate(path);
+        } else {
           let path = '/key';
           navigate(path);
+        }
       })
       .catch(error => {
           console.error('Error sending data:', error);

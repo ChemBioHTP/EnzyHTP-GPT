@@ -1,0 +1,37 @@
+.data-table-toolbar {
+  align-items: center;
+  display: flex;
+  justify-content: flex-end;
+  position: relative;
+  top: 290px !important;
+  left: 294px !important;
+  position: absolute !important;
+  width: 720px;
+}
+
+.data-table-toolbar .search-default-instance {
+  display: flex !important;
+  flex: 1 !important;
+  flex-grow: 1 !important;
+  justify-content: flex-end !important;
+}
+
+.data-table-toolbar .button-instance {
+  flex: 0 0 auto !important;
+  top: 300px;
+}
+
+.data-table-toolbar .add-2 {
+  background-blend-mode: multiply !important;
+  height: 16px !important;
+  position: relative !important;
+  width: 16px !important;
+}
+
+.data-table-toolbar .button-2 {
+  z-index: unset !important;
+}
+.data-table-toolbar .new-experiment-modal-instance {
+  flex: 0 0 auto !important;
+  top: 300px;
+}

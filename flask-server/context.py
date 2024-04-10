@@ -21,8 +21,22 @@ This warning will become an exception in Flask 2.3.
 '''
 
 # Here put the import lib.
+import os
+__basedir = os.path.join(os.getcwd())
+
 from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 
 from flask_login import LoginManager
 login_manager = LoginManager()
+
+from flask_mail import Mail
+mail = Mail()
+
+# Set SSL Context
+import ssl
+ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+ssl_context.load_cert_chain(
+    os.path.join(__basedir, 'certs', 'server', 'server.crt'),
+    os.path.join(__basedir, 'certs', 'server', 'server.key')
+)
