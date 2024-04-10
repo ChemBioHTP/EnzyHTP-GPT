@@ -5,7 +5,13 @@ import { Close97 } from "../icons/Close97";
 import "./style.css";
 import navRock from "../../../assets/images/Experiments/navigate-rock-the-boat-1.png"
 
-export const ElementChangeWorkFLow = ({title="title", content="this is content", slotItem, onCloseClick = () => { } }) => {
+export const ElementChangeWorkFLow = ({
+  title="title", 
+  content="this is content", 
+  slotItem, 
+  onCloseClick = () => { },
+  onSaveClick = () => { },
+}) => {
   const handleCloseClick = () => {
     onCloseClick();
   };
@@ -14,7 +20,9 @@ export const ElementChangeWorkFLow = ({title="title", content="this is content",
     console.log(id);
     if (id == 0) {
       onCloseClick();
-    } 
+    } else{
+      onSaveClick();
+    }
   };
   return (
     <div className="workflow-change">
