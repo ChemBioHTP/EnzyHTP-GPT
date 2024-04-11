@@ -10,6 +10,7 @@ COPY . .
 
 # Install the environment.
 RUN npm install
+RUN npm install react-scripts
 
 # Set start command
 CMD ["npm", "run", "start-frontend"]
