@@ -33,7 +33,7 @@ def home():
 
 @app.route("/api/key")
 def api_key():
-    return {'foo': 'bar'}
+    return jsonify({'foo': 'bar'})
 
 if __name__ == "__main__":
 
