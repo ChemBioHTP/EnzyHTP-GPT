@@ -17,6 +17,19 @@ import "./style.css";
 
 export const ElementLandingScreen = () => {
     let navigate = useNavigate(); 
+    
+      /* hanlde enter press */
+    const handleKeyPress = (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        document.getElementById("submitButton").click();
+      }
+    }
+    useEffect(() => {
+      document.addEventListener("keydown", handleKeyPress);
+      return () => document.removeEventListener("keydown", handleKeyPress);
+    }, []);
+  
     const handleSubmit = async() => {
       if (rememberId) {
         Cookies.set('rememberedId', email);
@@ -158,7 +171,7 @@ export const ElementLandingScreen = () => {
                                     onInputChange={onChangePwd}
                                 />
                             </div>
-                            <div className="frame-6" onClick={handleSubmit}>
+                            <div className="frame-6" id="submitButton" onClick={handleSubmit}>
                                 <Button
                                     buttonText="Continue"
                                     className="button-instance"
