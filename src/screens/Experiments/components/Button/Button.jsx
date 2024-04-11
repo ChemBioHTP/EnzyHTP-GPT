@@ -24,7 +24,7 @@ export const Button = ({
   className,
   iconClassName,
   onClick,
-  isModal,
+  isModal = false,
 }) => {
   const [state, dispatch] = useReducer(reducer, {
     style: style || "primary",

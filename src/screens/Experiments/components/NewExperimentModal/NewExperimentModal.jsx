@@ -50,6 +50,7 @@ export function NewExperimentModal({ blank }) {
                 buttonStateProp="disabled"
                 cancel={false}
                 className="design-component-instance-node-2"
+                onClick={handleClose}
               />
             </Box>
           </Modal>
