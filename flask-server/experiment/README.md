@@ -110,3 +110,19 @@ Shut down the server, change the directory to the `/flask-server` directory, and
   - If failed (due to anonymous user),
     - Status Code: `401 UNAUTHORIZED`.
     - Response Body: None.
+
+### 3.3 Create Experiment
+
+(See Postman for now, will be here later.)
+
+### 3.4 Update Information
+
+(See Postman for now, will be here later.)
+
+### 3.5 Validate PDB File.
+
+(See Postman for now, will be here later.)
+
+### 3.6 Generate Pattern
+
+(See Postman for now, will be here later.)

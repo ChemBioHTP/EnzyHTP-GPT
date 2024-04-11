@@ -18,12 +18,12 @@ from json import dumps, loads
 from string import Template
 
 # Here put local imports.
+from config import (
+    OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI,
+)
 from . import auth
 from .models import User, OAuthUser, VerificationCode
 from context import db, login_manager
-from settings import (
-    OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI,
-)
 
 class AuthResponseInfo():
     """Authentication Response Information.
@@ -418,7 +418,7 @@ def password_reset() -> Response:
 
 ## ******* The dividing line between Email login and OAuth login ****** ##
 
-from .config import CLIENT_ID, CLIENT_SECRET, provider_cfg_dict, oauth_client_dict
+from .oauth_config import CLIENT_ID, CLIENT_SECRET, provider_cfg_dict, oauth_client_dict
 from oauthlib.oauth2 import WebApplicationClient
     
 class OAuthResponseInfo(AuthResponseInfo):
@@ -435,7 +435,7 @@ class OAuthResponseInfo(AuthResponseInfo):
             username: str = str(),
             is_successful: bool = True,
             message: str = str(),
-            timestamp = datetime.utcnow(),
+            timestamp = datetime.now(),
             is_authenticated: bool = False,
             verify_openai_secret_key: bool = False
             ) -> None:

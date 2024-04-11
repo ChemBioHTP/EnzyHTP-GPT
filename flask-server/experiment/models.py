@@ -31,10 +31,11 @@ class Experiment(db.Model):
     description = db.Column(db.String(128), nullable=True)
     created_time = db.Column(db.DateTime, nullable=False)
     updated_time = db.Column(db.DateTime, nullable=False)
+    pdb_filepath = db.Column(db.String(1024), nullable=True)
     user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
     user = db.relationship('User', backref=db.backref('experiments'))
 
-    def __init__(self, user_id: str, name: str, type: int = 0, status: int = 0, metrics: List[float] = list(), description: str = None, id: str = None, **kwargs):
+    def __init__(self, user_id: str, name: str, type: int = 0, status: int = 0, metrics: List[float] = list(), description: str = None, **kwargs):
         """Initializes an instance of Experiment with the provided parameters.
 
         Args:
@@ -52,8 +53,9 @@ class Experiment(db.Model):
         self.status = status
         self.metrics = str(metrics)
         self.description = description
-        self.created_time = datetime.utcnow()
-        self.updated_time = datetime.utcnow()
+        self.created_time = datetime.now()
+        self.updated_time = datetime.now()
+        self.pdb_filepath = None
         self.user_id = user_id
     
     @staticmethod
