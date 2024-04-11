@@ -278,7 +278,7 @@
 }
 
 .button.secondary.enabled {
-  background-color: var(--theme-button-button-secondary);
+  background-color: var(--transparenttransparent);
 }
 
 .button.active.danger-tertiary {

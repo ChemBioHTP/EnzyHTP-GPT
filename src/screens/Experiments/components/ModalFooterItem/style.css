@@ -23,6 +23,15 @@
   display: flex !important;
   flex: 1 !important;
   flex-grow: 1 !important;
+  background-color: var(--accessibilityblack);
+}
+
+.modal-footer-item .instance-node1 {
+  align-self: stretch !important;
+  display: flex !important;
+  flex: 1 !important;
+  flex-grow: 1 !important;
+  background-color: var(--backgroundbackground-active);
 }
 
 .modal-footer-item .spacer {

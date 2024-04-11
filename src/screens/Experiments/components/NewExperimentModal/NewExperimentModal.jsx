@@ -24,6 +24,8 @@ export function NewExperimentModal({ blank }) {
           stateProp="enabled"
           type="text-icon"
           onClick={handleOpen}
+          style={"primary"}
+          isModal={true}
         />
       <div className="content">
         <div className="slot">
@@ -48,6 +50,7 @@ export function NewExperimentModal({ blank }) {
                 buttonStateProp="disabled"
                 cancel={false}
                 className="design-component-instance-node-2"
+                onClick={handleClose}
               />
             </Box>
           </Modal>

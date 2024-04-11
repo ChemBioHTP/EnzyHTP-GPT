@@ -22,7 +22,7 @@ export const CreateForms = ({
     <div className={`create-forms ${className}`}>
       <SizeLargeStateWrapper
         DEPRECATEDTextBackgroundClassName="DEPRECATED-text-input"
-        DEPRECATEDTextInputText="My experiment 01"
+        DEPRECATEDTextInputText="Enter experiment name..."
         className="instance-node-2"
         filled={false}
         labelText="Name"

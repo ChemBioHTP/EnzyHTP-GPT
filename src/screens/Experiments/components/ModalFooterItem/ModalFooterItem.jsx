@@ -34,19 +34,18 @@ export const ModalFooterItem = ({
             stateProp="enabled"
             style={actions === "one" ? "ghost" : "secondary"}
             type="text-icon"
-            onClick={()=>handleButtonClick(0)}
+            onClick={()=>handleButtonClick()}
           />
 
           <Button
             buttonText={buttonButtonText1}
-            className="instance-node"
+            className="instance-node1"
             divClassName="button-instance"
             icon={false}
             size="extra-large"
             stateProp="enabled"
             style="primary"
             type="text-icon"
-            onClick={()=>handleButtonClick(1)}
           />
 
         </>
@@ -64,7 +63,6 @@ export const ModalFooterItem = ({
             stateProp="enabled"
             style={actions === "three" ? "secondary" : "primary"}
             type="text-icon"
-            onClick={()=>handleButtonClick(1)}
           />
         </>
       )}
