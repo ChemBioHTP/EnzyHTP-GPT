@@ -6,7 +6,7 @@
 
 The backend of EnzyHTP Web Application.
 
-This **README** describes some general information about how to deal with the configuration, settings, certificates and oauth clients so as to enable the flask-server to run properly.
+This **README** describes some general information about how to deal with the configuration, certificates and oauth clients so as to enable the flask-server to run properly.
 
 ## 2. Configuration
 
@@ -24,13 +24,13 @@ This **README** describes some general information about how to deal with the co
   * Then, back to this directory, and then follow the instructions in the `enzyhtp_env_config.sh` script to adjust and run it. `bash enzyhtp_env_config.sh`
   * You should now be able to use EnzyHTP with the site.
 
-The `settings.py` and `context.py` files in the `/flask-server` directory are to support database and user authentication.
+The `config.py` and `context.py` files in the `/flask-server` directory are to support database and user authentication.
 
 ### 2.2 Runtime Configuration
 
-#### 2.2.1 Settings
+#### 2.2.1 Config
 
-- Filepath: `/flask-server/settings.py`
+- Filepath: `/flask-server/config.py`
 
 This file is cited as an object to inject the runtime configurations of the flask server so as to protect the main file `/flask-server/server.py` from getting 'contaminated'.
 
@@ -46,7 +46,7 @@ Those instances can only be declared in an individual file and imported into the
 
 ## 3. SSL Certificates
 
-- Filepath: `/flask-server/settings.py`
+- Filepath: `/flask-server/config.py`
 
 Social Login(s), such as *Google Login*, require **HTTPS Protocol** to complete its login workflow for the sake of security, thus, the `certs` directory is made to save some self-signed certificates generated with OpenSSL.
 
