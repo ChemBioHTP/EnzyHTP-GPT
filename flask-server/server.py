@@ -1,5 +1,5 @@
 # Here put the import lib.
-from flask import Flask, render_template
+from flask import Flask, jsonify, render_template
 
 app = Flask(__name__)
 
@@ -27,8 +27,10 @@ db.create_all()
 login_manager.init_app(app)
  
 @app.route("/")
+@app.route("")
 def home():
-    return render_template("index.html")
+    # return render_template("index.html")
+    return jsonify({"message": "This is the homepage of the backend. Welcome!"})
 
 @app.route("/api/key")
 def api_key():
