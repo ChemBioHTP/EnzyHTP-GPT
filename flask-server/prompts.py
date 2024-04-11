@@ -3,9 +3,9 @@
 '''
 @File    :   prompts.py
 @Created :   2024/09/14 12:59
-@Author  :   Stull, Sebastian
-@Version :   1.0
-@Contact :   sebastian.l.stull@vanderbilt.edu
+@Author  :   Ran, Xinchun; Stull, Sebastian
+@Version :   2.0
+@Contact :   xinchun.ran@vanderbilt.edu; sebastian.l.stull@vanderbilt.edu
 '''
 
 # Here put the import lib.
