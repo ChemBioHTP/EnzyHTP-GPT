@@ -12,4 +12,4 @@ COPY . .
 RUN npm install
 
 # Set start command
-CMD ["npm", "start"]
+CMD ["npm", "run", "start-frontend"]
