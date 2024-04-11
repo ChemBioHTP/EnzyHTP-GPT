@@ -20,8 +20,8 @@ export const ModalPanelChoose = ({ className, onClickEidt = () => { } }) => {
     setChecked(prev => !prev);
   };
 
-  const [tileSelected1, setTileSelected1] = useState(true);
-  const [tileSelected2, setTileSelected2] = useState(false);
+  const [tileSelected1, setTileSelected1] = useState(false);
+  const [tileSelected2, setTileSelected2] = useState(true);
   const handleTileChange = (value) => {
     if (value === 1) {
       setTileSelected1(true);
@@ -52,7 +52,7 @@ export const ModalPanelChoose = ({ className, onClickEidt = () => { } }) => {
           onClick={()=>handleTileChange(2)}
         />
       </div>
-      <div className="text-wrapper-4">
+      {/* <div className="text-wrapper-4">
         <input
           type="checkbox"
           className="custom-checkbox"
@@ -60,7 +60,7 @@ export const ModalPanelChoose = ({ className, onClickEidt = () => { } }) => {
           onChange={handleCheckboxChange}
         />
         Set as default. You won't be prompted again, but you can adjust this in the experiment settings.
-      </div>
+      </div> */}
     </div>
   );
 };
