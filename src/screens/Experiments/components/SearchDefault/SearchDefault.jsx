@@ -6,13 +6,14 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 import PropTypes from "prop-types";
 import React from "react";
 import { useReducer } from "react";
+import { useState } from "react";
 import { Close } from "../../icons/Close";
 import { Search } from "../../icons/Search";
 import "./style.css";
 
 export const SearchDefault = ({
   placeholderText = "Search input text",
-  queryText = "Typing",
+  queryText = "Enter query here...",
   size,
   stateProp,
   expandable,
@@ -20,12 +21,24 @@ export const SearchDefault = ({
   className,
   icon = <Search className="search-7" color="#525252" />,
 }) => {
+
   const [state, dispatch] = useReducer(reducer, {
     size: size || "large",
     state: stateProp || "enabled",
     expandable: expandable || false,
     expanded: expanded || false,
+    queryText: queryText || placeholderText,
   });
+
+  const handleInputChange = (event) => {
+    dispatch({
+      type: "update_query_text",
+      payload: event.target.value,
+    });
+  };
+  const handleClose = () => {
+    dispatch('click-close');
+  };
 
   return (
     <div
@@ -39,6 +52,7 @@ export const SearchDefault = ({
       onClick={() => {
         dispatch("click");
       }}
+      
     >
       {((state.expanded && state.state === "enabled") ||
         (state.expanded && state.state === "hover") ||
@@ -48,17 +62,19 @@ export const SearchDefault = ({
         <>
           <div className="search-icon">{icon}</div>
           <div className="hide-text-overflow">
-            <div className="text">
-              {["disabled", "enabled", "hover"].includes(state.state) && <>{placeholderText}</>}
-
-              {["filled", "focus"].includes(state.state) && <>{queryText}</>}
+            <div className="text" onChange={handleInputChange}>
+                <input
+                  type="text"
+                  className="search-default text"
+                  value={state.queryText}
+                />
             </div>
           </div>
         </>
       )}
 
       {["disabled", "filled", "focus"].includes(state.state) && (
-        <div className="clear-icon">
+        <div className="clear-icon" onClick={handleClose}>
           <Close className="search-7" fillOpacity={state.state === "disabled" ? "0.25" : undefined} />
         </div>
       )}
@@ -71,6 +87,7 @@ export const SearchDefault = ({
         </div>
       )}
     </div>
+    
   );
 };
 
@@ -155,6 +172,15 @@ function reducer(state, action) {
           expanded: false,
           size: "large",
           state: "hover",
+          queryText: state.queryText,
+        };
+      case "mouse_leave":
+        return {
+          expandable: true,
+          expanded: false,
+          size: "large",
+          state: "enabled",
+          queryText: "",
         };
     }
   }
@@ -167,6 +193,7 @@ function reducer(state, action) {
           expanded: false,
           size: "large",
           state: "enabled",
+          queryText: state.queryText,
         };
 
       case "click":
@@ -174,7 +201,8 @@ function reducer(state, action) {
           expandable: true,
           expanded: true,
           size: "large",
-          state: "enabled",
+          state: "focus",
+          queryText: state.queryText,
         };
     }
   }
@@ -206,7 +234,7 @@ function reducer(state, action) {
           expandable: true,
           expanded: true,
           size: "medium",
-          state: "enabled",
+          state: "focus",
         };
     }
   }
@@ -238,6 +266,35 @@ function reducer(state, action) {
           expandable: true,
           expanded: true,
           size: "small",
+          state: "focus",
+        };
+      case "update_query_text":
+          return {
+            ...state,
+            queryText: action.payload,
+        };
+    }
+  }
+
+  if (state.state === "focus") {
+    switch (action) {
+      case "click":
+        return {
+          expandable: state.expandable,
+          expanded: true,
+          size: state.size,
+          state: "focus",
+        };
+      case "update_query_text":
+          return {
+            ...state,
+            queryText: action.payload,
+          };
+      case "click-close":
+        return {
+          expandable: true,
+          expanded: false,
+          size: state.size,
           state: "enabled",
         };
     }

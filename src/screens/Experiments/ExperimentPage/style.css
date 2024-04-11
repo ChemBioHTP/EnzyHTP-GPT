@@ -17,6 +17,21 @@
   width: var(--breakpoints-viewport-size);
 }
 
+.element-experiment .div-profile {
+  background-color: var(--layerlayer-01);
+  height: 40px;
+  width: 200px;
+  position: absolute;
+  background-color: var(--backgroundbackground);
+  right: 0px;
+  top: 48px;
+}
+
+.element-experiment .button-logout {
+  background-color: brown !important;
+  width: 100%;
+}
+
 .element-experiment .navigation-header-instance {
   left: 0 !important;
   position: absolute !important;
