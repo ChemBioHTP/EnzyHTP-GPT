@@ -24,6 +24,8 @@ export function NewExperimentModal({ blank }) {
           stateProp="enabled"
           type="text-icon"
           onClick={handleOpen}
+          style={"primary"}
+          isModal={true}
         />
       <div className="content">
         <div className="slot">
