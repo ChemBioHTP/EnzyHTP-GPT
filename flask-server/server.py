@@ -27,14 +27,13 @@ db.create_all()
 login_manager.init_app(app)
  
 @app.route("/")
-@app.route("")
 def home():
     # return render_template("index.html")
     return jsonify({"message": "This is the homepage of the backend. Welcome!"})
 
 @app.route("/api/key")
 def api_key():
-    return {'foo': 'bar'}
+    return jsonify({'foo': 'bar'})
 
 if __name__ == "__main__":
 
