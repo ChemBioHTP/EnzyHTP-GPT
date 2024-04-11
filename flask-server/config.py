@@ -29,7 +29,8 @@ SQLALCHEMY_DATABASE_URI=f"sqlite:///{os.path.join(__basedir, 'instance', 'enzyht
 SQLALCHEMY_TRACK_MODIFICATIONS=False
 
 # File system
-UPLOAD_FOLDER = os.path.join(__basedir, "temp_uploads")
+FILE_SYSTEM_FOLDER = os.path.join(__basedir, "static")
+EXPERIMENT_FILE_DIRECTORY = os.path.join(FILE_SYSTEM_FOLDER, "experiments")
 DEFAULT_FILE_PATH = str()
 
 # Uri
