@@ -156,66 +156,22 @@ export const NavigationSideNav = ({
             stateProp="enabled"
             type="divider"
           />
-          <UiShellLeftPanel
-            className="UI-shell-left-panel-menu-item"
-            compact={false}
-            divider={false}
-            expanded={false}
-            level="level-2"
-            linkText={UIShellLeftPanelLinkText[0]}
-            selected={Selected1[0]}
-            stateProp={StateProp1[0]}
-            onButtonClick={() => handleButtonClick(6)}
-            type="link"
-          />
-          <UiShellLeftPanel
-            className="UI-shell-left-panel-menu-item"
-            compact={false}
-            divider={false}
-            expanded={false}
-            level="level-2"
-            linkText={UIShellLeftPanelLinkText[1]}
-            selected={Selected1[1]}
-            stateProp={StateProp1[1]}
-            onButtonClick={() => handleButtonClick(7)}
-            type="link"
-          />
-          <UiShellLeftPanel
-            className="UI-shell-left-panel-menu-item"
-            compact={false}
-            divider={false}
-            expanded={false}
-            level="level-2"
-            linkText={UIShellLeftPanelLinkText[2]}
-            selected={Selected1[2]}
-            stateProp={StateProp1[2]}
-            onButtonClick={() => handleButtonClick(8)}
-            type="link"
-          />
-          <UiShellLeftPanel
-            className="UI-shell-left-panel-menu-item"
-            compact={false}
-            divider={false}
-            expanded={false}
-            level="level-2"
-            linkText={UIShellLeftPanelLinkText[3]}
-            selected={Selected1[3]}
-            stateProp={StateProp1[3]}
-            onButtonClick={() => handleButtonClick(9)}
-            type="link"
-          />
-          <UiShellLeftPanel
-            className="UI-shell-left-panel-menu-item"
-            compact={false}
-            divider={false}
-            expanded={false}
-            level="level-2"
-            linkText={UIShellLeftPanelLinkText[4]}
-            selected={Selected1[4]}
-            stateProp={StateProp1[4]}
-            onButtonClick={() => handleButtonClick(10)}
-            type="link"
-          />
+          {UIShellLeftPanelLinkText.map((panelLinkText, index) => (
+            <UiShellLeftPanel
+              key={index}
+              className="UI-shell-left-panel-menu-item"
+              compact={false}
+              divider={false}
+              expanded={false}
+              level="level-2"
+              linkText={panelLinkText}
+              selected={Selected1[index]}
+              stateProp={StateProp1[index]}
+              onButtonClick={() => handleButtonClick(6+index)}
+              type="link"
+            />
+          ))}
+          
         </div>
       </div>
     </div>
@@ -223,8 +179,8 @@ export const NavigationSideNav = ({
 };
 
 NavigationSideNav.propTypes = {
-  UIShellLeftPanelStateProp: PropTypes.string,
-  UIShellLeftPanelSelected: PropTypes.bool,
+  UIShellLeftPanelStateProp: PropTypes.array,
+  UIShellLeftPanelSelected: PropTypes.array,
   UIShellLeftPanelStateProp1: PropTypes.array,
   UIShellLeftPanelLinkText: PropTypes.array,
   UIShellLeftPanelSelected1: PropTypes.array,
