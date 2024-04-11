@@ -32,9 +32,21 @@ A web application that serves as an interface between a user and EnzyHTP's workf
 
 We are to use docker container to deploy the website to ensure environmental independence.
 
-## 2.1 Nginx Server (Website and Frontend)
+## 2.1 Node Server (Frontend)
 
-... To be continued.
+To build the `enzyhtp.web.flask` (i.e., backend) docker image, enter and run the following `docker build` command.
+
+```bash
+.../EnzyHTP-GPT$ docker build -t enzyhtp.web.node:2024.04.v01 .
+```
+
+To run the docker container, enter and execute the following `docker run` command.
+
+In this command, port 443 of the host is mapped to port 3000 of the container, and the flask-server folder on the host is mapped to the working directory in the container, that is, any modifications in this folder will be instantly synchronized to the working directory, so that the service manager only needs to restart the container to complete the update.
+
+```bash
+docker run -d --name enzyhtp.web.node -v .../EnzyHTP-GPT:/usr/src/app -p 443:3000 enzyhtp.web.node:2024.04.v01
+```
 
 ## 2.2 Flask Server (Backend)
 

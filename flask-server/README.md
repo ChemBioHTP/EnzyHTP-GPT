@@ -85,11 +85,11 @@ Please reach out to `yinjie.zhong@vanderbilt.edu` if you need a `google_login_cl
 
 In the production environment, we use uWSGI to run the Flask Server. Thus, we build `uwsgi.ini` config file and `start.sh` script to run it.
 
-To build the `enzyhtp.web.flask` (i.e., backend) docker image, enter and run the following `docker build` command. 
+To build the `enzyhtp.web.flask` (i.e., backend) docker image, enter and run the following `docker build` command.
 
 ```bash
-.../EnzyHTP-GPT/flask-server$ docker build -t enzyhtp.web.flask:2024.02.v02 .                                         
-(enzyhtp-gpt) (base) yinjie@LAPTOP-U8L2I5V9:~/EnzyHTP-GPT/flask-server$ docker build -t enzyhtp.web.flask:2024.02.v02 .
+.../EnzyHTP-GPT/flask-server$ docker build -t enzyhtp.web.flask:2024.04.v01 .                                         
+(enzyhtp-gpt) (base) yinjie@LAPTOP-U8L2I5V9:~/EnzyHTP-GPT/flask-server$ docker build -t enzyhtp.web.flask:2024.04.v01 .
 [+] Building 1143.1s (10/10) FINISHED                                                                   docker:default
  => [internal] load .dockerignore                                                                                 0.0s
  => => transferring context: 2B                                                                                   0.0s
@@ -114,7 +114,7 @@ To run the docker container, enter and execute the following `docker run` comman
 In this command, port 12306 of the host is mapped to port 8000 of the container, and the flask-server folder on the host is mapped to the working directory in the container, that is, any modifications in this folder will be instantly synchronized to the working directory, so that the service manager only needs to restart the container to complete the update.
 
 ```bash
-docker run -d --name enzyhtp.web.flask -v .../EnzyHTP-GPT/flask-server:/var/www/flask-server -p 12306:8000 enzyhtp.web.flask:2024.02.v02
+docker run -d --name enzyhtp.web.flask -v .../EnzyHTP-GPT/flask-server:/var/www/flask-server -p 12306:8000 enzyhtp.web.flask:2024.04.v01
 ```
 
 To test the backend, please set the address to the host server and the port to 12306.
