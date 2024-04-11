@@ -11,65 +11,7 @@ import { IconSliders } from "../icons/IconSliders";
 import { IconTrash2 } from "../icons/IconTrash2";
 import "./style.css";
 
-export const ElementExperimentsList = ({ sideVisible = true }) => {
-
-  const example_get_experiments = {
-    "user_id": "78a5f120-63ac-4ce1-aa84-8cce1826a415",
-    "email": "san.zhang@example.com",
-    "username": "san.zhang",
-    "timestamp": "2024-02-21 20:45:06.460931",
-    "experiments": [
-        {
-            "type": 0,
-            "status": 0,
-            "description": "Let's start a test.",
-            "updated_time": "2024-02-21 04:53:43.210652",
-            "id": "ae394fd8-4a59-4d0b-a1a2-eaaa04ba6768",
-            "name": "exp-test-01",
-            "metrics": "[]",
-            "created_time": "2024-02-21 04:53:43.210650"
-        },
-        {
-            "type": 0,
-            "status": 0,
-            "description": "Let's start a test.",
-            "updated_time": "2024-02-21 04:53:43.210687",
-            "id": "1bcb7760-c94e-4bcb-85f5-221169df8089",
-            "name": "exp-test-02",
-            "metrics": "[]",
-            "created_time": "2024-02-21 04:53:43.210686"
-        }
-    ]
-  }
-
-  const example_get_experiments_detail = {
-      "type": 0,
-      "id": "1bcb7760-c94e-4bcb-85f5-221169df8089",
-      "status": 0,
-      "description": "Let's start a test.",
-      "updated_time": "2024-02-21 04:53:43.210687",
-      "name": "exp-test-02",
-      "metrics": "[]",
-      "created_time": "2024-02-21 04:53:43.210686",
-      "user_id": "78a5f120-63ac-4ce1-aa84-8cce1826a415"
-  }
-  const [experiments, setExperiments] = useState([]);
-
-  useEffect(() => {
-    // Fetch experiments from the server
-    const fetchData = async () => {
-      try {
-        // const response = await fetch(`http://localhost:5000/experiments/${user_id}`);
-        // const data = await response.json();
-        const data = example_get_experiments;
-        setExperiments(data.experiments);
-      } catch (error) {
-        console.error('Error fetching experiments:', error);
-      }
-    };
-
-    fetchData();
-  }, []);
+export const ElementExperimentsList = ({ sideVisible = true, experiments=[]}) => {
 
   useEffect(() => {
     console.log(sideVisible.type);

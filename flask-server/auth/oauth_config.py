@@ -1,7 +1,7 @@
 #! python3
 # -*- encoding: utf-8 -*-
 '''
-@File    :   config.py
+@File    :   oauth_config.py
 @Created :   2023/12/07 02:39
 @Author  :   Zhong, Yinjie
 @Version :   1.0

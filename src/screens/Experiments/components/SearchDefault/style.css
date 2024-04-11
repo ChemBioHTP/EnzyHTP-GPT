@@ -16,7 +16,7 @@
   display: flex;
   flex: 1;
   flex-grow: 1;
-  height: 18px;
+  height: 30px;
   position: relative;
 }
 
@@ -26,12 +26,14 @@
   font-size: var(--body-styles-body-compact-01-font-size);
   font-style: var(--body-styles-body-compact-01-font-style);
   font-weight: var(--body-styles-body-compact-01-font-weight);
-  height: 18px;
+  height: 30px;
   letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
   line-height: var(--body-styles-body-compact-01-line-height);
   margin-top: -1px;
   position: relative;
   white-space: nowrap;
+  background-color: var(--fieldfield-01);
+  border-color: transparent;
 }
 
 .search-default .clear-icon {
@@ -68,7 +70,7 @@
   align-items: center;
   background-color: var(--fieldfield-01);
   border: 2px solid;
-  border-color: var(--focusfocus);
+  border-color: var(--fieldfield-01);
 }
 
 .search-default.state-0-skeleton {
@@ -142,6 +144,8 @@
 
 .search-default.state-0-focus .text {
   color: var(--texttext-primary);
+  width: 850px;
+  height: 35px;
 }
 
 .search-default.state-0-skeleton .text {

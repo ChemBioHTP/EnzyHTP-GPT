@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useState, useReducer} from 'react';
 // Components
@@ -55,13 +55,8 @@ export const ApiKeyScreen = () => {
     const handleSignout = async () => {   
       try {
         Cookies.remove('userToken');
-        let session = Cookies.get('session') || '';
-        console.log(session);
         const response = await fetch('/api/auth/logout',{
           method: 'GET',
-          headers: {
-            'Cookie': session
-          }
         });
         if (response.ok) {
           let path = '/login'; 
@@ -72,7 +67,30 @@ export const ApiKeyScreen = () => {
       }
     };
     
-
+    useEffect(() => {
+      const fetchData = async () => {
+        await fetch('/api/auth/profile', {
+          method: 'GET',
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw "No response";
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.openai_status_code == 200) {
+            let path = '/exp';
+            navigate(path);
+          }
+        })
+        .catch(error => {
+          console.error('Error sending data:', error);
+        });
+      }
+      fetchData();
+    }, []);
+  
     return (
         <div className="element-landing-screen">
             <div className="overlap-group-wrapper">

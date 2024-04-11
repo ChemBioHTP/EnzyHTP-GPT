@@ -30,7 +30,7 @@ export const Button = ({
     size: size || "large",
     state: stateProp || "enabled",
   });
-  
+
   if(state.state!=="disabled" && disabled){
     dispatch("button_disabled");
   } else if (state.state === "disabled" && !disabled) {
@@ -46,7 +46,6 @@ export const Button = ({
       onMouseLeave={() => {
         dispatch(disabled? "button_disabled": "mouse_leave");
       }}
-
       disabled = {disabled}
     >
       {((state.size === "expressive" && state.state === "hover") ||

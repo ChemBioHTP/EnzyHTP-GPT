@@ -22,7 +22,7 @@ from string import Template
 from os import getcwd, path
 
 from context import db, mail
-from settings import (
+from config import (
     OPENAI_API_URI,
 
     MAIL_PASSWORD_RESET_HTML_TEMPLATE,
