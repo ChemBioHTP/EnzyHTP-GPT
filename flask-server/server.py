@@ -27,7 +27,6 @@ db.create_all()
 login_manager.init_app(app)
  
 @app.route("/api")
-@app.route("/")
 def home():
     # return render_template("index.html")
     return jsonify({"message": "This is the homepage of the backend. Welcome!"})

@@ -1,5 +1,5 @@
-# Use Node 16 alpine as parent image
-FROM node:16-alpine
+# Use Node slim as parent image
+FROM node:slim
 
 # Set information.
 ENV TZ "US/Central"
@@ -17,6 +17,9 @@ RUN npm install pm2 -g
 
 # Copy the rest of project files into this image
 COPY . .
+
+# Build the project if necessary
+RUN npm run build
 
 # Set production environment.
 ENV NODE_ENV=production

@@ -9,7 +9,7 @@
 '''
 
 # Here put the import lib.
-from flask import Response, request, redirect
+from flask import Response, jsonify, request, redirect
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
 from uuid import uuid4
@@ -26,6 +26,13 @@ from config import (
 from . import auth
 from .models import User, OAuthUser, VerificationCode
 from context import db, login_manager
+
+@auth.route("/", methods=["GET", "POST", "PUT", "DELETE"])
+def index() -> Response:
+    """The index of auth module"""
+    return jsonify({
+        "message": "This is the Auth Module of EnzyHTP Web Application. Welcome!"
+    })
 
 class AuthResponseInfo():
     """Authentication Response Information.

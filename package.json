@@ -11,6 +11,7 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "apexcharts": "^3.45.1",
+    "express": "^4.19.2",
     "js-cookie": "^3.0.5",
     "molstar": "^3.43.1",
     "python": "^0.0.4",
