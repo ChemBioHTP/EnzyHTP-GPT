@@ -91,11 +91,16 @@ In the production environment, we use uWSGI to run the Flask Server. Thus, we bu
 
 ### 5.1 Change Configuration.
 
-Please set the value of `ENV` in `config.py` to `production`.
+Please export environment variables in `start.sh` like
 
-```python
-ENV = "production"
-DEBUG = False
+```bash
+export FLASK_ENV="production"
+export DEBUG=0
+export APP_HOST="enzyhtp.app.vanderbilt.edu"
+export SECRET_KEY=$(cat /proc/sys/kernel/random/uuid)
+
+export FILE_SYSTEM_FOLDER="/var/www/files"
+export OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI="/key"
 ```
 
 ### 5.2 Build and Run.
@@ -120,4 +125,6 @@ To test the backend, please set the address to the host server and the port to 1
 
 Functions that require HTTPS, such as Google Login, need to work with a website server loaded with an SSL certificate and use a reverse proxy to test and run.
 
-**Attention:** You must have your database instance and oauth_client files ready before running the docker container!
+**Attention:** You must have your oauth_client files ready before running the docker container!
+
+**Attention:** Database instance, if it's a file, should be deleted to avoid potential permission error, which will be generated automatically.
