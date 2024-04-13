@@ -19,9 +19,7 @@ from string import Template
 
 # Here put local imports.
 from config import (
-    OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI_DEVELOPMENT,
-    OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI_PRODUCTION,
-    ENV,
+    OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI,
 )
 from . import auth
 from .models import User, OAuthUser, VerificationCode
@@ -672,11 +670,9 @@ def oauth_vendor_login_callback(oauth_vendor: str) -> Response:
         oauth_vendor=oauth_vendor,
         username=username,
         remember=remember)
+    
     # return response
-    if (ENV == "development"):
-        return redirect(OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI_DEVELOPMENT, code=301)
-    else:
-        return redirect(OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI_PRODUCTION, code=301)
+    return redirect(OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI, code=301)
 
 @auth.route('oauth/unsafe/login', methods=['POST'])
 def oauth_login_unsafe() -> Response:
