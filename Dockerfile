@@ -22,4 +22,4 @@ COPY . .
 ENV NODE_ENV=production
 
 # Use PM2 to run the application.
-CMD ["pm2-runtime", "start", "App.js"]
+CMD ["/bin/bash", "start_node_app.sh"]
