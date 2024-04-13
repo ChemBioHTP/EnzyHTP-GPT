@@ -1,7 +1,6 @@
 var express = require('express');
 var path = require('path');
 var app = express();
-var connect = require('connect')
 var favicon = require('serve-favicon')
 
 // Serve static files from the React app

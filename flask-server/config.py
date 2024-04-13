@@ -11,11 +11,9 @@
 # Here put the import lib.
 import os
 
-
-# Configuration file.
-
 __basedir = os.getcwd()
 
+# Configuration file.
 ENV = "development"
 DEBUG = True
 SECRET_KEY = "9131-0120-MA1H" # A custom value but mandatory.

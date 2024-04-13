@@ -11,14 +11,14 @@
 # Here put the import lib.
 import os
 
+__basedir = os.getcwd()
 
 # Configuration file.
-
 ENV = "production"
 DEBUG = False
 
 # File system
-FILE_SYSTEM_FOLDER = os.path.join("/home/zhongy8/data/flask", "static")
+FILE_SYSTEM_FOLDER = os.path.join(__basedir, "../files")
 EXPERIMENT_FILE_DIRECTORY = os.path.join(FILE_SYSTEM_FOLDER, "experiments")
 
 APP_HOST = "enzyhtp.app.vanderbilt.edu"
