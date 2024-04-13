@@ -26,6 +26,7 @@ db.create_all()
 # Initialize LoginManager.
 login_manager.init_app(app)
  
+@app.route("/api")
 @app.route("/")
 def home():
     # return render_template("index.html")
