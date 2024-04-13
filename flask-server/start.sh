@@ -3,8 +3,8 @@
 # Activate conda environment.
 source activate enzyhtp-gpt
 
-export ENV="production"
-export DEBUG=false
+export FLASK_ENV="production"
+export DEBUG=0
 export APP_HOST="enzyhtp.app.vanderbilt.edu"
 export SECRET_KEY=$(cat /proc/sys/kernel/random/uuid)
 
