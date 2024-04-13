@@ -19,7 +19,9 @@ from string import Template
 
 # Here put local imports.
 from config import (
-    OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI,
+    OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI_DEVELOPMENT,
+    OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI_PRODUCTION,
+    ENV,
 )
 from . import auth
 from .models import User, OAuthUser, VerificationCode
@@ -566,7 +568,7 @@ def oauth_vendor_login(oauth_vendor: str) -> Response:
 @auth.route('oauth/<oauth_vendor>/login/callback', methods=['GET', 'POST'])
 def oauth_vendor_login_callback(oauth_vendor: str) -> Response:
     """
-    Callback Function of OAuth.
+    Callback Function of OAuth. (Support Google only, at present.)
     Verify authorization code.
     TODO: This function is imperfect. It's better to have a dashboard or homepage for user to redirect to.
     TODO: Then, a redirect(301) response can be sent to redirect users to that page.
@@ -664,7 +666,10 @@ def oauth_vendor_login_callback(oauth_vendor: str) -> Response:
         username=username,
         remember=remember)
     # return response
-    return redirect(OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI, code=301)
+    if (ENV == "development"):
+        return redirect(OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI_DEVELOPMENT, code=301)
+    else:
+        return redirect(OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI_PRODUCTION, code=301)
 
 @auth.route('oauth/unsafe/login', methods=['POST'])
 def oauth_login_unsafe() -> Response:

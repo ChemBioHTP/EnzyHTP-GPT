@@ -37,7 +37,7 @@ def api_key():
 
 if __name__ == "__main__":
 
-    # Set SSL Context and run server.
+    # Set SSL Context and run server. For development only.
     app.run(host=config.APP_HOST,
         port=5000,
         debug=True,

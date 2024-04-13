@@ -38,7 +38,8 @@ EXPERIMENT_FILE_DIRECTORY = os.path.join(FILE_SYSTEM_FOLDER, "experiments")
 DEFAULT_FILE_PATH = str()
 
 # Uri
-OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI = "/api/auth/profile"
+OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI_DEVELOPMENT = "/api/auth/profile"
+OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI_PRODUCTION = "/exp"
 OPENAI_API_URI = "https://api.openai.com/v1/chat/completions"
 
 # Email for password reset.

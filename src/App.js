@@ -47,7 +47,7 @@ function App() {
 
 function GoogleLogin() {
 
-  window.location.replace('https://localhost:5000/api/auth/oauth/google/login');
+  window.location.replace('/api/auth/oauth/google/login');
   return null;
 }
 

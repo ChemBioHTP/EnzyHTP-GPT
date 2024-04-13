@@ -1,5 +1,9 @@
 # Flask-server
 
+Author: Zhong, Yinjie.
+
+Email: [yinjie.zhong@vanderbilt.edu](mailto:yinjie.zhong@vanderbilt.edu)
+
 [TOC]
 
 ## 1. Introduction
@@ -85,6 +89,17 @@ Please reach out to `yinjie.zhong@vanderbilt.edu` if you need a `google_login_cl
 
 In the production environment, we use uWSGI to run the Flask Server. Thus, we build `uwsgi.ini` config file and `start.sh` script to run it.
 
+### 5.1 Change Configuration.
+
+Please set the value of `ENV` in `config.py` to `production`.
+
+```python
+ENV = "production"
+DEBUG = False
+```
+
+### 5.2 Build and Run.
+
 To build the `enzyhtp.web.flask` (i.e., backend) docker image, enter and run the following `docker build` command.
 
 ```bash
@@ -105,8 +120,8 @@ To build the `enzyhtp.web.flask` (i.e., backend) docker image, enter and run the
  => [5/5] RUN bash ./docker_env_config.sh                                                                      1106.7s
  => exporting to image                                                                                           36.2s 
  => => exporting layers                                                                                          36.2s 
- => => writing image sha256:588b70bf27016a19e797962caad54df91ae31f586767c4a9707bcecf17c60599                      0.0s 
- => => naming to docker.io/library/enzyhtp.web.flask:2024.02.v02                                                  0.0s
+ => => writing image sha256:88213d75b027c8bd556371b7afb317841c4159a7e000db9aba546fb264b5fd90                      0.0s 
+ => => naming to docker.io/library/enzyhtp.web.flask:2024.04.v01                                                  0.0s
 ```
 
 To run the docker container, enter and execute the following `docker run` command.
