@@ -103,25 +103,7 @@ DEBUG = False
 To build the `enzyhtp.web.flask` (i.e., backend) docker image, enter and run the following `docker build` command.
 
 ```bash
-.../EnzyHTP-GPT/flask-server$ docker build -t enzyhtp.web.flask:2024.04.v01 .                                         
-(enzyhtp-gpt) (base) yinjie@LAPTOP-U8L2I5V9:~/EnzyHTP-GPT/flask-server$ docker build -t enzyhtp.web.flask:2024.04.v01 .
-[+] Building 1143.1s (10/10) FINISHED                                                                   docker:default
- => [internal] load .dockerignore                                                                                 0.0s
- => => transferring context: 2B                                                                                   0.0s
- => [internal] load build definition from Dockerfile                                                              0.0s
- => => transferring dockerfile: 485B                                                                              0.0s
- => [internal] load metadata for docker.io/continuumio/anaconda3:main                                             0.0s
- => CACHED [1/5] FROM docker.io/continuumio/anaconda3:main                                                        0.0s
- => [internal] load build context                                                                                 0.0s
- => => transferring context: 28.69kB                                                                              0.0s
- => [2/5] RUN mkdir -p /var/www/flask-server && cd /var/www/flask-server                                          0.2s
- => [3/5] WORKDIR /var/www/flask-server                                                                           0.0s
- => [4/5] ADD . /var/www/flask-server                                                                             0.0s
- => [5/5] RUN bash ./docker_env_config.sh                                                                      1106.7s
- => exporting to image                                                                                           36.2s 
- => => exporting layers                                                                                          36.2s 
- => => writing image sha256:88213d75b027c8bd556371b7afb317841c4159a7e000db9aba546fb264b5fd90                      0.0s 
- => => naming to docker.io/library/enzyhtp.web.flask:2024.04.v01                                                  0.0s
+.../EnzyHTP-GPT/flask-server$ docker build -t enzyhtp.web.flask:2024.04.v02 .
 ```
 
 To run the docker container, enter and execute the following `docker run` command.
@@ -129,7 +111,7 @@ To run the docker container, enter and execute the following `docker run` comman
 In this command, port 12306 of the host is mapped to port 8000 of the container, and the flask-server folder on the host is mapped to the working directory in the container, that is, any modifications in this folder will be instantly synchronized to the working directory, so that the service manager only needs to restart the container to complete the update.
 
 ```bash
-docker run -d --name enzyhtp.web.flask -v .../EnzyHTP-GPT/flask-server:/var/www/flask-server -p 12306:8000 enzyhtp.web.flask:2024.04.v01
+docker run -d --name enzyhtp.web.flask -v .../EnzyHTP-GPT/flask-server:/var/www/flask-server -v /path/to/ssl:/var/www/ssl -p 12306:8000 enzyhtp.web.flask:2024.04.v02
 ```
 
 To test the backend, please set the address to the host server and the port to 12306.

@@ -26,7 +26,7 @@ db.create_all()
 # Initialize LoginManager.
 login_manager.init_app(app)
  
-@app.route("/api")
+@app.route("/api/index")
 def home():
     # return render_template("index.html")
     return jsonify({"message": "This is the homepage of the backend. Welcome!"})
@@ -42,3 +42,6 @@ if __name__ == "__main__":
         port=5000,
         debug=True,
         ssl_context=ssl_context)
+else:
+    import config_production
+    app.config.from_object(config_production)

@@ -18,11 +18,8 @@ RUN npm install pm2 -g
 # Copy the rest of project files into this image
 COPY . .
 
-# Build the project if necessary
-RUN npm run build
-
 # Set production environment.
 ENV NODE_ENV=production
 
 # Use PM2 to run the application.
-CMD ["/bin/bash", "start_node_app.sh"]
+CMD ["/bin/bash", "start_node_server.sh"]

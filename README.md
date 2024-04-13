@@ -40,35 +40,6 @@ To build the `enzyhtp.web.flask` (i.e., backend) docker image, enter and run the
 
 ```bash
 .../EnzyHTP-GPT$ docker build -t enzyhtp.web.node:2024.04.v02 .
-[+] Building 32.0s (10/10) FINISHED                                                                            docker:default
- => [internal] load build definition from Dockerfile                                                                     0.0s
- => => transferring dockerfile:                                                                                          0.0s
- => [internal] load metadata for docker.io/library/node:16-alpine                                                        0.9s
- => [internal] load .dockerignore                                                                                        0.0s
- => => transferring context: 52B                                                                                         0.0s
- => [1/5] FROM docker.io/library/node:16-alpine@sha256:a1f9d027912b58a7c75be7716c97cfbc6d3099f3a97ed84aa490be9dee20e787  2.2s
- => => resolve docker.io/library/node:16-alpine@sha256:a1f9d027912b58a7c75be7716c97cfbc6d3099f3a97ed84aa490be9dee20e787  0.0s
- => => sha256:a1f9d027912b58a7c75be7716c97cfbc6d3099f3a97ed84aa490be9dee20e787 1.43kB / 1.43kB                           0.0s
- => => sha256:72e89a86be58c922ed7b1475e5e6f151537676470695dd106521738b060e139d 1.16kB / 1.16kB                           0.0s
- => => sha256:2573171e0124bb95d14d128728a52a97bb917ef45d7c4fa8cfe76bc44aa78b73 6.73kB / 6.73kB                           0.0s
- => => sha256:7264a8db6415046d36d16ba98b79778e18accee6ffa71850405994cffa9be7de 3.40MB / 3.40MB                           0.2s
- => => sha256:eee371b9ce3ffdbb8aa703b9a14d318801ddc3468f096bb6cfeabbeb715147f9 36.63MB / 36.63MB                         0.7s
- => => sha256:93b3025fe10392717d06ec0d012a9ffa2039d766a322aac899c6831dd93382c2 2.34MB / 2.34MB                           0.3s
- => => extracting sha256:7264a8db6415046d36d16ba98b79778e18accee6ffa71850405994cffa9be7de                                0.1s
- => => sha256:d9059661ce70092af66d2773666584fc8addcb78a2be63f720022f4875577ea9 452B / 452B                               0.3s
- => => extracting sha256:eee371b9ce3ffdbb8aa703b9a14d318801ddc3468f096bb6cfeabbeb715147f9                                1.3s
- => => extracting sha256:93b3025fe10392717d06ec0d012a9ffa2039d766a322aac899c6831dd93382c2                                0.1s
- => => extracting sha256:d9059661ce70092af66d2773666584fc8addcb78a2be63f720022f4875577ea9                                0.0s
- => [internal] load build context                                                                                        0.7s
- => => transferring context: 6.38MB                                                                                      0.6s
- => [2/5] WORKDIR /usr/src/app                                                                                           0.3s
- => [3/5] COPY package.json package-lock.json ./                                                                         0.1s
- => [4/5] RUN npm install                                                                                               24.3s
- => [5/5] COPY . .                                                                                                       0.2s
- => exporting to image                                                                                                   4.0s
- => => exporting layers                                                                                                  4.0s
- => => writing image sha256:4d487e49a58bd3aecbfcae9a6c86e124d25e3557c70e73cb7bb523c470ea5a65                             0.0s
- => => naming to docker.io/library/enzyhtp.web.node:2024.04.v02                                                          0.0s
 ```
 
 To run the docker container, enter and execute the following `docker run` command.
@@ -76,7 +47,7 @@ To run the docker container, enter and execute the following `docker run` comman
 In this command, port 443 of the host is mapped to port 3000 of the container, and the flask-server folder on the host is mapped to the working directory in the container, that is, any modifications in this folder will be instantly synchronized to the working directory, so that the service manager only needs to restart the container to complete the update.
 
 ```bash
-docker run -d --name enzyhtp.web.node -v /path/to/EnzyHTP-GPT/src:/usr/src/app/src -p 12580:3000 enzyhtp.web.node:2024.04.v02
+docker run -d --name enzyhtp.web.node -v /path/to/EnzyHTP-GPT/src:/usr/src/app/src -v /path/to/EnzyHTP-GPT/public:/usr/src/app/public -p 12580:3000 enzyhtp.web.node:2024.04.v02
 ```
 
 ## 2.2 Flask Server (Backend)

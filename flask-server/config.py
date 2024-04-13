@@ -9,10 +9,10 @@
 '''
 
 # Here put the import lib.
+import os
 
 
 # Configuration file.
-import os
 
 __basedir = os.getcwd()
 
