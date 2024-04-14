@@ -78,7 +78,6 @@ def unauth_handler() -> Response:
     """Handle unauthorized requests toward an `@login_required` method."""
     return Response(response=None, status=401)
 
-@experiment_blueprint.route("", methods=["GET"])
 @experiment_blueprint.route("/", methods=["GET"])
 @login_required
 def index():

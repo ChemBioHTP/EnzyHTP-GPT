@@ -1,5 +1,9 @@
 # Flask-server
 
+Author: Zhong, Yinjie.
+
+Email: [yinjie.zhong@vanderbilt.edu](mailto:yinjie.zhong@vanderbilt.edu)
+
 [TOC]
 
 ## 1. Introduction
@@ -44,6 +48,19 @@ SSL Context (named `ssl_context`) is also declared here to enable HTTPS Protocol
 
 Those instances can only be declared in an individual file and imported into the main file and anywhere else in the server. Otherwise, a number of "Exception(s)", and a "Warning" prompt which will be set to "Exception" in the next version, will be triggered.
 
+#### 2.2.3 Database (on Ubuntu WSL)
+
+Install the MongoDB database by `sudo apt-get install -y mongodb-org`, and start it by `sudo service mongod start`.
+
+If you are faced with `mongod: unrecognized service` error when initializing or starting MongoDB, then try following commands. (This error is likely to happen when running MongoDB on Ubuntu WSL.)
+
+```bash
+sudo /usr/bin/mongod --fork --logpath /var/log/mongodb/mongodb.log --config /etc/mongod.conf
+```
+
+Reference:
+https://deepinout.com/mongodb/mongodb-questions/109_mongodb_mongod_is_not_a_service_ubuntu_wsl_error_mongod_unrecognized_service.html
+
 ## 3. SSL Certificates
 
 - Filepath: `/flask-server/config.py`
@@ -72,28 +89,26 @@ Please reach out to `yinjie.zhong@vanderbilt.edu` if you need a `google_login_cl
 
 In the production environment, we use uWSGI to run the Flask Server. Thus, we build `uwsgi.ini` config file and `start.sh` script to run it.
 
-To build the `enzyhtp.web.flask` (i.e., backend) docker image, enter and run the following `docker build` command. 
+### 5.1 Change Configuration.
+
+Please export environment variables in `start.sh` like
 
 ```bash
-.../EnzyHTP-GPT/flask-server$ docker build -t enzyhtp.web.flask:2024.02.v02 .                                         
-(enzyhtp-gpt) (base) yinjie@LAPTOP-U8L2I5V9:~/EnzyHTP-GPT/flask-server$ docker build -t enzyhtp.web.flask:2024.02.v02 .
-[+] Building 1143.1s (10/10) FINISHED                                                                   docker:default
- => [internal] load .dockerignore                                                                                 0.0s
- => => transferring context: 2B                                                                                   0.0s
- => [internal] load build definition from Dockerfile                                                              0.0s
- => => transferring dockerfile: 485B                                                                              0.0s
- => [internal] load metadata for docker.io/continuumio/anaconda3:main                                             0.0s
- => CACHED [1/5] FROM docker.io/continuumio/anaconda3:main                                                        0.0s
- => [internal] load build context                                                                                 0.0s
- => => transferring context: 28.69kB                                                                              0.0s
- => [2/5] RUN mkdir -p /var/www/flask-server && cd /var/www/flask-server                                          0.2s
- => [3/5] WORKDIR /var/www/flask-server                                                                           0.0s
- => [4/5] ADD . /var/www/flask-server                                                                             0.0s
- => [5/5] RUN bash ./docker_env_config.sh                                                                      1106.7s
- => exporting to image                                                                                           36.2s 
- => => exporting layers                                                                                          36.2s 
- => => writing image sha256:588b70bf27016a19e797962caad54df91ae31f586767c4a9707bcecf17c60599                      0.0s 
- => => naming to docker.io/library/enzyhtp.web.flask:2024.02.v02                                                  0.0s
+export FLASK_ENV="production"
+export DEBUG=0
+export APP_HOST="enzyhtp.app.vanderbilt.edu"
+export SECRET_KEY=$(cat /proc/sys/kernel/random/uuid)
+
+export FILE_SYSTEM_FOLDER="/var/www/files"
+export OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI="/key"
+```
+
+### 5.2 Build and Run.
+
+To build the `enzyhtp.web.flask` (i.e., backend) docker image, enter and run the following `docker build` command.
+
+```bash
+.../EnzyHTP-GPT/flask-server$ docker build -t enzyhtp.web.flask:2024.04.v02 .
 ```
 
 To run the docker container, enter and execute the following `docker run` command.
@@ -101,9 +116,15 @@ To run the docker container, enter and execute the following `docker run` comman
 In this command, port 12306 of the host is mapped to port 8000 of the container, and the flask-server folder on the host is mapped to the working directory in the container, that is, any modifications in this folder will be instantly synchronized to the working directory, so that the service manager only needs to restart the container to complete the update.
 
 ```bash
-docker run -d --name enzyhtp.web.flask -v .../EnzyHTP-GPT/flask-server:/var/www/flask-server -p 12306:8000 enzyhtp.web.flask:2024.02.v02
+docker run -d --name enzyhtp.web.flask -v .../EnzyHTP-GPT/flask-server:/var/www/flask-server -v /path/to/ssl:/var/www/ssl -v /path/to/files:/var/www/files -p 12306:8000 enzyhtp.web.flask:2024.04.v02
 ```
+
+**Attention:** `/path/to/files` should grant write permission to all users by `chmod g+w /path/to/log` and `chmod o+w /path/to/log` commands.
 
 To test the backend, please set the address to the host server and the port to 12306.
 
 Functions that require HTTPS, such as Google Login, need to work with a website server loaded with an SSL certificate and use a reverse proxy to test and run.
+
+**Attention:** You must have your oauth_client files ready before running the docker container!
+
+**Attention:** Database instance, if it's a file, should be deleted to avoid potential permission error, which will be generated automatically.

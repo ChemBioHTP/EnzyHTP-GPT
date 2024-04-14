@@ -19,10 +19,11 @@ This warning will become an exception in Flask 2.3.
   @auth.route('/register', methods=['POST'])
 
 '''
+
+# Here put the import lib.
 import os
 __basedir = os.path.join(os.getcwd())
 
-# Here put the import lib.
 from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 
