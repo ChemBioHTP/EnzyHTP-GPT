@@ -86,30 +86,28 @@ export const FileUploaderDrag = ({ helperText = "Drag and drop files here or cli
     try {
       const formData = new FormData();
       formData.append('file', file);
-  
       // Adjust the URL based on your backend setup
       const response = await fetch('http://127.0.0.1:5000/api/validate_file', {
         method: 'POST',
         body: formData,
       });
-  
       if (!response.ok) {
         throw new Error(`File upload failed with status ${response.status}`);
       }
-
       const data = await response.json();
       setValid(data.validity)
       setErrorMessage(data.message)
   
     } catch (error) {
       console.error('Error uploading file', error.message);
+      alert('An error occurred while uploading the file. Please try again.');
     }
   };
 
   return (
     <>
     <div className={`file-uploader-drag state-${state} ${className}`} onDrop={handleDrop}
-      onDragOver={(e) => e.preventDefault()}
+      onDragOver={(e) => e.preventDefault()} onClick={() => fileInputRef.current.click()}
     >
       <div className="description-wrapper">
         <p className="description">{helperText}</p>
@@ -126,9 +124,6 @@ export const FileUploaderDrag = ({ helperText = "Drag and drop files here or cli
           <p>File Size: {(file.size / 1000000).toFixed(2)} MB</p>
         </div>
       )}
-      <button onClick={() => fileInputRef.current.click()} className="upload-button">
-          Upload File
-      </button>
     </div>
     <div style={{marginRight: 10, marginLeft: "auto"}}>
         {valid === null && <p></p>}
