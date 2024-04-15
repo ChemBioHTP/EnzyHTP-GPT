@@ -127,7 +127,7 @@
 }
 
 .element-experiments-list .button-instance-1 {
-  background-color: none !important;
+  background-color: transparent;
 }
 .element-experiments-list .button-instance-2 {
   /* left: 715px !important;
@@ -149,7 +149,7 @@
 
 .element-experiments-list .design-component-instance-node {
   left: 154px !important;
-  top: 15.5px !important;
+  top: 10px !important;
 }
 
 .element-experiments-list .group {

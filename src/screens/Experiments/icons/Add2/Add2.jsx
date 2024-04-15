@@ -5,11 +5,12 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 
 import PropTypes from "prop-types";
 import React from "react";
-import {AddLarge} from '@carbon/icons-react';
 
 export const Add2 = ({ opacity = "unset", color = "#161616", className }) => {
   return (
-      <AddLarge opacity={opacity} style={{background: 'transparent', mixBlendMode: 'multiply'}} />
+<svg xmlns="http://www.w3.org/2000/svg" className={`add ${className}`} width="undefined" height="undefined" viewBox="0 0 32 32">
+    <path fill="currentColor" d="M17 15V8h-2v7H8v2h7v7h2v-7h7v-2z"/>
+</svg>
   );
 };
 
