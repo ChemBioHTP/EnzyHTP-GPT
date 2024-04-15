@@ -10,6 +10,7 @@ import { ModalPanel } from "../components/ModalPanel";
 import { ModalPanelTargets } from "../components/ModalPanelTargets";
 import { NavigationPage } from "../components/NavigationPage";
 import { TabsItems } from "../components/TabsItems";
+import FloatingComponent from "../FloatingVisualization/FloatingComponent";
 import { CircleDash1 } from "../icons/CircleDash1";
 import { IconAlertCircle2 } from "../icons/IconAlertCircle2";
 import { IconArrowRight } from "../icons/IconArrowRight";
@@ -30,6 +31,11 @@ export const ElementCreateTarget = ({ sideVisible=true, titleText= "Example expe
 
   const [textInputValue, setTextInputValue] = useState("");
   const [inputWithGUI, setInputWithGUI] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const toggleModal = () => {
+    setIsModalOpen(!isModalOpen);
+  };
 
   useEffect(() => {
     if (sideVisible) {
@@ -199,7 +205,9 @@ export const ElementCreateTarget = ({ sideVisible=true, titleText= "Example expe
           text= "Show mutation in GUI"
           className="accordion-with-toggle"
           state="off"
+          onSwitchClick={toggleModal} 
         />
+        <FloatingComponent isOpen={isModalOpen} onClose={toggleModal}  />
       </div>
       <GenerateStatusBar
         className="file-uploader-file-item"
