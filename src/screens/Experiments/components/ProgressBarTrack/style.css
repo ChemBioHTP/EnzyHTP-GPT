@@ -1,0 +1,210 @@
+.progress-bar-track {
+  background-color: var(--borderborder-subtle-01);
+  position: relative;
+  width: 220px;
+}
+
+.progress-bar-track .track {
+  flex: 1;
+  flex-grow: 1;
+  position: relative;
+}
+
+.progress-bar-track .spacer {
+  flex: 1;
+  flex-grow: 1;
+  position: relative;
+}
+
+.progress-bar-track .div {
+  flex: 1;
+  flex-grow: 1;
+  position: relative;
+}
+
+.progress-bar-track .spacer-2 {
+  flex: 1;
+  flex-grow: 1;
+  position: relative;
+}
+
+.progress-bar-track .spacer-3 {
+  flex: 1;
+  flex-grow: 1;
+  height: 8px;
+  position: relative;
+}
+
+.progress-bar-track.fifty {
+  align-items: flex-start;
+  display: flex;
+}
+
+.progress-bar-track.error {
+  align-items: flex-start;
+  display: flex;
+}
+
+.progress-bar-track.success {
+  align-items: flex-start;
+  display: flex;
+}
+
+.progress-bar-track.seventy-five {
+  align-items: flex-start;
+  display: flex;
+}
+
+.progress-bar-track.indeterminate {
+  align-items: flex-start;
+  display: flex;
+}
+
+.progress-bar-track.twenty-five {
+  align-items: flex-start;
+  display: flex;
+}
+
+.progress-bar-track.small.zero {
+  height: 4px;
+}
+
+.progress-bar-track.big.zero {
+  height: 8px;
+}
+
+.progress-bar-track.fifty .track {
+  background-color: var(--borderborder-interactive);
+}
+
+.progress-bar-track.error .track {
+  background-color: var(--supportsupport-error);
+}
+
+.progress-bar-track.small .track {
+  height: 4px;
+}
+
+.progress-bar-track.success .track {
+  background-color: var(--supportsupport-success);
+}
+
+.progress-bar-track.seventy-five .track {
+  background-color: var(--borderborder-interactive);
+}
+
+.progress-bar-track.big .track {
+  height: 8px;
+}
+
+.progress-bar-track.twenty-five .track {
+  background-color: var(--borderborder-interactive);
+}
+
+.progress-bar-track.fifty .spacer {
+  background-color: var(--borderborder-interactive);
+}
+
+.progress-bar-track.error .spacer {
+  background-color: var(--supportsupport-error);
+}
+
+.progress-bar-track.small .spacer {
+  height: 4px;
+}
+
+.progress-bar-track.success .spacer {
+  background-color: var(--supportsupport-success);
+}
+
+.progress-bar-track.seventy-five .spacer {
+  background-color: var(--borderborder-interactive);
+}
+
+.progress-bar-track.zero .spacer {
+  background-color: var(--borderborder-interactive);
+}
+
+.progress-bar-track.big .spacer {
+  height: 8px;
+}
+
+.progress-bar-track.indeterminate .spacer {
+  background-color: var(--borderborder-interactive);
+}
+
+.progress-bar-track.twenty-five .spacer {
+  background-color: var(--borderborder-interactive);
+}
+
+.progress-bar-track.fifty .div {
+  background-color: var(--borderborder-subtle-01);
+}
+
+.progress-bar-track.error .div {
+  background-color: var(--supportsupport-error);
+}
+
+.progress-bar-track.small .div {
+  height: 4px;
+}
+
+.progress-bar-track.success .div {
+  background-color: var(--supportsupport-success);
+}
+
+.progress-bar-track.seventy-five .div {
+  background-color: var(--borderborder-interactive);
+}
+
+.progress-bar-track.zero .div {
+  background-color: var(--borderborder-subtle-01);
+}
+
+.progress-bar-track.big .div {
+  height: 8px;
+}
+
+.progress-bar-track.indeterminate .div {
+  background-color: var(--borderborder-subtle-01);
+}
+
+.progress-bar-track.twenty-five .div {
+  background-color: var(--borderborder-subtle-01);
+}
+
+.progress-bar-track.fifty .spacer-2 {
+  background-color: var(--supportsupport-success);
+}
+
+.progress-bar-track.error .spacer-2 {
+  background-color: var(--supportsupport-error);
+}
+
+.progress-bar-track.small .spacer-2 {
+  height: 4px;
+}
+
+.progress-bar-track.success .spacer-2 {
+  background-color: var(--supportsupport-success);
+}
+
+.progress-bar-track.seventy-five .spacer-2 {
+  background-color: var(--supportsupport-success);
+}
+
+.progress-bar-track.zero .spacer-2 {
+  background-color: var(--supportsupport-success);
+}
+
+.progress-bar-track.big .spacer-2 {
+  height: 8px;
+}
+
+.progress-bar-track.indeterminate .spacer-2 {
+  background-color: var(--supportsupport-success);
+}
+
+.progress-bar-track.twenty-five .spacer-2 {
+  background-color: var(--supportsupport-success);
+}

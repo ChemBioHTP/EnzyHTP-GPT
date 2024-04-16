@@ -201,14 +201,14 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
         <DirectionHorizontalWrapper
           className="progress-indicator-item"
           direction="vertical"
-          icon={<CheckmarkOutline className="icon-instance-node-3" color="#0F62FE" />}
+          icon={<Incomplete className="icon-instance-node-3" color="#0F62FE" />}
           optionalLabel={false}
           progressIndicatorStepText="Workflow"
-          state="completed"
+          state="current"
 
         />
 
-        <DirectionHorizontalWrapper
+        {/* <DirectionHorizontalWrapper
           className="progress-indicator-item"
           direction="vertical"
           icon={<Incomplete className="icon-instance-node-3" color="#0F62FE" />}
@@ -216,7 +216,7 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
           progressIndicatorStepText="MD simulation"
           state="current"
 
-        />
+        /> */}
 
       </div>
       <div className="label-description">

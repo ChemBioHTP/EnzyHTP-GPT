@@ -1,0 +1,142 @@
+.element-create-result {
+    /* background-color: #f4f4f4; */
+    display: flex;
+    text-align: left;
+    flex-direction: row;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    left: var(--result-left-distance);
+  }
+  
+  .element-create-result .div-2 {
+    background-color: var(--layerlayer-01);
+    height: 900px;
+    position: relative;
+    border-right-style: solid;
+    border-right-width: 1px;
+    border-color: var(--theme-border-border-subtle-00);
+    width: var(--breakpoints-viewport-size);
+  }
+  
+  .element-create-result .navigation-header-instance {
+    left: 0 !important;
+    position: absolute !important;
+    top: 0 !important;
+    width: 1584px !important;
+  }
+  
+  .element-create-result .navigation-page-header {
+    left: 262px !important;
+    position: absolute !important;
+    top: 48px !important;
+    width: 1322px !important;
+  }
+  
+  .element-create-result .icon-instance-node-3 {
+    background-blend-mode: multiply !important;
+    height: 16px !important;
+    position: relative !important;
+    width: 16px !important;
+  }
+  
+  .element-create-result .frame-11 {
+    align-items: flex-start;
+    display: flex;
+    gap: 4px;
+    left: 294px;
+    position: absolute;
+    top: 178px;
+    width: 324px;
+  }
+  
+  .element-create-result .tabs-items-instance {
+    display: flex !important;
+    flex: 1 !important;
+    flex-grow: 1 !important;
+  }
+
+  .element-create-result .frame-58 {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+    position: relative;
+    width: 580px;
+    top: 321px;
+  }
+  
+  .element-create-result .frame-58 .health-care-health {
+    height: 191.04px;
+    position: relative;
+    width: 159px;
+  }
+  
+  .element-create-result .frame-58 .div-progress-text {
+    align-items: flex-start;
+    align-self: stretch;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 16px;
+    position: relative;
+    width: 100%;
+  }
+  
+  .element-create-result .frame-58 .label {
+    align-self: stretch;
+    color: var(--texttext-primary);
+    font-family: "IBM Plex Sans", Helvetica;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.16px;
+    line-height: 18px;
+    margin-top: -1px;
+    position: relative;
+    text-align: center;
+  }
+  
+  .frame-58 .description {
+    align-self: stretch;
+    color: var(--texttext-secondary);
+    font-family: var(--body-styles-body-compact-01-font-family);
+    font-size: var(--body-styles-body-compact-01-font-size);
+    font-style: var(--body-styles-body-compact-01-font-style);
+    font-weight: var(--body-styles-body-compact-01-font-weight);
+    letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+    line-height: var(--body-styles-body-compact-01-line-height);
+    position: relative;
+    text-align: center;
+  }
+  
+  .element-create-result .frame-58 .div-progress {
+    align-items: flex-start;
+    align-self: stretch;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+    width: 100%;
+  }
+  
+  .element-create-result .frame-58 .progress-bar-track-item {
+    align-self: stretch !important;
+    height: 9px !important;
+    width: 100% !important;
+  }
+  
+  .element-create-result .frame-58 .text-wrapper {
+    color: var(--texttext-secondary);
+    font-family: var(--body-styles-body-compact-01-font-family);
+    font-size: var(--body-styles-body-compact-01-font-size);
+    font-style: var(--body-styles-body-compact-01-font-style);
+    font-weight: var(--body-styles-body-compact-01-font-weight);
+    letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+    line-height: var(--body-styles-body-compact-01-line-height);
+    margin-right: -13px;
+    position: relative;
+    width: 593px;
+  }
+

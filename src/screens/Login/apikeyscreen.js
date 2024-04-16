@@ -25,6 +25,10 @@ export const ApiKeyScreen = () => {
 
     const [state, dispatch] = useReducer(reducer, initState);
 
+    const [errorMag, setErrorMsg] = useState("error with api key");
+
+    const [inputState, setInputState] = useState("enabled");
+
     const onChangeKey = (key) => {
 
       dispatch(key? "button_enabled": "button_disabled");
@@ -35,21 +39,31 @@ export const ApiKeyScreen = () => {
 
     let navigate = useNavigate(); 
     const handleSubmit = async () =>{ 
-      try {
-        const formData = new FormData();
-        formData.append('field', 'openai_secret_key');
-        formData.append('value', key);
-        const response = await fetch('/api/auth/profile/update',{
-          method: 'PUT',
-          body: formData,
-        });
-        if (response.ok) {
-          let path = '/exp'; 
-          navigate(path);
+
+      const formData = new FormData();
+      formData.append('field', 'openai_secret_key');
+      formData.append('value', key);
+      await fetch('/api/auth/profile/update',{
+        method: 'PUT',
+        body: formData,
+      }).then(response => {
+        if (!response.ok) {
+          throw "No response";
         }
-      }catch (error) {
+        return response.json();
+      })
+      .then(data => {
+        if(data.is_openai_secret_key_valid){
+          let path = '/exp';
+          navigate(path);
+        }else{
+          setErrorMsg(data.openai_response_description);
+          setInputState("error");
+        }
+      })
+      .catch(error => {
         console.error('Error sending data:', error);
-      }
+      });
     }
   
     const handleSignout = async () => {   
@@ -69,7 +83,7 @@ export const ApiKeyScreen = () => {
     
     useEffect(() => {
       const fetchData = async () => {
-        await fetch('/api/auth/profile', {
+        fetch('/api/auth/profile', {
           method: 'GET',
         })
         .then(response => {
@@ -79,7 +93,7 @@ export const ApiKeyScreen = () => {
           return response.json();
         })
         .then(data => {
-          if (data.openai_status_code == 200) {
+          if (data.has_openai_secret_key) {
             let path = '/exp';
             navigate(path);
           }
@@ -125,10 +139,10 @@ export const ApiKeyScreen = () => {
                               placeholderText=""
                               showHelper={false}
                               showLabel={false}
-                              errorText="Please provide a vaild email"
+                              errorText={errorMag}
                               size="large"
                               spacerClassName="design-component-instance-node"
-                              state="enabled"
+                              state={inputState}
                               textFilled={false}
                               onInputChange={onChangeKey}
                             />
