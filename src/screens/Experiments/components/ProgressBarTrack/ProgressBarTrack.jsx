@@ -15,18 +15,22 @@ export const ProgressBarTrack = ({ progress, size, className }) => {
       )}
 
       {((progress === "error" && size === "small") ||
-        (progress === "fifty" && size === "small") ||
-        progress === "indeterminate" ||
-        progress === "seventy-five" ||
-        (progress === "success" && size === "small") ||
         progress === "twenty-five") && (
         <>
-          <div className="spacer" />
           <div className="div" />
-          <div className="spacer-2" />
+          <div className="div" />
+          <div className="div" />
         </>
       )}
 
+      {((progress === "error" && size === "small") ||
+        (progress === "fifty" && size === "small") ) && (
+        <>
+          <div className="spacer" />
+          <div className="div" />
+          <div className="div" />
+        </>
+      )}
       {progress === "fifty" && size === "big" && <div className="spacer-3" />}
     </div>
   );

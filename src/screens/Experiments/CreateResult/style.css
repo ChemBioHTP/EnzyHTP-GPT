@@ -58,11 +58,12 @@
   }
 
   .element-create-result .frame-58 {
+    left: 330px;
     align-items: center;
     display: flex;
     flex-direction: column;
     gap: 48px;
-    position: relative;
+    position: absolute;
     width: 580px;
     top: 321px;
   }
