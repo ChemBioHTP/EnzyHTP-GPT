@@ -81,6 +81,11 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
     navigate(path);
   };
 
+  const handleSaveMdOption = () => {
+    let path = "/exp/result";
+    navigate(path);
+  }
+
   const [sideLabel, setSideLabel] = useState(["Example experiment 01", "Example experiment 02", "Example experiment 03", "Example experiment 04", "Example experiment 05"]);
   return (
     <div className="element-create">      
@@ -346,3 +351,4 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
 };
 
 export default ElementCreateWorkFlow;
+

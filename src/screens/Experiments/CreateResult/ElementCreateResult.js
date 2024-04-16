@@ -15,11 +15,10 @@ export const ElementCreateResult = ({ sideVisible = true,  titleText= "My awesom
 
   useEffect(() => {
     if (sideVisible) {
-      document.body.style.setProperty('--result-left-distance', '0px');
+      document.body.style.setProperty("--result-left-distance", "0px");
     } else {
-      document.body.style.setProperty('--result-left-distance', '-214px');
+      document.body.style.setProperty("--result-left-distance", "-214px");
     }
-
   }, [sideVisible]);
 
   let navigate = useNavigate();
@@ -31,7 +30,7 @@ export const ElementCreateResult = ({ sideVisible = true,  titleText= "My awesom
   ];
 
   const handleBackToList = () => {
-    let path = '/exp'; 
+    let path = "/exp";
     navigate(path);
   };
 
@@ -52,7 +51,7 @@ export const ElementCreateResult = ({ sideVisible = true,  titleText= "My awesom
   };
 
   return (
-    <div className="element-create-result">      
+    <div className="element-create-result">
       <NavigationPage
         buttonIcon={<IconMoreHorizontal className="icon-instance-node-3" />}
         className="navigation-page-header"
@@ -83,10 +82,16 @@ export const ElementCreateResult = ({ sideVisible = true,  titleText= "My awesom
         />
       </div>
       <div className="frame-58">
-        <img className="health-care-health" alt="Health care health" src={progressImage} />
+        <img
+          className="health-care-health"
+          alt="Health care health"
+          src={progressImage}
+        />
         <div className="div-progress-text">
           <div className="label">MD simulation in progress</div>
-          <p className="description">Your target metrics will be visible once the process is done.</p>
+          <p className="description">
+            Your target metrics will be visible once the process is done.
+          </p>
           <div className="div-progress">
             <ProgressBarTrack className="progress-bar-track-item" progress={progerss} />
             <div className="text-wrapper">{handleProgressNum(progerss)}</div>

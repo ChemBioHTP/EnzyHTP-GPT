@@ -11,6 +11,7 @@ import ElementCreateTarget from "../CreateTarget/ElementCreateTarget";
 import ElementExperimentsList from "../ExperimentsList/ElementExperimentsList";
 import { Button } from "../components/Button";
 import ElementCreateResult from "../CreateResult/ElementCreateResult";
+import ElementCompletedResult from "../CreateResult/ElementCompletedResult";
 
 export const ElementExperiment = () => {
   let navigate = useNavigate();
@@ -203,6 +204,7 @@ export const ElementExperiment = () => {
           <Route path="/flow" element={<ElementCreateWorkFlow sideVisible={isVisible} titleText={titleText} onClickWrapper={handleWrapperClick}/>} />
           <Route path="/create" element={<ElementCreateTarget sideVisible={isVisible} titleText={titleText} onClickWrapper={handleWrapperClick} />} />
           <Route path="/result" element={<ElementCreateResult sideVisible={isVisible} titleText={titleText} progerss={progress} />} />
+          <Route path="/completed" element={<ElementCompletedResult sideVisible={isVisible} titleText={titleText} onClickWrapper={handleWrapperClick} />} />
         </Routes>
         <NavigationHeader className="navigation-header-instance" onClick={handleHeaderClick}/>
         {logoutButton &&(<div className="div-profile" onClick={handleSignout}>
