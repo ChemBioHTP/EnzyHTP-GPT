@@ -6,7 +6,7 @@ import { IconMoreHorizontal } from "../icons/IconMoreHorizontal";
 import "./style.css";
 import { useNavigate } from "react-router-dom";
 import {ProgressBarTrack} from "../components/ProgressBarTrack"
-
+import  progressImage from "../../../assets/images/Experiments/ElementCreateResult/health-care-health-research.png"
 
 export const ElementCreateResult = ({ sideVisible = true,  titleText= "My awesome experiment", onClickWrapper = () => { }}) => {
   const handleWrapperClick = (id) => {
@@ -61,8 +61,8 @@ export const ElementCreateResult = ({ sideVisible = true,  titleText= "My awesom
           type="text-icon"
         />
       </div>
-      {/* <div className="frame-58">
-        <img className="health-care-health" alt="Health care health" src="../../../assets/images/Experiments/ElementCreateResult/health-care-health-research.png" />
+      <div className="frame-58">
+        <img className="health-care-health" alt="Health care health" src={progressImage} />
         <div className="div-progress-text">
           <div className="label">MD simulation in progress</div>
           <p className="description">Your target metrics will be visible once the process is done.</p>
@@ -71,7 +71,7 @@ export const ElementCreateResult = ({ sideVisible = true,  titleText= "My awesom
             <div className="text-wrapper">25%</div>
           </div>
         </div>
-      </div> */}
+      </div>
     </div>
   );
 };
