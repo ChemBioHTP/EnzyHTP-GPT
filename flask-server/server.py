@@ -26,7 +26,7 @@ db.create_all()
 # Initialize LoginManager.
 login_manager.init_app(app)
  
-@app.route("/")
+@app.route("/api/index")
 def home():
     # return render_template("index.html")
     return jsonify({"message": "This is the homepage of the backend. Welcome!"})
@@ -37,7 +37,7 @@ def api_key():
 
 if __name__ == "__main__":
 
-    # Set SSL Context and run server.
+    # Set SSL Context and run server. For development only.
     app.run(host=config.APP_HOST,
         port=5000,
         debug=True,

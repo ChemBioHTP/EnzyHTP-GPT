@@ -119,10 +119,14 @@ Shut down the server, change the directory to the `/flask-server` directory, and
 
 (See Postman for now, will be here later.)
 
-### 3.5 Validate PDB File.
+### 3.5 Upload PDB File.
 
 (See Postman for now, will be here later.)
 
-### 3.6 Generate Pattern
+### 3.6 Download PDB File
+
+(See Postman for now, will be here later.)
+
+### 3.7 Generate Pattern
 
 (See Postman for now, will be here later.)

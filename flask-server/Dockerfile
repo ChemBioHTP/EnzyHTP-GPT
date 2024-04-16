@@ -4,7 +4,7 @@ FROM continuumio/anaconda3:main
 ENV TZ "US/Central"
 
 # Copy the current directory file to the working directory.
-RUN mkdir -p /var/www/flask-server && cd /var/www/flask-server
+RUN mkdir -p /var/www/flask-server && mkdir -p /var/www/ssl && mkdir -p /var/www/files
 WORKDIR /var/www/flask-server
 ADD . /var/www/flask-server
 

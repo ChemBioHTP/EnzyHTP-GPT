@@ -30,12 +30,43 @@ A web application that serves as an interface between a user and EnzyHTP's workf
 
 # 2. Server Manager: Production Deployment
 
-We are to use docker container to deploy the website to ensure environmental independence.
+**ATTENTION: Please ask [Zhong, Yinjie](mailto:yinjie.zhong@vanderbilt.edu) for detailed information!!**
 
-## 2.1 Nginx Server (Website and Frontend)
+We use docker container to deploy the website to ensure environmental independence.
 
-... To be continued.
+## 2.1 Node Server (Frontend)
+
+To build the `enzyhtp.web.flask` (i.e., backend) docker image, enter and run the following `docker build` command.
+
+```bash
+.../EnzyHTP-GPT$ docker build -t enzyhtp.web.node:2024.04.v02 .
+```
+
+To run the docker container, enter and execute the following `docker run` command.
+
+In this command, port 443 of the host is mapped to port 3000 of the container, and the flask-server folder on the host is mapped to the working directory in the container, that is, any modifications in this folder will be instantly synchronized to the working directory, so that the service manager only needs to restart the container to complete the update.
+
+```bash
+docker run -d --name enzyhtp.web.node -v /path/to/EnzyHTP-GPT/src:/usr/src/app/src -v /path/to/EnzyHTP-GPT/public:/usr/src/app/public -p 12580:3000 enzyhtp.web.node:2024.04.v02
+```
 
 ## 2.2 Flask Server (Backend)
 
 To deploy the flask server for production environment using docker, please follow the instructions in [Production Deployment (Flask Server)](./flask-server/README.md#5-production-deployment-flask-server).
+
+## 2.3 Nginx Server (Web Server)
+
+Fetch the docker image `nginx`, and then execute the command as follows.
+
+```bash
+.../EnzyHTP-GPT$ docker pull nginx
+.../EnzyHTP-GPT$ docker run -d --name enzyhtp.web.nginx -p 80:80 -p 443:443 \
+-v /path/to/EnzyHTP-GPT/nginx.conf:/etc/nginx/nginx.conf \
+-v /path/to/ssl:/etc/nginx/ssl \
+-v /path/to/log:/var/log/nginx nginx
+```
+
+Note that
+
+1. `/path/to/ssl` is a folder which contains `server.crt` and `server.key` file for SSL.
+2. `/path/to/log` should grant write permission to all users by `chmod g+w /path/to/log` and `chmod o+w /path/to/log` commands.

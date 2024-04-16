@@ -11,7 +11,7 @@
 # Here put the import lib.
 import os
 import prompts
-from flask import Response, request, redirect, jsonify
+from flask import Response, request, redirect, jsonify, send_file
 from flask_login import login_required, current_user
 from json import dumps
 from typing import List
@@ -78,7 +78,6 @@ def unauth_handler() -> Response:
     """Handle unauthorized requests toward an `@login_required` method."""
     return Response(response=None, status=401)
 
-@experiment_blueprint.route("", methods=["GET"])
 @experiment_blueprint.route("/", methods=["GET"])
 @login_required
 def index():
@@ -217,9 +216,9 @@ def update_information(experiment_id: str):
         is_successful=True, message="The information is successfully updated.")
     return Response(response=response_info.serialize(), status=200, mimetype="application/json")
 
-@experiment_blueprint.route("/<experiment_id>/upload_pdb_file", methods=["POST"])
+@experiment_blueprint.route("/<experiment_id>/pdb_file", methods=["POST"])
 @login_required
-def upload_pdb_file(experiment_id: str):
+def pdb_file_upload(experiment_id: str):
     """Upload and Validate PDB File from the user.
     
     Args:
@@ -227,7 +226,6 @@ def upload_pdb_file(experiment_id: str):
     """
     user: User = current_user
     experiment = Experiment.get(experiment_id)
-    result = None
     message = str()
     is_valid = False
 
@@ -263,9 +261,7 @@ def upload_pdb_file(experiment_id: str):
                 sp = enzy_htp.structure.PDBParser()
                 stru = sp.get_structure(filepath)
                 if (stru.num_atoms > 0):
-                    result = is_structure_valid(stru, print_report=True)
-                    is_valid = result[0]
-                    intermediate_message = result[1]
+                    is_valid, intermediate_message = is_structure_valid(stru, print_report=True)
                     message += "The following errors were found in the PDB file: \n"
                     for reason, source, suggestion in intermediate_message:
                         message += f"Reason: {str(reason)}\tSource: {str(source)}\tSuggestion: {str(suggestion)};\n"
@@ -291,6 +287,49 @@ def upload_pdb_file(experiment_id: str):
         is_successful=is_valid,
         message=message)
     return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+
+@experiment_blueprint.route("/<experiment_id>/pdb_file", methods=["GET"])
+@login_required
+def pdb_file_download(experiment_id: str):
+    """Download the PDB file attached to the experiment.
+    If the desired experiment doesn't exist or the selected experiment instance does not have PDB file attached, 404 NOT FOUND will be the response.
+        
+    Args:
+        experiment_id (str): The identifier of an experiment instance.
+    """
+    user: User = current_user
+    experiment = Experiment.get(experiment_id)
+
+    if not experiment:
+        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
+            is_successful=False,
+            message=f"The experiment with id '{experiment_id}' doesn't exist.")
+        return Response(response=response_info.serialize(), status=404, mimetype="application/json")
+
+    if experiment.user_id != user.id:
+        message = "You are not allowed to download file from this experiment."
+        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
+            is_successful=False,
+            message=message)
+        return Response(response=response_info.serialize(), status=403, mimetype="application/json")
+    
+    if (not experiment.pdb_filepath):
+        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
+            is_successful=False,
+            message=f"No PDB file attached.")
+        return Response(response=response_info.serialize(), status=404, mimetype="application/json")
+    if (os.path.isfile(experiment.pdb_filepath)):
+        base_filename = fs.base_file_name(experiment.pdb_filepath)
+        return send_file(path_or_file=experiment.pdb_filepath, mimetype="text/plain",
+            as_attachment=False, 
+            download_name=base_filename, 
+            attachment_filename=base_filename)
+    else:
+        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
+            is_successful=False,
+            message=f"Failed to find the attached PDB file.")
+        return Response(response=response_info.serialize(), status=404, mimetype="application/json")
+
 
 @experiment_blueprint.route("/<experiment_id>/generate_mutation_pattern", methods=["POST"])
 @login_required

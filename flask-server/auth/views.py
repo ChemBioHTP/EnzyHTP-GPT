@@ -9,7 +9,7 @@
 '''
 
 # Here put the import lib.
-from flask import Response, request, redirect
+from flask import Response, jsonify, request, redirect
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
 from uuid import uuid4
@@ -24,6 +24,13 @@ from config import (
 from . import auth
 from .models import User, OAuthUser, VerificationCode
 from context import db, login_manager
+
+@auth.route("/", methods=["GET", "POST", "PUT", "DELETE"])
+def index() -> Response:
+    """The index of auth module"""
+    return jsonify({
+        "message": "This is the Auth Module of EnzyHTP Web Application. Welcome!"
+    })
 
 class AuthResponseInfo():
     """Authentication Response Information.
@@ -566,7 +573,7 @@ def oauth_vendor_login(oauth_vendor: str) -> Response:
 @auth.route('oauth/<oauth_vendor>/login/callback', methods=['GET', 'POST'])
 def oauth_vendor_login_callback(oauth_vendor: str) -> Response:
     """
-    Callback Function of OAuth.
+    Callback Function of OAuth. (Support Google only, at present.)
     Verify authorization code.
     TODO: This function is imperfect. It's better to have a dashboard or homepage for user to redirect to.
     TODO: Then, a redirect(301) response can be sent to redirect users to that page.
@@ -663,6 +670,7 @@ def oauth_vendor_login_callback(oauth_vendor: str) -> Response:
         oauth_vendor=oauth_vendor,
         username=username,
         remember=remember)
+    
     # return response
     return redirect(OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI, code=301)
 
