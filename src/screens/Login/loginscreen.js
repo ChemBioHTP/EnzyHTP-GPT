@@ -14,6 +14,7 @@ import Cookies from 'js-cookie';
 import hexagonDottedConnectLineBackground1 from "../../assets/images/Login/hexagon-dotted-connect-line-background-1.png";
 // Styles
 import "./style.css";
+import App from "../../App";
 
 export const ElementLoginScreen = () => {
     let navigate = useNavigate(); 
@@ -27,6 +28,7 @@ export const ElementLoginScreen = () => {
       const formData = new FormData();
       formData.append('email', email);
       formData.append('password', pwd);
+      formData.append('remember', rememberId);
       await fetch('/api/auth/login', {
         method: 'POST',
         body: formData,   
@@ -57,7 +59,7 @@ export const ElementLoginScreen = () => {
     }
   
     const handleGoogleLogin = async() => {
-      let path = '/api/auth/oauth/google/login';
+      let path = '/googlelogin';
       navigate(path);
     }
   

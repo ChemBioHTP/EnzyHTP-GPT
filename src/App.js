@@ -12,7 +12,6 @@ import { ElementCreateTarget } from "./screens/Experiments/CreateTarget/ElementC
 import ElementExperiment from "./screens/Experiments/ExperimentPage/ElementExperiment";
 
 function App() {
-  const [data, setData] = useState([{}]);
 
   const PrivateRoute = ({ element }) => {
     const isLoggedIn = Cookies.get('userToken');
@@ -36,18 +35,12 @@ function App() {
         <Route path="/exp/*" element={<ElementExperiment />} />
       </Routes>
     </div>    
-    
-      // {/* {typeof data.members === "undefined" ? (
-      //   <p>Loading...</p>
-      // ) : (
-      //   data.members.map((member, i) => <p key={i}>{member}</p>)
-      // )} */}
   );
 }
 
 function GoogleLogin() {
 
-  window.location.replace('https://localhost:5000/api/auth/oauth/google/login');
+  window.location.replace('/api/auth/oauth/google/login');
   return null;
 }
 
