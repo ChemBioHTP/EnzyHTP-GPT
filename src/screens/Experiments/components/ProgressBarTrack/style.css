@@ -65,12 +65,9 @@
   display: flex;
 }
 
-.progress-bar-track.small.zero {
-  height: 4px;
-}
-
-.progress-bar-track.big.zero {
-  height: 8px;
+.progress-bar-track.zero {
+  align-items: flex-start;
+  display: flex;
 }
 
 .progress-bar-track.fifty .track {
@@ -81,8 +78,8 @@
   background-color: var(--supportsupport-error);
 }
 
-.progress-bar-track.small .track {
-  height: 4px;
+.progress-bar-track .track {
+  height: 8px;
 }
 
 .progress-bar-track.success .track {
@@ -91,10 +88,6 @@
 
 .progress-bar-track.seventy-five .track {
   background-color: var(--borderborder-interactive);
-}
-
-.progress-bar-track.big .track {
-  height: 8px;
 }
 
 .progress-bar-track.twenty-five .track {
@@ -109,8 +102,8 @@
   background-color: var(--supportsupport-error);
 }
 
-.progress-bar-track.small .spacer {
-  height: 4px;
+.progress-bar-track .spacer {
+  height: 8px;
 }
 
 .progress-bar-track.success .spacer {
@@ -123,10 +116,6 @@
 
 .progress-bar-track.zero .spacer {
   background-color: var(--borderborder-interactive);
-}
-
-.progress-bar-track.big .spacer {
-  height: 8px;
 }
 
 .progress-bar-track.indeterminate .spacer {
@@ -145,8 +134,8 @@
   background-color: var(--supportsupport-error);
 }
 
-.progress-bar-track.small .div {
-  height: 4px;
+.progress-bar-track .div {
+  height: 8px;
 }
 
 .progress-bar-track.success .div {
@@ -154,14 +143,14 @@
 }
 
 .progress-bar-track.seventy-five .div {
-  background-color: var(--borderborder-interactive);
+  background-color: var(--borderborder-subtle-01);
 }
 
 .progress-bar-track.zero .div {
   background-color: var(--borderborder-subtle-01);
 }
 
-.progress-bar-track.big .div {
+.progress-bar-track .div {
   height: 8px;
 }
 
@@ -181,7 +170,7 @@
   background-color: var(--supportsupport-error);
 }
 
-.progress-bar-track.small .spacer-2 {
+.progress-bar-track .spacer-2 {
   height: 4px;
 }
 
@@ -195,10 +184,6 @@
 
 .progress-bar-track.zero .spacer-2 {
   background-color: var(--supportsupport-success);
-}
-
-.progress-bar-track.big .spacer-2 {
-  height: 8px;
 }
 
 .progress-bar-track.indeterminate .spacer-2 {

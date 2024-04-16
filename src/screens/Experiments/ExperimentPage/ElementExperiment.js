@@ -17,6 +17,13 @@ export const ElementExperiment = () => {
   let navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(true);
   const [sideLabel, setSideLabel] = useState([]);
+  const [sideLabelSelected, setSideLabelSelected] = useState([true, false, false, false, false]);
+  const [sideLabelState, setSideLabelState] = useState(["selected", "enabled", "enabled", "enabled", "enabled"]);
+  const [sideLabelSelected1, setSideLabelSelected1] = useState([]);
+  const [sideLabelState1, setSideLabelState1] = useState([]);
+
+  const [progress, setProgress] = useState("zero");
+
   const [titleText, setTitleText] = useState("Example experiment 01");
 
   const handleButtonClick = (buttonId) => {
@@ -25,8 +32,18 @@ export const ElementExperiment = () => {
     }
     if (buttonId > 5) {
       setTitleText(sideLabel[buttonId - 6]);
-      let path = '/exp/create'; 
-      navigate(path);
+      if(buttonId == 6){
+        setProgress("twenty-five");
+        let path = '/exp/result'; 
+        navigate(path);
+      }else if(buttonId == 7){
+        let path = '/exp/completed'; 
+        navigate(path);
+      }else{
+        let path = '/exp/create'; 
+        navigate(path);
+      }
+      
     } else {
       let path = '/exp/'; 
       navigate(path);
@@ -122,7 +139,9 @@ export const ElementExperiment = () => {
     const data = example_get_experiments;
     setExperiments(data.experiments);
     fetchData();
-    
+    setSideLabelState1(Array(sideLabel.length).fill("enabled"));
+
+    setSideLabelSelected1(Array(sideLabel.length).fill(false));
   }, []);
 
   const [logoutButton, setLogoutButton] = useState(false);
@@ -152,6 +171,16 @@ export const ElementExperiment = () => {
     }
   };
 
+  const createNewExperiment=()=>{
+    
+    // setSideLabelSelected1([...sideLabelSelected1, true]);
+    // setSideLabelState1([...sideLabelState1, "selected"]);
+    // setSideLabelSelected(Array(5).fill(false));
+    // setSideLabelState(Array(5).fill("enabled"));
+    setSideLabel([...sideLabel, "exp-test-03"]);
+    setProgress("zero");
+    navigate("/exp/create");
+  }
   const handleSignout = async () => {   
     try {
       Cookies.remove('userToken');
@@ -171,10 +200,10 @@ export const ElementExperiment = () => {
     <div className="element-experiment" data-theme-mode="white-theme">
       <div className="div-2" data-breakpoints-mode="max-max-plus-1584px-1784px">
         <Routes>
-          <Route path="/" element={<ElementExperimentsList sideVisible={isVisible} experiments={experiments} />} />
+          <Route path="/" element={<ElementExperimentsList sideVisible={isVisible} experiments={experiments} createNewExp={createNewExperiment}/>} />
           <Route path="/flow" element={<ElementCreateWorkFlow sideVisible={isVisible} titleText={titleText} onClickWrapper={handleWrapperClick}/>} />
           <Route path="/create" element={<ElementCreateTarget sideVisible={isVisible} titleText={titleText} onClickWrapper={handleWrapperClick} />} />
-          <Route path="/result" element={<ElementCreateResult sideVisible={isVisible} titleText={titleText} onClickWrapper={handleWrapperClick} />} />
+          <Route path="/result" element={<ElementCreateResult sideVisible={isVisible} titleText={titleText} progerss={progress} />} />
           <Route path="/completed" element={<ElementCompletedResult sideVisible={isVisible} titleText={titleText} onClickWrapper={handleWrapperClick} />} />
         </Routes>
         <NavigationHeader className="navigation-header-instance" onClick={handleHeaderClick}/>
@@ -196,10 +225,10 @@ export const ElementExperiment = () => {
         
         {isVisible && <NavigationSideNav
           UIShellLeftPanelLinkText={sideLabel}
-          UIShellLeftPanelSelected={[true, false, false, false, false]}
-          UIShellLeftPanelStateProp={["selected", "enabled", "enabled", "enabled", "enabled"]}
-          UIShellLeftPanelSelected1={Array(sideLabel.length).fill(false)}
-          UIShellLeftPanelStateProp1={Array(sideLabel.length).fill("enabled")}
+          UIShellLeftPanelSelected={sideLabelSelected}
+          UIShellLeftPanelStateProp={sideLabelState}
+          UIShellLeftPanelSelected1={sideLabelSelected1}
+          UIShellLeftPanelStateProp1={sideLabelState1}
           className="navigation-side-nav-2"
           version="version-5"
           onButtonClick={handleButtonClick}

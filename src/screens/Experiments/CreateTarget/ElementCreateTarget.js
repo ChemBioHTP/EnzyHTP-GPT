@@ -25,8 +25,12 @@ import { useNavigate } from "react-router-dom";
 
 export const ElementCreateTarget = ({ sideVisible=true, titleText= "Example experiment 01", onClickWrapper = () => { }}) => {
 
+  const [showResult, setShowResult]=useState(false);
   const handleSubmitButtonClick = () => {
     console.log(textInputValue);
+    if(textInputValue.length>0){
+      setShowResult(true);
+    }
   };
 
   const [textInputValue, setTextInputValue] = useState("");
@@ -153,68 +157,70 @@ export const ElementCreateTarget = ({ sideVisible=true, titleText= "Example expe
         visible1={false}
       />
       <img className="line-3" alt="Line" src={line3} />
-      <div className="frame-14">
-        <div className="label-6">Mutation generated</div>
-        <div className="frame-15">
-          <div className="data-table-row-item">
-            <DataTableHeader
-              cellText="Number"
-              className="col"
-              resizerResizerClassName="col-2"
-              size="small"
-              sortable={false}
-              sorted="none"
-              stateProp="enabled"
-            />
-            <DataTableHeader
-              cellText="Pattern"
-              className="data-table-header-cell-item"
-              resizerResizerClassName="col-3"
-              size="small"
-              sortable={false}
-              sorted="none"
-              stateProp="enabled"
-            />
-          </div>
-          {cellData.map((item, index) => (
-            <div className="data-table-row-item-2" key={index}>
-              <div className="data-table-row">
-                <DataTableRowCell
-                  cellText={(index+1).toString().padStart(2, '0')}
-                  className="data-table-row-cell-item"
-                  minHeightClassName="data-table-row-cell-instance"
-                  resizerResizerClassName="col-2"
-                  size="small"
-                  state="enabled"
-                />
-                <DataTableRowCell
-                  cellText={item}
-                  className="data-table-row-cell-item-instance"
-                  minHeightClassName="col-4"
-                  resizerResizerClassName="col-3"
-                  size="small"
-                  state="enabled"
-                />
-              </div>
-              <div className="divider-3" />
+      {showResult&&(<>
+        <div className="frame-14">
+          <div className="label-6">Mutation generated</div>
+          <div className="frame-15">
+            <div className="data-table-row-item">
+              <DataTableHeader
+                cellText="Number"
+                className="col"
+                resizerResizerClassName="col-2"
+                size="small"
+                sortable={false}
+                sorted="none"
+                stateProp="enabled"
+              />
+              <DataTableHeader
+                cellText="Pattern"
+                className="data-table-header-cell-item"
+                resizerResizerClassName="col-3"
+                size="small"
+                sortable={false}
+                sorted="none"
+                stateProp="enabled"
+              />
             </div>
-          ))}
+            {cellData.map((item, index) => (
+              <div className="data-table-row-item-2" key={index}>
+                <div className="data-table-row">
+                  <DataTableRowCell
+                    cellText={(index+1).toString().padStart(2, '0')}
+                    className="data-table-row-cell-item"
+                    minHeightClassName="data-table-row-cell-instance"
+                    resizerResizerClassName="col-2"
+                    size="small"
+                    state="enabled"
+                  />
+                  <DataTableRowCell
+                    cellText={item}
+                    className="data-table-row-cell-item-instance"
+                    minHeightClassName="col-4"
+                    resizerResizerClassName="col-3"
+                    size="small"
+                    state="enabled"
+                  />
+                </div>
+                <div className="divider-3" />
+              </div>
+            ))}
 
+          </div>
+          <AccordionToggle 
+            text= "Show mutation in GUI"
+            className="accordion-with-toggle"
+            state="off"
+            onSwitchClick={toggleModal} 
+          />
+          <FloatingComponent isOpen={isModalOpen} onClose={toggleModal}  />
         </div>
-        <AccordionToggle 
-          text= "Show mutation in GUI"
-          className="accordion-with-toggle"
-          state="off"
-          onSwitchClick={toggleModal} 
+        <GenerateStatusBar
+          className="file-uploader-file-item"
+          fileName="Your prompt has been successfully parsed."
+          size="large"
+          state="success"
         />
-        <FloatingComponent isOpen={isModalOpen} onClose={toggleModal}  />
-      </div>
-      <GenerateStatusBar
-        className="file-uploader-file-item"
-        fileName="Your prompt has been successfully parsed."
-        size="large"
-        state="success"
-      />
+      </>)}
       <div className="progress-indicator-2">
         <DirectionHorizontalWrapper
           className="design-component-instance-node-2"

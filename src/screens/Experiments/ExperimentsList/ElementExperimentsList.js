@@ -11,7 +11,7 @@ import { IconSliders } from "../icons/IconSliders";
 import { IconTrash2 } from "../icons/IconTrash2";
 import "./style.css";
 
-export const ElementExperimentsList = ({ sideVisible = true, experiments=[]}) => {
+export const ElementExperimentsList = ({ sideVisible = true, experiments=[], createNewExp=()=>{}}) => {
 
   useEffect(() => {
     console.log(sideVisible.type);
@@ -30,6 +30,10 @@ export const ElementExperimentsList = ({ sideVisible = true, experiments=[]}) =>
     console.log(data);
   }
 
+  const createNewExperiment=()=>{
+    console.log("12345");
+    createNewExp();
+  }
   // Conditionally render loading page or datatable
   const renderContent = () => {
     if (experiments.length === 0) {
@@ -39,7 +43,7 @@ export const ElementExperimentsList = ({ sideVisible = true, experiments=[]}) =>
             <div className="text-wrapper-5">No experiments yet</div>
             <p className="p">Once you create experiments, they will show up here</p>
           </div>
-          <NewExperimentModal blank={true} className="new-experiment-modal-instance" />
+          <NewExperimentModal blank={true} className="new-experiment-modal-instance" onSaveClick={createNewExperiment}/>
           <img className="group" alt="Group" src={chemistImage} />
         </>
       );
@@ -55,6 +59,7 @@ export const ElementExperimentsList = ({ sideVisible = true, experiments=[]}) =>
             searchDefaultIcon={<Search className="icon-instance-node-3" />}
             size="XL-LG-MD"
             visible={false}
+            onSaveClick={createNewExp}
           />
           <div className="overlap-group">  
           <DataTableRowItem

@@ -32,7 +32,6 @@ export const ElementLandingScreen = () => {
         <div className="element-landing-screen">
             <div className="overlap-group-wrapper">
                 <div className="overlap-group">
-                    <div className="rectangle" />
                     <img className="ellipse" alt="Ellipse" src={ellipse2} />
                     <img className="hexagon-dotted" alt="Hexagon dotted" src={hexagonDottedConnectLineBackground1} />
                     <img className="img" alt="Ellipse" src={ellipse1} />
