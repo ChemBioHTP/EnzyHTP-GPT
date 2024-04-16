@@ -1,47 +1,22 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
-import ElementLandingScreen from "./screens/Login/landingscreen";
-import ElementLoginScreen from "./screens/Login/loginscreen";
+import ElementLandingScreen from "./screens/Login/LandingScreen";
+import ElementLoginScreen from "./screens/Login/LoginScreen";
 import { BrowserRouter as Router, Route, Routes, Navigate} from 'react-router-dom';
-import ApiKeyScreen from "./screens/Login/apikeyscreen";
-import ForgotpwdScreen from "./screens/Login/forgotpwdscreen";
-import Cookies from 'js-cookie';
-import ResetpwdScreen from "./screens/Login/resetpwdscreen";
-import ElementCreateWorkFlow from "./screens/Experiments/CreateWorkFLow/ElementCreateWorkFlow";
-import { ElementCreateTarget } from "./screens/Experiments/CreateTarget/ElementCreateTarget";
+
 import ElementExperiment from "./screens/Experiments/ExperimentPage/ElementExperiment";
 
 function App() {
 
-  const PrivateRoute = ({ element }) => {
-    const isLoggedIn = Cookies.get('userToken');
-
-    return isLoggedIn ? (
-      element
-    ) : (
-      <Navigate to="/" replace={true} state={{ from: window.location.pathname }} />
-    );
-  };
-
   return (
     <div className="App">
       <Routes>
-        <Route path="/" element={<ElementLandingScreen />} />
-        <Route path="/login" element={<ElementLoginScreen />} />
-        <Route path="/key" element={<PrivateRoute element={<ApiKeyScreen />}/>} />
-        <Route path="/forgotpwd" element={<ForgotpwdScreen />} />
-        <Route path="/resetpwd" element={<ResetpwdScreen />} />
-        <Route path="/googlelogin" element={<GoogleLogin />} />
+        <Route path="/*" element={<ElementLandingScreen />} />
+        
         <Route path="/exp/*" element={<ElementExperiment />} />
       </Routes>
     </div>    
   );
-}
-
-function GoogleLogin() {
-
-  window.location.replace('/api/auth/oauth/google/login');
-  return null;
 }
 
 export default App;

@@ -124,107 +124,89 @@ export const ElementLoginScreen = () => {
     
 
     return (
-        <div className="element-landing-screen">
-            <div className="overlap-group-wrapper">
-                <div className="overlap-group">
-                    <div className="rectangle" />
-                    <img className="ellipse" alt="Ellipse" src={ellipse2} />
-                    <img className="hexagon-dotted" alt="Hexagon dotted" src={hexagonDottedConnectLineBackground1} />
-                    <img className="img" alt="Ellipse" src={ellipse1} />
-                    <div className="frame">
-                        <img className="union" alt="Union" src={union} />
-                        <div className="div">EnzyHTP</div>
-                    </div>
-                    <p className="p">Developed by Yang Lab at Vanderbilt University</p>
-                    <p className="text-wrapper-2">
-                        Revolutionizing computational chemistry by seamlessly streamlining preparation, mutation, and analysis.
-                    </p>
-                    <div className="frame-2">
-                        <div className="frame-3">
-                            <div className="text-wrapper-3">Log in</div>
-                            <div className="frame-4">
-                                <div className="text-wrapper-4">New to EnzyHTP?</div>
-                                <div className="text-wrapper-5"><Link to="/">Sign up</Link></div>
-                            </div>
-                        </div>
-                        <div className="frame-5">
-                            <div className="frame-6">
-                            <TextInputDefault
-                                    backgroundClassName="text-input-default-2"
-                                    className="text-input-default-instance"
-                                    placeholderText=""
-                                    showHelper={false}
-                                    showLabel={true}
-                                    labelText="Email address"
-                                    inputDefault={savedId}
-                                    errorText={state.errorText}
-                                    size="large"
-                                    spacerClassName="design-component-instance-node"
-                                    state={state.emailState}
-                                    textFilled={false}
-                                    textDefault={true}
-                                    onInputChange={onChangeEmail}
-                                />
-                                <TextInputDefault
-                                    backgroundClassName="text-input-default-2"
-                                    className="text-input-default-instance"
-                                    placeholderText=""
-                                    showHelper={false}
-                                    showLabel={true}
-                                    showLink={true}
-                                    linkText="Forgot password?"
-                                    linkHerf="/forgotpwd"
-                                    labelText="Password"
-                                    errorText="Your password was incorrect. Please try again or tap Forgot password to reset it."
-                                    size="large"
-                                    spacerClassName="design-component-instance-node"
-                                    state={state.pwdState}
-                                    textFilled={false}
-                                    inputType="password"
-                                    onInputChange={onChangePwd}
-                                />
-                            </div>
-                            <div className="frame-6" id="submitButton" onClick={handleSubmit} >
-                                <Button
-                                    buttonText="Continue"
-                                    className="button-instance"
-                                    iconClassName="button-2"
-                                    override={<IconArrowRight className="icon-arrow-right" />}
-                                    size="large"
-                                    stateProp={state.bottonState}
-                                    disabled={state.bottonDisabled}
-                                    format="primary"
-                                    type="text-icon"
-                                />
-                            </div>
-                            <div className="frame-6" >
-                              <div className="text-wrapper-4">
-                                <input
-                                  type="checkbox"
-                                  className="custom-checkbox"
-                                  checked={rememberId}
-                                  onChange={handleCheckboxChange}
-                                />
-                                Remember id
-                              </div>
-                            </div>
-                        </div>
-                        <div className="frame-6" onClick={handleGoogleLogin}>
-                            <Button
-                                buttonText="Log in with Google"
-                                className="button-instance"
-                                iconClassName="button-2"
-                                override={<IconArrowRight className="icon-arrow-right" />}
-                                size="large"
-                                stateProp="enabled"
-                                format="tertiary"
-                                type="text-icon"
-                            />
-                        </div>
-                    </div>
+      <div className="frame-2">
+          <div className="frame-3">
+              <div className="text-wrapper-3">Log in</div>
+              <div className="frame-4">
+                  <div className="text-wrapper-4">New to EnzyHTP?</div>
+                  <div className="text-wrapper-5"><Link to="/">Sign up</Link></div>
+              </div>
+          </div>
+          <div className="frame-5">
+              <div className="frame-6">
+              <TextInputDefault
+                      backgroundClassName="text-input-default-2"
+                      className="text-input-default-instance"
+                      placeholderText=""
+                      showHelper={false}
+                      showLabel={true}
+                      labelText="Email address"
+                      inputDefault={savedId}
+                      errorText={state.errorText}
+                      size="large"
+                      spacerClassName="design-component-instance-node"
+                      state={state.emailState}
+                      textFilled={false}
+                      textDefault={true}
+                      onInputChange={onChangeEmail}
+                  />
+                  <TextInputDefault
+                      backgroundClassName="text-input-default-2"
+                      className="text-input-default-instance"
+                      placeholderText=""
+                      showHelper={false}
+                      showLabel={true}
+                      showLink={true}
+                      linkText="Forgot password?"
+                      linkHerf="/forgotpwd"
+                      labelText="Password"
+                      errorText="Your password was incorrect. Please try again or tap Forgot password to reset it."
+                      size="large"
+                      spacerClassName="design-component-instance-node"
+                      state={state.pwdState}
+                      textFilled={false}
+                      inputType="password"
+                      onInputChange={onChangePwd}
+                  />
+              </div>
+              <div className="frame-6" id="submitButton" onClick={handleSubmit} >
+                  <Button
+                      buttonText="Continue"
+                      className="button-instance"
+                      iconClassName="button-2"
+                      override={<IconArrowRight className="icon-arrow-right" />}
+                      size="large"
+                      stateProp={state.bottonState}
+                      disabled={state.bottonDisabled}
+                      format="primary"
+                      type="text-icon"
+                  />
+              </div>
+              <div className="frame-6" >
+                <div className="text-wrapper-4">
+                  <input
+                    type="checkbox"
+                    className="custom-checkbox"
+                    checked={rememberId}
+                    onChange={handleCheckboxChange}
+                  />
+                  Remember id
                 </div>
-            </div>
-        </div>
+              </div>
+          </div>
+          <div className="frame-6" onClick={handleGoogleLogin}>
+              <Button
+                  buttonText="Log in with Google"
+                  className="button-instance"
+                  iconClassName="button-2"
+                  override={<IconArrowRight className="icon-arrow-right" />}
+                  size="large"
+                  stateProp="enabled"
+                  format="tertiary"
+                  type="text-icon"
+              />
+          </div>
+      </div>
     );
 };
 

@@ -4,6 +4,7 @@
     flex-direction: row;
     justify-content: center;
     width: 1280px;
+    text-align: left !important;
 }
 
 .element-landing-screen .overlap-group-wrapper {
