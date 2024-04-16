@@ -77,33 +77,33 @@ export const ElementExperiment = () => {
     // Fetch experiments from the server
     const fetchData = async () => {
       try {
-        const formData = new FormData();
-        formData.append('email', 'san.zhang@example.com');
-        formData.append('password', '123456');
-        await fetch('https://localhost:5000/api/auth/login', {
-          method: 'POST',
-          body: formData,   
-        })
-        .then(response => {
-          if (!response.ok) {
-            if (response.status === 401) {
-              console.log("Invalid credentials");
-            } else if (response.status === 404) {
-              console.log("User not found");
-            }
-          }
-          return response.json();
-        })
+        // const formData = new FormData();
+        // formData.append('email', 'san.zhang@example.com');
+        // formData.append('password', '123456');
+        // await fetch('https://localhost:5000/api/auth/login', {
+        //   method: 'POST',
+        //   body: formData,   
+        // })
+        // .then(response => {
+        //   if (!response.ok) {
+        //     if (response.status === 401) {
+        //       console.log("Invalid credentials");
+        //     } else if (response.status === 404) {
+        //       console.log("User not found");
+        //     }
+        //   }
+        //   return response.json();
+        // })
 
-        const response = await fetch('https://localhost:5000/api/experiment/',
-          {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Connection': 'keep-alive',
-            }
-          }
-        ).then((response) => console.log(response));
+        // const response = await fetch('https://localhost:5000/api/experiment/',
+        //   {
+        //     method: 'GET',
+        //     headers: {
+        //       'Content-Type': 'application/json',
+        //       'Connection': 'keep-alive',
+        //     }
+        //   }
+        // ).then((response) => console.log(response));
         
         // const data = await response.json();
         const data = example_get_experiments;

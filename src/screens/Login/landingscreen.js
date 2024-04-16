@@ -125,11 +125,13 @@ export const ElementLandingScreen = () => {
                     <img className="img" alt="Ellipse" src={ellipse1} />
                     <div className="frame">
                         <img className="union" alt="Union" src={union} />
-                        <div className="div">EnzyHTP</div>
+                        <div className="div">EnzyHTP-GPT</div>
                     </div>
                     <p className="p">Developed by Yang Lab at Vanderbilt University</p>
                     <p className="text-wrapper-2">
-                        Revolutionizing computational chemistry by seamlessly streamlining preparation, mutation, and analysis.
+                      Access to molecular-level insights of your experiment with ease
+                      by your AI-based virtual assistant
+                      for Molecular Dynamics and more
                     </p>
                     <div className="frame-2">
                         <div className="frame-3">

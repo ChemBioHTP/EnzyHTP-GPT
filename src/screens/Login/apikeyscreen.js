@@ -83,7 +83,7 @@ export const ApiKeyScreen = () => {
     
     useEffect(() => {
       const fetchData = async () => {
-        await fetch('/api/auth/profile', {
+        fetch('/api/auth/profile', {
           method: 'GET',
         })
         .then(response => {
