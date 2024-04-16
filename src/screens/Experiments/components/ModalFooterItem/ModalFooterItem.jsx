@@ -34,7 +34,7 @@ export const ModalFooterItem = ({
             stateProp="enabled"
             style={actions === "one" ? "ghost" : "secondary"}
             type="text-icon"
-            onClick={()=>handleButtonClick()}
+            onClick={()=>handleButtonClick(0)}
           />
 
           <Button
@@ -46,6 +46,7 @@ export const ModalFooterItem = ({
             stateProp="enabled"
             style="primary"
             type="text-icon"
+            onClick={()=>handleButtonClick(1)}
           />
 
         </>
