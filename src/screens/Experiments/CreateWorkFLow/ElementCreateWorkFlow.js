@@ -70,12 +70,6 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
     setchooseMd(chooseMd => !chooseMd);
   };
 
-  const handleSaveMdOption = () => {
-    navigate("/exp/result");
-  };
-
-
-
   const handleBackToList = () => {
     let path = '/exp'; 
     navigate(path);
