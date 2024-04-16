@@ -7,13 +7,22 @@ import Typography from '@mui/material/Typography';
 import Modal from '@mui/material/Modal';
 
 import './style.css';
+import { useNavigate } from 'react-router-dom';
 
 
 
-export function NewExperimentModal({ blank }) {
+export function NewExperimentModal({ blank, onSaveClick = ()=>{} }) {
+  let navigate= useNavigate();
   const [open, setOpen] = React.useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
+  const handleButtonClick = (id) => {
+    if(id==0){
+      handleClose();
+    }else{
+      onSaveClick();
+    }
+  }
   return (
     <div >
       <Button
@@ -50,7 +59,7 @@ export function NewExperimentModal({ blank }) {
                 buttonStateProp="disabled"
                 cancel={false}
                 className="design-component-instance-node-2"
-                onClick={handleClose}
+                onClick={handleButtonClick}
               />
             </Box>
           </Modal>

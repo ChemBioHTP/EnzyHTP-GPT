@@ -65,10 +65,15 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
     setChangeBonds(changeBonds => !changeBonds);
   };
 
-  const handleSubmit = () => {
+  const handleChooseMdClick = () => {
 
     setchooseMd(chooseMd => !chooseMd);
   };
+
+  const handleSaveMdOption = () => {
+    navigate("/exp/result");
+  };
+
 
 
   const handleBackToList = () => {
@@ -183,7 +188,8 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
               slotItem={
                 <ModalPanelChoose/>
               }
-              onCloseClick={handleSubmit}
+              onCloseClick={handleChooseMdClick}
+              onSaveClick={handleSaveMdOption}
             />
           </div>
         </>
@@ -248,7 +254,7 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
           stateProp="enabled"
           style="primary"
           type="text-icon"
-          onClick={handleSubmit}
+          onClick={handleChooseMdClick}
         />
       </div>
       
@@ -319,7 +325,7 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
           <div className="frame-15">
             <div className="frame-17">
               <div className="text-wrapper-7">Target metrics</div>
-              <p className="text-wrapper-8">SIP, AI metrics, MMPB/GBSA binding, Trajectories, Stabilities</p>
+              <p className="text-wrapper-8">SPI, AI metrics, MMPB/GBSA binding, Trajectories, Stabilities</p>
             </div>
             <IconEdit3 className="icon-edit" color="#0F62FE" onClick={handleChangeTargetClick} />
           </div>

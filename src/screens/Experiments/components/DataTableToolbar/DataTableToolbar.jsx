@@ -22,7 +22,11 @@ export const DataTableToolbar = ({
   override = <Add8 className="add-2" color="#161616" />,
   buttonIconClassName,
   buttonButtonText = "Button",
+  onSaveClick=()=>{}
 }) => {
+  const handleSaveClick=()=>{
+    onSaveClick();
+  }
   return (
     <div className={`data-table-toolbar ${className}`}>
       <SearchDefault
@@ -74,7 +78,7 @@ export const DataTableToolbar = ({
         style="primary"
         type="text-icon"
       /> */}
-      <NewExperimentModal blank={false} className="new-experiment-modal-instance" />
+      <NewExperimentModal blank={false} className="new-experiment-modal-instance" onSaveClick={handleSaveClick} />
     </div>
   );
 };
