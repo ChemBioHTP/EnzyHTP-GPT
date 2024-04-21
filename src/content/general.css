@@ -1,0 +1,23 @@
+/* This CSS file is to sort out content style sheets for common components. */
+/* Common components include table, button (Submit, Cancel, Inactive, active, ...), drop-down list, etc.*/
+
+.button {
+    /* This class is for common styles of general button elements. */
+    text-align: center;
+}
+
+.button-submit {
+    /* This class is for exclusive styles of button elements for submission purposes (blue background and white chars).*/
+}
+
+.button-cancel {
+    /* This class is for exclusive styles of button elements for cancellation purposes (black background and white chars). */
+}
+
+/* Follow this rule to style buttons for other uses. */
+
+.data-table {
+    /* This class is for table elements. */
+}
+
+/* Follow this rule to style other common components below. */
