@@ -11,7 +11,7 @@ import { DataTableHeader } from "../components/DataTableHeader";
 import { DataTableRowCell } from "../components/DataTableRowCell";
 import HideNav from "../../../assets/images/Experiments/hide-nav.svg"
 
-export const ElementCreateResult = ({ sideVisible = true,  titleText= "My awesome experiment", progerss="zero"}) => {
+export const ElementCreateResult = ({ sideVisible = true,  titleText= "exp-test-03", progerss="zero"}) => {
 
   useEffect(() => {
     if (sideVisible) {
@@ -25,8 +25,8 @@ export const ElementCreateResult = ({ sideVisible = true,  titleText= "My awesom
 
   const cellData = [
     ["WT structure (fixed)",".pdb" ], 
-    ["MD instruction file",".in"], 
-    ["MD constraint file",".rs"],
+    // ["MD instruction file",".in"], 
+    // ["MD constraint file",".rs"],
   ];
 
   const handleBackToList = () => {

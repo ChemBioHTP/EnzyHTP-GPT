@@ -87,7 +87,7 @@ export const FileUploaderDrag = ({ helperText = "Drag and drop files here or cli
       const formData = new FormData();
       formData.append('file', file);
       // Adjust the URL based on your backend setup
-      const response = await fetch('http://127.0.0.1:5000/api/validate_file', {
+      const response = await fetch(`/api/${experiment_id}/validate_file`, {   // We need to save & read experiment_id for current page.
         method: 'POST',
         body: formData,
       });
@@ -99,8 +99,8 @@ export const FileUploaderDrag = ({ helperText = "Drag and drop files here or cli
       setErrorMessage(data.message)
   
     } catch (error) {
-      console.error('Error uploading file', error.message);
-      alert('An error occurred while uploading the file. Please try again.');
+      // console.error('Error uploading file', error.message);
+      // alert('An error occurred while uploading the file. Please try again.');
     }
   };
 
