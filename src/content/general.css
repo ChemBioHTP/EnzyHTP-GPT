@@ -1,23 +1,141 @@
 /* This CSS file is to sort out content style sheets for common components. */
 /* Common components include table, button (Submit, Cancel, Inactive, active, ...), drop-down list, etc.*/
 
+* {
+  transition-duration: 0.3s;
+}
+
+button,
+input,
+th,
+td {
+  /* Display */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: stretch;
+
+  /* Fonts */
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 400;
+  line-height: 18px; /* 128.571% */
+  letter-spacing: 0.16px;
+}
+
 .button {
-    /* This class is for common styles of general button elements. */
-    text-align: center;
+  /* This class is for common styles of general button elements. */
+  padding: 15px var(--64-px-4-rem-spacing-10, 64px) 15px 16px;
+  background-blend-mode: multiply;
+
+  font-size: 14px;
+
+  min-width: max-content;
+  border: 0;
+  cursor: pointer;
+}
+
+.button:hover {
+  opacity: 90%;
+}
+
+.button:active {
+  opacity: 80%;
+}
+
+.button:disabled {
+  color: #8d8d8d;
+  background-color: #c6c6c6;
+  cursor: default;
 }
 
 .button-submit {
-    /* This class is for exclusive styles of button elements for submission purposes (blue background and white chars).*/
+  /* This class is for exclusive styles of button elements for submission purposes (blue background and white chars). */
+  color: white;
+  background-color: #0f62fe;
+}
+
+.button-option {
+  /* This class is for exclusive styles of button elements for non-primary options (white background and blue chars). */
+  color: #0f62fe;
+  background-color: white;
+  border: 1px #0f62fe solid;
 }
 
 .button-cancel {
-    /* This class is for exclusive styles of button elements for cancellation purposes (black background and white chars). */
+  /* This class is for exclusive styles of button elements for cancellation purposes (black background and white chars). */
+  color: white;
+  background-color: #393939;
 }
 
 /* Follow this rule to style buttons for other uses. */
 
+.input-text {
+  /* Textbox */
+  height: 40px;
+  padding: 15px 16px;
+  gap: 16px;
+
+  font-size: 16px;
+
+  border: none;
+  border-bottom: 1px solid var(--Border-border-strong-01, #8d8d8d);
+  background: var(--Field-field-01, #f4f4f4);
+}
+
+.input-error {
+  /* Error Input, including text and file. */
+
+  border: 2px solid var(--Support-support-error, rgb(213, 0, 0));
+  background: var(--Field-field-01, #f4f4f4);
+}
+
 .data-table {
-    /* This class is for table elements. */
+  /* This class is for table elements. */
+  min-width: max-content;
+  border-collapse: collapse;
+  border: none;
+}
+
+.data-table > thead {
+  background: #e0e0e0;
+}
+
+.data-table > tbody {
+  background: #fff;
+}
+
+.data-table tr {
+  display: table-row;
+  border-bottom: 1px #e0e0e0 solid;
+}
+
+.data-table > tbody > tr:hover {
+  /* background-color: lightblue; */
+  border-bottom: 1px #161616 solid;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  display: table-cell;
+
+  height: 32px;
+  width: auto;
+
+  padding: 7px 16px;
+
+  font-size: 15px;
+}
+
+.data-table th {
+  color: #161616;
+  font-weight: 600;
+}
+
+.data-table td {
+  color: #525252;
+  font-weight: 400;
 }
 
 /* Follow this rule to style other common components below. */
