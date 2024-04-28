@@ -3,7 +3,11 @@
 
 * {
   transition-duration: 0.3s;
+  font-family: "IBM Plex Sans";
+  font-style: normal;
 }
+
+/* Elementary Components */
 
 button,
 input,
@@ -16,14 +20,12 @@ td {
   align-self: stretch;
 
   /* Fonts */
-  font-family: "IBM Plex Sans";
-  font-style: normal;
   font-weight: 400;
   line-height: 18px; /* 128.571% */
   letter-spacing: 0.16px;
 }
 
-.button {
+button {
   /* This class is for common styles of general button elements. */
   padding: 15px var(--64-px-4-rem-spacing-10, 64px) 15px 16px;
   background-blend-mode: multiply;
@@ -35,18 +37,24 @@ td {
   cursor: pointer;
 }
 
-.button:hover {
+button:hover {
   opacity: 90%;
+  border-radius: 10px;
 }
 
-.button:active {
+button:active {
   opacity: 80%;
 }
 
-.button:disabled {
+button:disabled {
   color: #8d8d8d;
   background-color: #c6c6c6;
   cursor: default;
+}
+
+button:disabled:hover {
+  opacity: 100%;
+  border-radius: 0;
 }
 
 .button-submit {
@@ -68,6 +76,16 @@ td {
   background-color: #393939;
 }
 
+.description {  /* Description texts in components. */
+  align-self: stretch;  /* Active in Flex display.*/
+  
+  color: #525252;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px; /* 166.667% */
+  letter-spacing: 0.16px;
+}
+
 /* Follow this rule to style buttons for other uses. */
 
 .input-text {
@@ -79,15 +97,15 @@ td {
   font-size: 16px;
 
   border: none;
-  border-bottom: 1px solid var(--Border-border-strong-01, #8d8d8d);
-  background: var(--Field-field-01, #f4f4f4);
+  border-bottom: 1px solid #8d8d8d;
+  background: #f4f4f4;
 }
 
 .input-error {
   /* Error Input, including text and file. */
 
   border: 2px solid var(--Support-support-error, rgb(213, 0, 0));
-  background: var(--Field-field-01, #f4f4f4);
+  background: #f4f4f4;
 }
 
 .data-table {
@@ -136,6 +154,81 @@ td {
 .data-table td {
   color: #525252;
   font-weight: 400;
+}
+
+/* Intermediate Components */
+.workflow-tile {
+  display: flex;
+  padding: 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  flex: 1 0 0;
+  flex-shrink: 0;
+  
+  width: 195px;
+  height: 116px;
+  align-self: stretch;
+
+  border-radius: 3px;
+  background-color: #E7F1FF;
+}
+
+.workflow-tile:hover {
+  background-color: #CDE1FC;
+}
+
+.workflow-tile > h5 {
+  margin: 0;
+  align-self: stretch;
+
+  color: #161616;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px; /* 150% */
+}
+
+.mutant-generation-textarea {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-shrink: 0;
+
+  /* position: relative; */
+  width: 480px;
+  height: 140px;
+  padding: 10px 10px 8px 10px;
+  background-color: white;
+  /* border: 1px black solid; */
+  border-radius: 3px;
+}
+
+.mutant-generation-textarea > textarea {
+  border: none;
+  border-radius: 3px;
+  color: #161616;
+  width: 100%;
+  height: 100%;
+
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px; /* 150% */
+
+  resize: none;
+}
+
+.mutant-generation-textarea > textarea:focus {
+  outline: 1px rgba(128, 128, 128, 0.6) dashed;
+}
+
+.mutant-generation-textarea > .button-submit {
+  align-self: flex-end;
+  margin-top: 0.4em;
+  border-radius: 5px;
+
+  line-height: 8px;
+  min-width: fit-content;
 }
 
 /* Follow this rule to style other common components below. */
