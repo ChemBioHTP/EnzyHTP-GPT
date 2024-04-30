@@ -1,23 +1,333 @@
 /* This CSS file is to sort out content style sheets for common components. */
 /* Common components include table, button (Submit, Cancel, Inactive, active, ...), drop-down list, etc.*/
 
-.button {
-    /* This class is for common styles of general button elements. */
-    text-align: center;
+* {
+  transition-duration: 0.3s;
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+}
+
+/* Elementary Components */
+
+button,
+input,
+th,
+td {
+  /* Display */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: stretch;
+
+  /* Fonts */
+  font-weight: 400;
+  line-height: 18px; /* 128.571% */
+  letter-spacing: 0.16px;
+}
+
+button {
+  /* This class is for common styles of general button elements. */
+  padding: 15px var(--64-px-4-rem-spacing-10, 64px) 15px 16px;
+  background-blend-mode: multiply;
+
+  font-size: 14px;
+
+  min-width: max-content;
+  border: 0;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: 90%;
+  border-radius: 10px;
+}
+
+button:active {
+  opacity: 80%;
+}
+
+button:disabled {
+  color: #8d8d8d;
+  background-color: #c6c6c6;
+  cursor: default;
+}
+
+button:disabled:hover {
+  opacity: 100%;
+  border-radius: 0;
 }
 
 .button-submit {
-    /* This class is for exclusive styles of button elements for submission purposes (blue background and white chars).*/
+  /* This class is for exclusive styles of button elements for submission purposes (blue background and white chars). */
+  color: white;
+  background-color: #0f62fe;
+}
+
+.button-option {
+  /* This class is for exclusive styles of button elements for non-primary options (white background and blue chars). */
+  color: #0f62fe;
+  background-color: white;
+  border: 1px #0f62fe solid;
 }
 
 .button-cancel {
-    /* This class is for exclusive styles of button elements for cancellation purposes (black background and white chars). */
+  /* This class is for exclusive styles of button elements for cancellation purposes (black background and white chars). */
+  color: white;
+  background-color: #393939;
+}
+
+.filename { /* Filename texts in components. */
+  height: 18px;
+  width: fit-content;
+  flex: 1 0 0;
+
+  color: #161616;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 18px; /* 128.571% */
+  letter-spacing: 0.16px;
+}
+
+.description {  /* Description texts in components. */
+  align-self: stretch;  /* Active in Flex display.*/
+  
+  color: #525252;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px; /* 166.667% */
+  letter-spacing: 0.16px;
 }
 
 /* Follow this rule to style buttons for other uses. */
 
+.input-text {
+  /* Textbox */
+  height: 40px;
+  padding: 15px 16px;
+  gap: 16px;
+
+  font-size: 16px;
+
+  border: none;
+  border-bottom: 1px solid #8d8d8d;
+  background: #f4f4f4;
+}
+
+.input-error {
+  /* Error Input, including text and file. */
+
+  border: 2px solid var(--Support-support-error, rgb(213, 0, 0));
+  background: #f4f4f4;
+}
+
 .data-table {
-    /* This class is for table elements. */
+  /* This class is for table elements. */
+  min-width: max-content;
+  border-collapse: collapse;
+  border: none;
+}
+
+.data-table > thead {
+  background: #e0e0e0;
+}
+
+.data-table > tbody {
+  background: #fff;
+}
+
+.data-table tr {
+  display: table-row;
+  border-bottom: 1px #e0e0e0 solid;
+}
+
+.data-table > tbody > tr:hover {
+  /* background-color: lightblue; */
+  border-bottom: 1px #161616 solid;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  display: table-cell;
+
+  height: 32px;
+  width: auto;
+
+  padding: 7px 16px;
+
+  font-size: 15px;
+}
+
+.data-table th {
+  color: #161616;
+  font-weight: 600;
+}
+
+.data-table td {
+  color: #525252;
+  font-weight: 400;
+}
+
+/* Intermediate Components */
+.workflow-tile {
+  display: flex;
+  padding: 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  flex: 1 0 0;
+  flex-shrink: 0;
+  
+  width: 195px;
+  height: 116px;
+  align-self: stretch;
+
+  border-radius: 3px;
+  background-color: #E7F1FF;
+}
+
+.workflow-tile:hover {
+  background-color: #CDE1FC;
+}
+
+.workflow-tile > h5 {
+  margin: 0;
+  align-self: stretch;
+
+  color: #161616;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px; /* 150% */
+}
+
+.mutant-generation-textarea {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-shrink: 0;
+
+  /* position: relative; */
+  width: 480px;
+  height: 140px;
+  padding: 10px 10px 8px 10px;
+  background-color: white;
+  /* border: 1px black solid; */
+  border-radius: 3px;
+}
+
+.mutant-generation-textarea > textarea {
+  border: none;
+  border-radius: 3px;
+  color: #161616;
+  width: 100%;
+  height: 100%;
+
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px; /* 150% */
+
+  resize: none;
+}
+
+.mutant-generation-textarea > textarea:focus {
+  outline: 1px rgba(128, 128, 128, 0.6) dashed;
+}
+
+.mutant-generation-textarea > .button-submit {
+  align-self: flex-end;
+  margin-top: 0.4em;
+  border-radius: 5px;
+
+  line-height: 8px;
+  min-width: fit-content;
+}
+
+
+.progress-status-bar {
+  display: flex;
+  padding: 15px 16px;
+  align-items: center;
+  gap: 16px;
+  align-self: stretch;
+
+  background-color: white;
+  border-radius: 3px;
+  height: 32px;
+}
+
+.progress-status-bar > span {
+  background: #0f62fe;
+  color: white;
+
+  border-radius: 16px;
+  font-weight: 600;
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  text-align: center;
+}
+
+.accordion-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: stretch;
+
+  border-radius: 100px;
+  background: #D0E2FF;
+  padding: 12px 20px;
+
+  color: #0043CE;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px; /* 133.333% */
+  letter-spacing: 0.32px;
+}
+
+.experiment-header {
+  display: flex;
+  padding: 24px 32px;
+  justify-content: space-between;
+  align-items: center;
+
+  background: #F4F4F4;
+}
+
+.experiment-header > .header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.experiment-header > .header-buttons > button {
+  background-color: transparent;
+  align-items: center;
+  margin: 6px;
+  padding: 4px;
+  
+  height: 30px;
+  width: 30px;
+
+  border: none;
+
+  line-height: 18px;
+  font-size: 18px;
+  color: black;
+  font-weight: 600;
+}
+
+.experiment-header > .header-buttons > #experiment-info-btn {
+  border: 2px black solid;
+  border-radius: 20px;
+}
+
+.experiment-header > .header-buttons > button:hover {
+  color: #0f62fe;
+}
+
+.experiment-header > .header-buttons > button:active {
+  color: #0fb6fe;
 }
 
 /* Follow this rule to style other common components below. */
