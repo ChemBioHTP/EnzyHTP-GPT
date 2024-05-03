@@ -43,6 +43,7 @@ export const FileUploaderDrag = ({ helperText = "Drag and drop files here or cli
   const fileInputRef = useRef(null);
   const [valid, setValid] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [experiment_id, setExperimentId] = useState(0);
   let navigate = useNavigate();
 
   const routeChange = () => {

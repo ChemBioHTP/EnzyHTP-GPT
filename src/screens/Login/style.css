@@ -140,6 +140,7 @@
     position: relative;
     white-space: nowrap;
     width: fit-content;
+    display: flex;
 }
 
 .element-landing-screen .frame-4 {
@@ -162,6 +163,7 @@
     position: relative;
     white-space: nowrap;
     width: fit-content;
+    display: flex;
 }
 
 .element-landing-screen .text-wrapper-5 {

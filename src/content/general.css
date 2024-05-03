@@ -27,7 +27,7 @@ td {
 
 button {
   /* This class is for common styles of general button elements. */
-  padding: 15px var(--64-px-4-rem-spacing-10, 64px) 15px 16px;
+  padding: 15px var(--64-px-4-rem-spacing-10, 16px) 15px 16px;
   background-blend-mode: multiply;
 
   font-size: 14px;
@@ -38,8 +38,8 @@ button {
 }
 
 button:hover {
-  opacity: 90%;
-  border-radius: 10px;
+  opacity: 80%;
+  /* border-radius: 10px; */
 }
 
 button:active {
@@ -57,23 +57,23 @@ button:disabled:hover {
   border-radius: 0;
 }
 
-.button-submit {
+.button-primary {
   /* This class is for exclusive styles of button elements for submission purposes (blue background and white chars). */
   color: white;
   background-color: #0f62fe;
 }
 
-.button-option {
+.button-secondary {
+  /* This class is for exclusive styles of button elements for cancellation purposes (black background and white chars). */
+  color: white;
+  background-color: #393939;
+}
+
+.button-tertiary {
   /* This class is for exclusive styles of button elements for non-primary options (white background and blue chars). */
   color: #0f62fe;
   background-color: white;
   border: 1px #0f62fe solid;
-}
-
-.button-cancel {
-  /* This class is for exclusive styles of button elements for cancellation purposes (black background and white chars). */
-  color: white;
-  background-color: #393939;
 }
 
 .filename { /* Filename texts in components. */
@@ -116,9 +116,15 @@ button:disabled:hover {
 .input-error {
   /* Error Input, including text and file. */
 
-  border: 2px solid var(--Support-support-error, rgb(213, 0, 0));
+  border: 3px solid var(--Support-support-error, rgb(213, 0, 0));
   background: #f4f4f4;
 }
+
+.input-error:focus {
+  border: 3px solid  rgb(213, 0, 0);
+  outline: none;
+}
+
 
 .data-table {
   /* This class is for table elements. */

@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useState, useReducer, useEffect} from 'react';
 // Components
 import { IconArrowRight } from "./icons/IconArrowRight/IconArrowRight";
-import { Button } from "./components/Button/Button";
-import { TextInputDefault } from "./components/TextInputDefault/TextInputDefault";
+import { Button } from "../../components/Button/Button";
+import { TextInputDefault } from "../../components/TextInputDefault/TextInputDefault";
 import { Link } from 'react-router-dom';
 import Cookies from 'js-cookie';
 

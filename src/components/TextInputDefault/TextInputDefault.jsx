@@ -6,8 +6,10 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 import PropTypes from "prop-types";
 import React from "react";
 import { useState, useRef, useEffect } from 'react';
-import { WarningFilled } from "../../icons/WarningFilled";
+import { WarningFilled } from "../../screens/Login/icons/WarningFilled";
 import "./style.css";
+import "../../content/general.css";
+
 import { Link } from "react-router-dom";
 
 export const TextInputDefault = ({
@@ -48,16 +50,15 @@ export const TextInputDefault = ({
         {showLink && (
           <div className="link-margin">{showLink && <Link className="link-text" to={linkHerf}>{linkText}</Link>}</div>
         )}
-
       </div>
-      <div className={`text-input  ${state}`}>  
+      <div className="text-input">  
         <input
-          className={`input`}
+          className="input"
           placeholder={state === "enabled" ? placeholderText : undefined}
           type={inputType}
           value={inputValue}
           onChange={handleInputChange}
-        />     
+        />
         
         <div className="overlap-error">
           {state === "error" && <WarningFilled className="instance-node" />}
