@@ -6,33 +6,22 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 import PropTypes from "prop-types";
 import React from "react";
 import { useState, useRef, useEffect } from 'react';
-import { WarningAltFilled } from "../../icons/WarningAltFilled";
 import { WarningFilled } from "../../icons/WarningFilled";
 import "./style.css";
 import { Link } from "react-router-dom";
 
 export const TextInputDefault = ({
-  countText = "0/100",
   labelText = "Label",
   linkText = "Link",
   linkHerf = "/",
   showLabel = true,
   showLink = false,
-  showCount = false,
-  inputText = "Input text",
   inputDefault = "Default text",
   placeholderText = "Placeholder text (optional)",
   errorText = "Error message goes here",
-  showHelper = true,
-  helperText = "Optional helper text",
-  warningText = "Warning message goes here",
-  size,
   state,
-  textFilled,
   textDefault = false,
   className,
-  spacerClassName,
-  backgroundClassName,
   inputType = "text",
   onInputChange,
 }) => {
@@ -52,101 +41,32 @@ export const TextInputDefault = ({
 
   return (
     <div className={`text-input-default ${state} ${className}`}>
-      {["active", "disabled", "enabled", "focus", "read-only", "error", "warning"].includes(state) && (
-        <div className="label-character">
-          {showLabel && (
-            <div className="label-margin">{showLabel && <div className="label-text">{labelText}</div>}</div>
-          )}
-          {showLink && (
-            <div className="link-margin">{showLink && <Link className="link-text" to={linkHerf}>{linkText}</Link>}</div>
-          )}
-          <div className={`spacer ${spacerClassName}`} />
+      <div className="label-character">
+        {showLabel && (
+          <div className="label-margin">{showLabel && <div className="label-text">{labelText}</div>}</div>
+        )}
+        {showLink && (
+          <div className="link-margin">{showLink && <Link className="link-text" to={linkHerf}>{linkText}</Link>}</div>
+        )}
+
+      </div>
+      <div className={`text-input  ${state}`}>  
+        <input
+          className={`input`}
+          placeholder={state === "enabled" ? placeholderText : undefined}
+          type={inputType}
+          value={inputValue}
+          onChange={handleInputChange}
+        />     
+        
+        <div className="overlap-error">
+          {state === "error" && <WarningFilled className="instance-node" />}
         </div>
-      )}
-      {["active", "disabled", "enabled", "focus", "read-only", "error", "warning"].includes(state) && (
-        <div className={["error", "warning"].includes(state) ? `text-input state-5-${state} size-0-${size}`:`text-input state-0-${state} ${size} text-filled-${textFilled}`}>
-          {size === "large" && (!textFilled || state === "read-only") && ["enabled", "read-only","error"].includes(state) && (
-            <>
-              <div className="status-icon">
-                <div className="overlap-group">
-                  <div className="fill" />
-                  {state === "warning" && <WarningAltFilled className="instance-node" />}
-
-                  {state === "error" && <WarningFilled className="instance-node" />}
-                </div>
-              </div>
-
-              <div className="text-overflow">
-
-                <input
-                  className={`input text-filled-2-${textFilled}`}
-                  placeholder={state === "enabled" && !textFilled ? placeholderText : textFilled ? inputText : undefined}
-                  type={inputType}
-                  value={inputValue}
-                  onChange={handleInputChange}
-                />
-                <div className="spacer-2" />
-
-              </div>
-              
-              {["active", "disabled", "enabled", "focus", "read-only"].includes(state) && (
-                <div className={`background ${backgroundClassName}`} />
-              )}
-              
-            </>
-          )}
-
-          {((size === "large" && state === "active") ||
-            (size === "large" && state === "disabled") ||
-            (size === "large" && state === "enabled" && textFilled) ||
-            (size === "large" && state === "focus") ||
-            size === "medium" ||
-            size === "small") && (
-            <div className="placeholder-text-wrapper">
-              <div className="placeholder-text">
-                {(state === "disabled" || state === "focus" || (!textFilled && state === "enabled")) && (
-                  <>{placeholderText}</>
-                )}
-
-                {textFilled && <>{inputText}</>}
-
-                {state === "read-only" && !textFilled && <>No input text</>}
-              </div>
-            </div>
-          )}
+      </div>
+      {(state === "error") && (
+        <div className="helper-text">    
+          {errorText}
         </div>
-      )}
-
-      {state === "skeleton" && (
-        <>
-          <>
-            {showLabel && (
-              <div className="label-skeleton">
-                <div className="label-text-line" />
-              </div>
-            )}
-          </>
-          <div className={`text-input-box size-${size}`} />
-        </>
-      )}
-
-      {["active", "disabled", "enabled", "focus", "read-only", "skeleton", "warning", "error"].includes(state) && (
-        <>
-          <div className="helper-text-margin">
-            {showHelper && (
-              <div className="optional-helper-text">
-                {["active", "disabled", "enabled", "focus", "read-only"].includes(state) && <>{helperText}</>}
-              </div>
-            )}
-            {["warning", "error"].includes(state) &&(
-              <div className="warning-message-goes">
-                {state === "warning" && <>{warningText}</>}
-
-                {state === "error" && <>{errorText}</>}
-              </div>
-            )}
-          </div>
-        </>
       )}
     </div>
   );
@@ -156,16 +76,11 @@ TextInputDefault.propTypes = {
   countText: PropTypes.string,
   labelText: PropTypes.string,
   showLabel: PropTypes.bool,
-  showCount: PropTypes.bool,
   inputText: PropTypes.string,
   inputDefault: PropTypes.string,
   placeholderText: PropTypes.string,
   errorText: PropTypes.string,
-  showHelper: PropTypes.bool,
-  helperText: PropTypes.string,
-  warningText: PropTypes.string,
-  size: PropTypes.oneOf(["large", "medium", "small"]),
-  state: PropTypes.oneOf(["warning", "active", "enabled", "focus", "read-only", "skeleton", "error", "disabled"]),
+  state: PropTypes.oneOf(["enabled", "error"]),
   textFilled: PropTypes.bool,
   textDefault: PropTypes.bool,
   textHidden: PropTypes.bool,
