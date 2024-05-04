@@ -69,6 +69,12 @@ button:disabled:hover {
   background-color: #393939;
 }
 
+.button-danger {
+  /* This class is for exclusive styles of button elements for cancellation purposes (black background and white chars). */
+  color: white;
+  background-color: brown;
+}
+
 .button-tertiary {
   /* This class is for exclusive styles of button elements for non-primary options (white background and blue chars). */
   color: #0f62fe;

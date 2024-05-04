@@ -41,7 +41,7 @@ export const Button = ({
   return (
     <>
       <button
-        className={`button-${state.format}`}
+        className={`button-${state.format} ${className}`}
         onMouseEnter={() => {
           dispatch(disabled? "button_disabled": "mouse_enter");
         }}
@@ -51,8 +51,8 @@ export const Button = ({
         disabled = {disabled}
       >
         <div class="button-content">
-          {buttonText}
-          <div className="button-icon">{override}</div>
+          {type==="text-icon"&&(<>{buttonText}</>)}
+          {icon&&(<div className="button-icon">{override}</div>)}
         </div>
       </button>
     </>

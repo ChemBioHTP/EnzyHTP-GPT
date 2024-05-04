@@ -55,7 +55,7 @@
 
 .text-input-default .error {
   background-color: var(--fieldfield-01);
-  border: 3px solid;
+  border: 2px solid;
   border-color: var(--supportsupport-error);
 }
 

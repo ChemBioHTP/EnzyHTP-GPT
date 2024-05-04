@@ -1,7 +1,7 @@
 import React from "react";
 import { Accordion } from "../components/Accordion"
 import { useState, useReducer, useEffect} from 'react';
-import { Button } from "../components/Button";
+import { Button } from "../../../components/Button";
 import { DirectionHorizontalWrapper } from "../components/DirectionHorizontalWrapper";
 import { DataTableHeader } from "../components/DataTableHeader"
 import { DataTableRowCell } from "../components/DataTableRowCell"

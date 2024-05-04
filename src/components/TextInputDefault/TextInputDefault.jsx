@@ -42,7 +42,7 @@ export const TextInputDefault = ({
   }, []);
 
   return (
-    <div className={`text-input-default ${state} ${className}`}>
+    <div className={`text-input-default ${className}`}>
       <div className="label-character">
         {showLabel && (
           <div className="label-margin">{showLabel && <div className="label-text">{labelText}</div>}</div>
@@ -51,7 +51,7 @@ export const TextInputDefault = ({
           <div className="link-margin">{showLink && <Link className="link-text" to={linkHerf}>{linkText}</Link>}</div>
         )}
       </div>
-      <div className="text-input">  
+      <div className={`text-input ${state}`}>  
         <input
           className="input"
           placeholder={state === "enabled" ? placeholderText : undefined}
