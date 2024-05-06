@@ -151,7 +151,7 @@ export const ElementSignUpScreen = () => {
                         size="large"
                         stateProp={state.bottonState}
                         disabled={state.bottonDisabled}
-                        format="primary"
+                        style="primary"
                         type="text-icon"
                     />
                 </div>
@@ -175,7 +175,7 @@ export const ElementSignUpScreen = () => {
                     override={<IconArrowRight className="icon-arrow-right" />}
                     size="large"
                     stateProp="enabled"
-                    format="tertiary"
+                    style="tertiary"
                     type="text-icon"
                 />                          
             </div>

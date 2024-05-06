@@ -10,6 +10,7 @@ import { Search } from "../icons/Search";
 import { IconSliders } from "../icons/IconSliders";
 import { IconTrash2 } from "../icons/IconTrash2";
 import "./style.css";
+import { DataTableHeader } from "../components/DataTableHeader";
 
 export const ElementExperimentsList = ({ sideVisible = true, experiments=[], createNewExp=()=>{}}) => {
 
@@ -62,7 +63,7 @@ export const ElementExperimentsList = ({ sideVisible = true, experiments=[], cre
             onSaveClick={createNewExp}
           />
           <div className="overlap-group">  
-          <DataTableRowItem
+          {/* <DataTableRowItem
             className="data-table-row-item-instance"
             dataTableRowCellCellText="Name"
             dataTableRowCellCellText1="Type"
@@ -96,8 +97,12 @@ export const ElementExperimentsList = ({ sideVisible = true, experiments=[], cre
             state="enabled"
             type="body"
             visible={false}
-          />
-          {experiments.map((experiment, index) => (
+            /> */}
+            <DataTableHeader
+              headerData={["Name", "Type", "Status", "Description", "Metrics", "Date Created", "Date Updated"]}
+              cellData={undefined}
+            />
+          {/* {experiments.map((experiment, index) => (
             <DataTableRowItem
             key={index}
             className="data-table-row-item-9"
@@ -119,7 +124,7 @@ export const ElementExperimentsList = ({ sideVisible = true, experiments=[], cre
             type="header"
             visible1={false}
             />
-          ))}
+          ))} */}
         </div>
       </>
       );

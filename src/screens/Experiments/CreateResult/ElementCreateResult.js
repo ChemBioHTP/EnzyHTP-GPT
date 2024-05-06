@@ -107,15 +107,10 @@ export const ElementCreateResult = ({ sideVisible = true,  titleText= "exp-test-
         <div className="frame-15">
           <div className="data-table-row-item">
             <DataTableHeader
-              cellText="Name"
-              className="col"
-              resizerResizerClassName="col-2"
-              size="small"
-              sortable={false}
-              sorted="none"
-              stateProp="enabled"
+              headerData={["Name", "Format"]}
+              cellData={cellData}
             />
-            <DataTableHeader
+            {/* <DataTableHeader
               cellText="Format"
               className="data-table-header-cell-item"
               resizerResizerClassName="col-3"
@@ -123,9 +118,9 @@ export const ElementCreateResult = ({ sideVisible = true,  titleText= "exp-test-
               sortable={false}
               sorted="none"
               stateProp="enabled"
-            />
+            /> */}
           </div>
-          {cellData.map((item, index) => (
+          {/* {cellData.map((item, index) => (
             <div className="data-table-row-item-2" key={index}>
               <div className="data-table-row">
                 <DataTableRowCell
@@ -147,7 +142,7 @@ export const ElementCreateResult = ({ sideVisible = true,  titleText= "exp-test-
               </div>
               <div className="divider-3" />
             </div>
-          ))}
+          ))} */}
 
         </div>
       </div>

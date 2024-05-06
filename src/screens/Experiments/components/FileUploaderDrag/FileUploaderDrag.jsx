@@ -31,7 +31,7 @@ import React from "react";
 import { PropTypes } from "prop-types";
 import "./style.css";
 import { useState, useRef } from "react";
-import { Button } from "../../../CreateMutants/components/Button";
+import { Button } from "../../../../components/Button";
 import { IconArrowRight1 } from "../../../CreateMutants/icons/IconArrowRight1";
 import { useNavigate } from "react-router-dom";
 

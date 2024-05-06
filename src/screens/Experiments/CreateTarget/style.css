@@ -7,7 +7,7 @@
   width: 100%;
   height: 100%;
   position: relative;
-  left: var(--create-left-distance);
+  left: 0;
 }
 
 .element-create-target .div-2 {

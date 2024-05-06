@@ -1,4 +1,4 @@
-.text-input-default {
+/* .text-input-default {
   align-items: flex-start;
   align-self: stretch;
   text-align: left;
@@ -15,7 +15,7 @@
   font-weight: var(--utility-styles-label-01-font-weight);
   letter-spacing: var(--utility-styles-label-01-letter-spacing);
   line-height: var(--utility-styles-label-01-line-height);
-}
+} */
 
 .text-input-default .label-character {
   width: 100%;
@@ -47,7 +47,7 @@
   margin-top: -1px;
 }
 
-.text-input-default .enabled {
+/* .text-input-default .enabled {
   background-color: var(--fieldfield-01);
   border-bottom: 1px solid;
   border-color: var(--borderborder-strong-01);
@@ -57,7 +57,7 @@
   background-color: var(--fieldfield-01);
   border: 2px solid;
   border-color: var(--supportsupport-error);
-}
+} */
 
 
 .text-input-default .text-input {

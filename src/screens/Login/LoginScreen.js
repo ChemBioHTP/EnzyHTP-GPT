@@ -29,6 +29,7 @@ export const ElementLoginScreen = () => {
       formData.append('email', email);
       formData.append('password', pwd);
       formData.append('remember', rememberId);
+
       await fetch('/api/auth/login', {
         method: 'POST',
         body: formData,   
@@ -178,7 +179,7 @@ export const ElementLoginScreen = () => {
                       size="large"
                       stateProp={state.bottonState}
                       disabled={state.bottonDisabled}
-                      format="primary"
+                      style="primary"
                       type="text-icon"
                   />
               </div>
@@ -202,7 +203,7 @@ export const ElementLoginScreen = () => {
                   override={<IconArrowRight className="icon-arrow-right" />}
                   size="large"
                   stateProp="enabled"
-                  format="tertiary"
+                  style="tertiary"
                   type="text-icon"
               />
           </div>

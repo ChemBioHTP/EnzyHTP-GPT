@@ -40,7 +40,7 @@ export const ModalPanelChoose = ({ className, onClickEidt = () => { } }) => {
           className="tile-instance"
           descText="Ideal if you don't have a service or prefer convenience. May take longer."
           type="single-select"
-          stateProp={tileSelected1?"enabled-selected":"enabled"}
+          stateProp={tileSelected1?"selected":"enabled"}
           onClick={()=>handleTileChange(1)}
         />
         <Tile
@@ -48,7 +48,7 @@ export const ModalPanelChoose = ({ className, onClickEidt = () => { } }) => {
           className="tile-instance"
           descText="Ideal if you have your own tool or service to run the MD simulation."
           type="single-select"
-          stateProp={tileSelected2?"enabled-selected":"enabled"}
+          stateProp={tileSelected2?"selected":"enabled"}
           onClick={()=>handleTileChange(2)}
         />
       </div>

@@ -7,7 +7,7 @@ import PropTypes from "prop-types";
 import React from "react";
 import { Add8 } from "../../icons/Add8";
 import { Search } from "../../icons/Search";
-import { Button } from "../Button";
+import { Button } from "../../../../components/Button";
 import { SearchDefault } from "../SearchDefault";
 import "./style.css";
 
