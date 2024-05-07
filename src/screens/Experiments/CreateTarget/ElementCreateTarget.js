@@ -3,9 +3,6 @@ import { Accordion } from "../components/Accordion"
 import { useState, useReducer, useEffect} from 'react';
 import { Button } from "../../../components/Button";
 import { DirectionHorizontalWrapper } from "../components/DirectionHorizontalWrapper";
-import { DataTableHeader } from "../components/DataTableHeader"
-import { DataTableRowCell } from "../components/DataTableRowCell"
-import { GenerateStatusBar } from "../components/GenerateStatusBar"
 import { ModalPanel } from "../components/ModalPanel";
 import { ModalPanelTargets } from "../components/ModalPanelTargets";
 import { NavigationPage } from "../components/NavigationPage";
@@ -22,6 +19,8 @@ import line3 from "../../../assets/images/Experiments/line-1.svg"
 import { AccordionToggle } from "../components/AccordionToggle";
 import { ExperimentOverview } from "../components/ExperimentOverview";
 import { useNavigate } from "react-router-dom";
+import { DataTable } from "../../../components/DataTable";
+import { ProgressStatusBar } from "../../../components/ProgressStatusBar";
 
 export const ElementCreateTarget = ({ sideVisible=true, titleText= "Example experiment 01", onClickWrapper = () => { }}) => {
 
@@ -153,7 +152,7 @@ export const ElementCreateTarget = ({ sideVisible=true, titleText= "Example expe
           <div className="label-6">Mutation generated</div>
           <div className="frame-15">
             <div className="data-table-row-item">
-              <DataTableHeader
+              <DataTable
                 headerData={["Number", "Pattern"]}
                 cellData={cellData}
               />
@@ -168,9 +167,9 @@ export const ElementCreateTarget = ({ sideVisible=true, titleText= "Example expe
           />
           <FloatingComponent isOpen={isModalOpen} onClose={toggleModal}  />
         </div>
-        <GenerateStatusBar
+        <ProgressStatusBar
           className="file-uploader-file-item"
-          fileName="Your prompt has been successfully parsed."
+          text="Your prompt has been successfully parsed."
           size="large"
           state="success"
         />

@@ -263,7 +263,7 @@ button:disabled:hover {
   outline: 1px rgba(128, 128, 128, 0.6) dashed;
 }
 
-.mutant-generation-textarea > .button-submit {
+.mutant-generation-textarea > .button-primary {
   align-self: flex-end;
   margin-top: 0.4em;
   border-radius: 5px;
@@ -275,14 +275,14 @@ button:disabled:hover {
 
 .progress-status-bar {
   display: flex;
-  padding: 15px 16px;
+  /* padding: 15px 16px; */
   align-items: center;
   gap: 16px;
   align-self: stretch;
 
   background-color: white;
   border-radius: 3px;
-  height: 32px;
+  /* height: 32px; */
 }
 
 .progress-status-bar > span {

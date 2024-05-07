@@ -5,15 +5,10 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 
 import PropTypes from "prop-types";
 import React from "react";
-import { useReducer } from "react";
-import { ArrowDown5 } from "../../icons/ArrowDown5";
-import { ArrowUp5 } from "../../icons/ArrowUp5";
-import { ArrowsVertical } from "../../icons/ArrowsVertical";
-import { Resizer } from "../Resizer";
 import "./style.css";
-import "../../../../content/general.css"
+import "../../content/general.css"
 
-export const DataTableHeader = ({
+export const DataTable = ({
   headerData=["header1, header2"],
   cellData = [["cell1", "cell2"],["cell1", "cell2"]],
   className,
@@ -42,7 +37,7 @@ export const DataTableHeader = ({
 };
 
 
-DataTableHeader.propTypes = {
+DataTable.propTypes = {
   headerData: PropTypes.array,
   cellData: PropTypes.array,
 };

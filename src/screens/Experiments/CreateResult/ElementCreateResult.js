@@ -7,9 +7,9 @@ import "./style.css";
 import { useNavigate } from "react-router-dom";
 import {ProgressBarTrack} from "../components/ProgressBarTrack"
 import  progressImage from "../../../assets/images/Experiments/ElementCreateResult/health-care-health-research.png"
-import { DataTableHeader } from "../components/DataTableHeader";
 import { DataTableRowCell } from "../components/DataTableRowCell";
 import HideNav from "../../../assets/images/Experiments/hide-nav.svg"
+import { DataTable } from "../../../components/DataTable";
 
 export const ElementCreateResult = ({ sideVisible = true,  titleText= "exp-test-03", progerss="zero"}) => {
 
@@ -106,7 +106,7 @@ export const ElementCreateResult = ({ sideVisible = true,  titleText= "exp-test-
         </div>
         <div className="frame-15">
           <div className="data-table-row-item">
-            <DataTableHeader
+            <DataTable
               headerData={["Name", "Format"]}
               cellData={cellData}
             />

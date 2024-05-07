@@ -5,7 +5,7 @@ import { NavigationHeader } from "../components/NavigationHeader";
 import { NavigationPage } from "../components/NavigationPage";
 import { NavigationSideNav } from "../components/NavigationSideNav";
 import { TabsItems } from "../components/TabsItems";
-import { Tile } from "../components/Tile";
+import { Tile } from "../../../components/Tile";
 import { CheckmarkOutline } from "../icons/CheckmarkOutline";
 import { IconAlertCircle2 } from "../icons/IconAlertCircle2";
 import { IconArrowRight } from "../icons/IconArrowRight";

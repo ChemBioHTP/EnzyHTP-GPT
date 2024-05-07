@@ -1,6 +1,5 @@
 import React from "react";
 import { useState, useEffect } from "react";
-import { DataTableRowItem } from "../components/DataTableRowItem";
 import { DataTableToolbar } from "../components/DataTableToolbar";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { NavigationSideNav } from "../components/NavigationSideNav";
@@ -10,7 +9,7 @@ import { Search } from "../icons/Search";
 import { IconSliders } from "../icons/IconSliders";
 import { IconTrash2 } from "../icons/IconTrash2";
 import "./style.css";
-import { DataTableHeader } from "../components/DataTableHeader";
+import { DataTable } from "../../../components/DataTable";
 
 export const ElementExperimentsList = ({ sideVisible = true, experiments=[], createNewExp=()=>{}}) => {
 
@@ -98,7 +97,7 @@ export const ElementExperimentsList = ({ sideVisible = true, experiments=[], cre
             type="body"
             visible={false}
             /> */}
-            <DataTableHeader
+            <DataTable
               headerData={["Name", "Type", "Status", "Description", "Metrics", "Date Created", "Date Updated"]}
               cellData={undefined}
             />

@@ -6,9 +6,9 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 import PropTypes from "prop-types";
 import React, { useEffect } from "react";
 import { useReducer } from "react";
-import { CheckmarkFilled } from "../../icons/CheckmarkFilled";
+import { CheckmarkFilled } from "../../screens/Experiments/icons/CheckmarkFilled";
 
-import "../../../../content/general.css";
+import "../../content/general.css";
 import "./style.css";
 
 export const Tile = ({

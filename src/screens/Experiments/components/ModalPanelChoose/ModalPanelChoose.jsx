@@ -7,7 +7,7 @@ import React, { useState } from "react";
 import { IconEdit3 } from "../../icons/IconEdit3";
 import { Checkbox } from "../Checkbox";
 import "./style.css";
-import { Tile } from "../Tile";
+import { Tile } from "../../../../components/Tile";
 
 export const ModalPanelChoose = ({ className, onClickEidt = () => { } }) => {
   const handleClickEidt = (value) => {
