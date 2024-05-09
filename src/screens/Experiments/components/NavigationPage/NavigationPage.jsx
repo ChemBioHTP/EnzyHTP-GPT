@@ -6,7 +6,7 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 import React from "react";
 import { IconAlertCircle2 } from "../../icons/IconAlertCircle2";
 import { IconMoreHorizontal } from "../../icons/IconMoreHorizontal";
-import { Button } from "../Button";
+import { Button } from "../../../../components/Button";
 import "./style.css";
 
 export const NavigationPage = ({

@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useState, useReducer} from 'react';
 // Components
 import { IconArrowRight } from "./icons/IconArrowRight/IconArrowRight";
-import { Button } from "./components/Button/Button";
-import { TextInputDefault } from "./components/TextInputDefault/TextInputDefault";
+import { Button } from "../../components/Button/Button";
+import { TextInputDefault } from "../../components/TextInputDefault/TextInputDefault";
 // Images and icons
 import ellipse2 from "../../assets/images/Login/ellipse-2.svg";
 import ellipse1 from "../../assets/images/Login/ellipse-1.svg";

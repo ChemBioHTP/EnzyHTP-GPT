@@ -1,0 +1,17 @@
+.data-table{
+  width: 100%;
+}
+.data-table th,
+.data-table td {
+  text-align: left;
+  display: table-cell;
+
+  height: 32px;
+  width: auto;
+
+  padding: 0px 16px;
+
+  font-size: 15px;
+}
+
+

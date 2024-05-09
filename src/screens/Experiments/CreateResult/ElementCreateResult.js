@@ -7,9 +7,9 @@ import "./style.css";
 import { useNavigate } from "react-router-dom";
 import {ProgressBarTrack} from "../components/ProgressBarTrack"
 import  progressImage from "../../../assets/images/Experiments/ElementCreateResult/health-care-health-research.png"
-import { DataTableHeader } from "../components/DataTableHeader";
 import { DataTableRowCell } from "../components/DataTableRowCell";
 import HideNav from "../../../assets/images/Experiments/hide-nav.svg"
+import { DataTable } from "../../../components/DataTable";
 
 export const ElementCreateResult = ({ sideVisible = true,  titleText= "exp-test-03", progerss="zero"}) => {
 
@@ -106,16 +106,11 @@ export const ElementCreateResult = ({ sideVisible = true,  titleText= "exp-test-
         </div>
         <div className="frame-15">
           <div className="data-table-row-item">
-            <DataTableHeader
-              cellText="Name"
-              className="col"
-              resizerResizerClassName="col-2"
-              size="small"
-              sortable={false}
-              sorted="none"
-              stateProp="enabled"
+            <DataTable
+              headerData={["Name", "Format"]}
+              cellData={cellData}
             />
-            <DataTableHeader
+            {/* <DataTableHeader
               cellText="Format"
               className="data-table-header-cell-item"
               resizerResizerClassName="col-3"
@@ -123,9 +118,9 @@ export const ElementCreateResult = ({ sideVisible = true,  titleText= "exp-test-
               sortable={false}
               sorted="none"
               stateProp="enabled"
-            />
+            /> */}
           </div>
-          {cellData.map((item, index) => (
+          {/* {cellData.map((item, index) => (
             <div className="data-table-row-item-2" key={index}>
               <div className="data-table-row">
                 <DataTableRowCell
@@ -147,7 +142,7 @@ export const ElementCreateResult = ({ sideVisible = true,  titleText= "exp-test-
               </div>
               <div className="divider-3" />
             </div>
-          ))}
+          ))} */}
 
         </div>
       </div>

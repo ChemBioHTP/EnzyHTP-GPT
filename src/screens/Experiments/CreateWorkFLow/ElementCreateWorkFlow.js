@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Button } from "../components/Button";
+import { Button } from "../../../components/Button";
 import { DirectionHorizontalWrapper } from "../components/DirectionHorizontalWrapper";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { NavigationPage } from "../components/NavigationPage";
 import { NavigationSideNav } from "../components/NavigationSideNav";
 import { TabsItems } from "../components/TabsItems";
-import { Tile } from "../components/Tile";
+import { Tile } from "../../../components/Tile";
 import { CheckmarkOutline } from "../icons/CheckmarkOutline";
 import { IconAlertCircle2 } from "../icons/IconAlertCircle2";
 import { IconArrowRight } from "../icons/IconArrowRight";
@@ -247,7 +247,7 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
           buttonText="Run experiment"
           className="button-5"
           divClassName="button-6"
-          icon1={<IconArrowRight className="icon-instance-node-3" />}
+          override={<IconArrowRight className="icon-instance-node-3" />}
           iconClassName="button-4"
           size="large"
           stateProp="enabled"
@@ -265,18 +265,16 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
           </div>
           <div className="frame-16">
             <Tile
-              accessible={false}
               className="tile-instance"
               descText="Remove water, loop fixing, protonate."
-              divClassName="tile-2"
-              divClassNameOverride="tile-3"
+              titleClassName="tile-2"
+              descClassName="tile-3"
               stateProp="enabled"
               titleText="Structure preparation"
               type="base"
             />
             <img className="line-2" alt="Line" src={line15} />
             <Tile
-              accessible={false}
               className="tile-instance"
               descText={
                 <>
@@ -285,30 +283,28 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
                   mutation.
                 </>
               }
-              divClassName="tile-2"
-              divClassNameOverride="tile-3"
+              titleClassName="tile-2"
+              descClassName="tile-3"
               stateProp="enabled"
               titleText="Structure operation"
               type="base"
             />
             <img className="line-2" alt="Line" src={line15} />
             <Tile
-              accessible={false}
               className="tile-4"
               descText="MD simulation"
-              divClassName="tile-2"
-              divClassNameOverride="tile-3"
+              titleClassName="tile-2"
+              descClassName="tile-3"
               stateProp="enabled"
               titleText="Conformation exploration"
               type="base"
             />
             <img className="line-2" alt="Line" src={line15} />
             <Tile
-              accessible={false}
               className="tile-instance"
               descText="QM/MM..."
-              divClassName="tile-2"
-              divClassNameOverride="tile-3"
+              titleClassName="tile-2"
+              descClassName="tile-3"
               stateProp="enabled"
               titleText={
                 <>

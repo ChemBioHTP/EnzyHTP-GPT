@@ -31,7 +31,7 @@ import React from "react";
 import { PropTypes } from "prop-types";
 import "./style.css";
 import { useState, useRef } from "react";
-import { Button } from "../../../CreateMutants/components/Button";
+import { Button } from "../../../../components/Button";
 import { IconArrowRight1 } from "../../../CreateMutants/icons/IconArrowRight1";
 import { useNavigate } from "react-router-dom";
 
@@ -43,6 +43,7 @@ export const FileUploaderDrag = ({ helperText = "Drag and drop files here or cli
   const fileInputRef = useRef(null);
   const [valid, setValid] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [experiment_id, setExperimentId] = useState(0);
   let navigate = useNavigate();
 
   const routeChange = () => {

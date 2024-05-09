@@ -2,11 +2,19 @@
 /* Common components include table, button (Submit, Cancel, Inactive, active, ...), drop-down list, etc.*/
 
 * {
-  transition-duration: 0.3s;
+  /* transition-duration: 0.3s; */
   font-family: "IBM Plex Sans";
   font-style: normal;
 }
 
+div {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: var(--utility-styles-label-01-font-weight);
+  letter-spacing: var(--utility-styles-label-01-letter-spacing);
+  line-height: var(--utility-styles-label-01-line-height);
+  /* display: flex; */
+}
 /* Elementary Components */
 
 button,
@@ -27,7 +35,7 @@ td {
 
 button {
   /* This class is for common styles of general button elements. */
-  padding: 15px var(--64-px-4-rem-spacing-10, 64px) 15px 16px;
+  padding: 15px var(--64-px-4-rem-spacing-10, 16px) 15px 16px;
   background-blend-mode: multiply;
 
   font-size: 14px;
@@ -38,8 +46,8 @@ button {
 }
 
 button:hover {
-  opacity: 90%;
-  border-radius: 10px;
+  opacity: 80%;
+  /* border-radius: 10px; */
 }
 
 button:active {
@@ -57,23 +65,25 @@ button:disabled:hover {
   border-radius: 0;
 }
 
-.button-submit {
-  /* This class is for exclusive styles of button elements for submission purposes (blue background and white chars). */
+.button-primary {
   color: white;
   background-color: #0f62fe;
 }
 
-.button-option {
-  /* This class is for exclusive styles of button elements for non-primary options (white background and blue chars). */
+.button-secondary {
+  color: white;
+  background-color: #393939;
+}
+
+.button-danger {
+  color: white;
+  background-color: brown;
+}
+
+.button-tertiary {
   color: #0f62fe;
   background-color: white;
   border: 1px #0f62fe solid;
-}
-
-.button-cancel {
-  /* This class is for exclusive styles of button elements for cancellation purposes (black background and white chars). */
-  color: white;
-  background-color: #393939;
 }
 
 .filename { /* Filename texts in components. */
@@ -100,25 +110,44 @@ button:disabled:hover {
 
 /* Follow this rule to style buttons for other uses. */
 
-.input-text {
+.text-input-default {
   /* Textbox */
-  height: 40px;
+  /* height: 40px;
   padding: 15px 16px;
-  gap: 16px;
-
-  font-size: 16px;
-
+  gap: 16px; */
+  align-items: flex-start;
+  align-self: stretch;
+  text-align: left;
+  background-blend-mode: multiply;
+  flex-direction: column;
+  position: relative;
+  width: 288px;
+  display: flex;
+  flex: 0 0 auto;
+  font-size: var(--utility-styles-label-01-font-size);
   border: none;
-  border-bottom: 1px solid #8d8d8d;
-  background: #f4f4f4;
+  /* border-bottom: 1px solid #8d8d8d; */
+  background: transparent;
 }
 
-.input-error {
+.text-input-default .enabled {
+  background-color: var(--fieldfield-01);
+  border-bottom: 1px solid;
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .error {
   /* Error Input, including text and file. */
 
-  border: 2px solid var(--Support-support-error, rgb(213, 0, 0));
+  border: 3px solid var(--Support-support-error, rgb(213, 0, 0));
   background: #f4f4f4;
 }
+
+.text-input-default .error:focus {
+  border: 3px solid  rgb(213, 0, 0);
+  outline: none;
+}
+
 
 .data-table {
   /* This class is for table elements. */
@@ -175,7 +204,7 @@ button:disabled:hover {
   flex-direction: column;
   align-items: flex-start;
   gap: 16px;
-  flex: 1 0 0;
+  /* flex: 1 0 0; */
   flex-shrink: 0;
   
   width: 195px;
@@ -234,7 +263,7 @@ button:disabled:hover {
   outline: 1px rgba(128, 128, 128, 0.6) dashed;
 }
 
-.mutant-generation-textarea > .button-submit {
+.mutant-generation-textarea > .button-primary {
   align-self: flex-end;
   margin-top: 0.4em;
   border-radius: 5px;
@@ -246,14 +275,14 @@ button:disabled:hover {
 
 .progress-status-bar {
   display: flex;
-  padding: 15px 16px;
+  /* padding: 15px 16px; */
   align-items: center;
   gap: 16px;
   align-self: stretch;
 
   background-color: white;
   border-radius: 3px;
-  height: 32px;
+  /* height: 32px; */
 }
 
 .progress-status-bar > span {
@@ -268,7 +297,7 @@ button:disabled:hover {
   text-align: center;
 }
 
-.accordion-item {
+/* .accordion-item {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -281,9 +310,9 @@ button:disabled:hover {
   color: #0043CE;
   font-size: 12px;
   font-weight: 400;
-  line-height: 16px; /* 133.333% */
+  line-height: 16px;
   letter-spacing: 0.32px;
-}
+} */
 
 .experiment-header {
   display: flex;

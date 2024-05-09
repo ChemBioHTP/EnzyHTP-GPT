@@ -1,0 +1,99 @@
+/* .text-input-default {
+  align-items: flex-start;
+  align-self: stretch;
+  text-align: left;
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  flex-direction: column;
+  position: relative;
+  width: 288px;
+  display: flex;
+  flex: 0 0 auto;
+  font-family: var(--utility-styles-label-01-font-family);
+  font-size: var(--utility-styles-label-01-font-size);
+  font-style: var(--utility-styles-label-01-font-style);
+  font-weight: var(--utility-styles-label-01-font-weight);
+  letter-spacing: var(--utility-styles-label-01-letter-spacing);
+  line-height: var(--utility-styles-label-01-line-height);
+} */
+
+.text-input-default .label-character {
+  width: 100%;
+  display: flex;
+}
+
+.text-input-default .label-margin {
+  flex: 1;
+  flex-grow: 1;
+  padding: 0px 0px 8px;
+  display: flex;
+}
+
+.text-input-default .link-margin {
+  align-items: flex-end;
+  text-align: right;
+  flex: 1;
+  flex-grow: 1;
+  padding: 0px 0px 8px;
+}
+
+.text-input-default .label-text {
+  margin-top: -1px;
+  color:var(--texttext-secondary)
+}
+
+.text-input-default .link-text {
+  color: var(--theme-link-link-primary);
+  margin-top: -1px;
+}
+
+/* .text-input-default .enabled {
+  background-color: var(--fieldfield-01);
+  border-bottom: 1px solid;
+  border-color: var(--borderborder-strong-01);
+}
+
+.text-input-default .error {
+  background-color: var(--fieldfield-01);
+  border: 2px solid;
+  border-color: var(--supportsupport-error);
+} */
+
+
+.text-input-default .text-input {
+  gap: 16px;
+  width: 100%;
+  background-color: var(--fieldfield-01);
+  height: 48px;
+  padding: 15px 16px;
+  display: flex;
+}
+
+.text-input-default .input {
+  background: none;
+  border: none;
+  flex: 1;
+  flex-grow: 1;
+  gap: 16px;
+  font-family: var(--body-styles-body-compact-01-font-family);
+  font-size: var(--body-styles-body-compact-01-font-size);
+  font-style: var(--body-styles-body-compact-01-font-style);
+  font-weight: var(--body-styles-body-compact-01-font-weight);
+  height: 18px;
+  letter-spacing: var(--body-styles-body-compact-01-letter-spacing);
+  line-height: var(--body-styles-body-compact-01-line-height);
+  margin-top: -1px;
+  overflow-x: hidden;
+  padding: 0;
+  white-space: nowrap;
+  z-index: 1;
+  outline: none;
+  color: var(--texttext-placeholder);
+}
+
+.text-input-default .helper-text {
+  margin-top: -1px;
+  padding: 4px 0px 0px;
+  width: 100%;
+  color: var(--texttext-error);
+}

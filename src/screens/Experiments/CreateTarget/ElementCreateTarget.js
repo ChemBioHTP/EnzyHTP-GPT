@@ -1,11 +1,8 @@
 import React from "react";
 import { Accordion } from "../components/Accordion"
 import { useState, useReducer, useEffect} from 'react';
-import { Button } from "../components/Button";
+import { Button } from "../../../components/Button";
 import { DirectionHorizontalWrapper } from "../components/DirectionHorizontalWrapper";
-import { DataTableHeader } from "../components/DataTableHeader"
-import { DataTableRowCell } from "../components/DataTableRowCell"
-import { GenerateStatusBar } from "../components/GenerateStatusBar"
 import { ModalPanel } from "../components/ModalPanel";
 import { ModalPanelTargets } from "../components/ModalPanelTargets";
 import { NavigationPage } from "../components/NavigationPage";
@@ -22,6 +19,8 @@ import line3 from "../../../assets/images/Experiments/line-1.svg"
 import { AccordionToggle } from "../components/AccordionToggle";
 import { ExperimentOverview } from "../components/ExperimentOverview";
 import { useNavigate } from "react-router-dom";
+import { DataTable } from "../../../components/DataTable";
+import { ProgressStatusBar } from "../../../components/ProgressStatusBar";
 
 export const ElementCreateTarget = ({ sideVisible=true, titleText= "Example experiment 01", onClickWrapper = () => { }}) => {
 
@@ -41,22 +40,13 @@ export const ElementCreateTarget = ({ sideVisible=true, titleText= "Example expe
     setIsModalOpen(!isModalOpen);
   };
 
-  useEffect(() => {
-    if (sideVisible) {
-      document.body.style.setProperty('--create-left-distance', '0px');
-    } else {
-      document.body.style.setProperty('--create-left-distance', '-214px');
-    }
-
-  }, [sideVisible]);
-
   let navigate = useNavigate();
   const cellData = [
-    "NA22K EA24K KA162L RA163L", 
-    "NA23K EA24K KA162L RA1A3L", 
-    "NA24K EA26K KA152L RA163L",
-    "NA25K EA25K KA162L RA173L",
-    "NA26K EA27K KA162L RA183L"
+    ["01","NA22K EA24K KA162L RA163L"], 
+    ["02","NA23K EA24K KA162L RA1A3L"], 
+    ["03","NA24K EA26K KA152L RA163L"],
+    ["04","NA25K EA25K KA162L RA173L"],
+    ["05","NA26K EA27K KA162L RA183L"]
   ];
   const handleInputGUISwitch = (state) => {
     setInputWithGUI(state);
@@ -162,48 +152,11 @@ export const ElementCreateTarget = ({ sideVisible=true, titleText= "Example expe
           <div className="label-6">Mutation generated</div>
           <div className="frame-15">
             <div className="data-table-row-item">
-              <DataTableHeader
-                cellText="Number"
-                className="col"
-                resizerResizerClassName="col-2"
-                size="small"
-                sortable={false}
-                sorted="none"
-                stateProp="enabled"
-              />
-              <DataTableHeader
-                cellText="Pattern"
-                className="data-table-header-cell-item"
-                resizerResizerClassName="col-3"
-                size="small"
-                sortable={false}
-                sorted="none"
-                stateProp="enabled"
+              <DataTable
+                headerData={["Number", "Pattern"]}
+                cellData={cellData}
               />
             </div>
-            {cellData.map((item, index) => (
-              <div className="data-table-row-item-2" key={index}>
-                <div className="data-table-row">
-                  <DataTableRowCell
-                    cellText={(index+1).toString().padStart(2, '0')}
-                    className="data-table-row-cell-item"
-                    minHeightClassName="data-table-row-cell-instance"
-                    resizerResizerClassName="col-2"
-                    size="small"
-                    state="enabled"
-                  />
-                  <DataTableRowCell
-                    cellText={item}
-                    className="data-table-row-cell-item-instance"
-                    minHeightClassName="col-4"
-                    resizerResizerClassName="col-3"
-                    size="small"
-                    state="enabled"
-                  />
-                </div>
-                <div className="divider-3" />
-              </div>
-            ))}
 
           </div>
           <AccordionToggle 
@@ -214,9 +167,9 @@ export const ElementCreateTarget = ({ sideVisible=true, titleText= "Example expe
           />
           <FloatingComponent isOpen={isModalOpen} onClose={toggleModal}  />
         </div>
-        <GenerateStatusBar
+        <ProgressStatusBar
           className="file-uploader-file-item"
-          fileName="Your prompt has been successfully parsed."
+          text="Your prompt has been successfully parsed."
           size="large"
           state="success"
         />
@@ -244,7 +197,7 @@ export const ElementCreateTarget = ({ sideVisible=true, titleText= "Example expe
           buttonText="Next"
           className="button-3"
           disabled={false}
-          icon1={<IconArrowRight className="icon-instance-node-3" />}
+          override={<IconArrowRight className="icon-instance-node-3" />}
           iconClassName="button-2"
           size="large"
           stateProp="enabled"

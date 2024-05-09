@@ -9,7 +9,7 @@ import { NavigationSideBar } from "../components/NavigationSideBar/NavigationSid
 import ElementCreateWorkFlow from "../CreateWorkFLow/ElementCreateWorkFlow";
 import ElementCreateTarget from "../CreateTarget/ElementCreateTarget";
 import ElementExperimentsList from "../ExperimentsList/ElementExperimentsList";
-import { Button } from "../components/Button";
+import { Button } from "../../../components/Button";
 import ElementCreateResult from "../CreateResult/ElementCreateResult";
 import ElementCompletedResult from "../CreateResult/ElementCompletedResult";
 
@@ -216,7 +216,7 @@ export const ElementExperiment = () => {
             icon1={<></>}
             size="large"
             stateProp="enabled"
-            format="danger-tertiary"
+            format="danger"
             type="text-icon"
           />
         </div>)

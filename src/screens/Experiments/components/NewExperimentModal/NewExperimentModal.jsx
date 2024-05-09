@@ -1,6 +1,6 @@
 import * as React from 'react';
 import Box from '@mui/material/Box';
-import { Button } from "../Button";
+import { Button } from "../../../../components/Button";
 import { ModalFooterItem } from "../ModalFooterItem";
 import {CreateForms} from "../CreateForms";
 import Typography from '@mui/material/Typography';

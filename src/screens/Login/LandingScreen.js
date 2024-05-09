@@ -30,31 +30,31 @@ export const ElementLandingScreen = () => {
 
     return (
         <div className="element-landing-screen">
-            <div className="overlap-group-wrapper">
-                <div className="overlap-group">
-                    <img className="ellipse" alt="Ellipse" src={ellipse2} />
-                    <img className="hexagon-dotted" alt="Hexagon dotted" src={hexagonDottedConnectLineBackground1} />
-                    <img className="img" alt="Ellipse" src={ellipse1} />
-                    <div className="frame">
-                        <img className="union" alt="Union" src={union} />
-                        <div className="div">EnzyHTP-GPT</div>
-                    </div>
-                    <p className="p">Developed by Yang Lab at Vanderbilt University</p>
-                    <p className="text-wrapper-2">
-                      Access to molecular-level insights of your experiment with ease
-                      by your AI-based virtual assistant
-                      for Molecular Dynamics and more
-                    </p>
-                    <Routes>
-                      <Route path="/" element={<ElementSignUpScreen />} />
-                      <Route path="/login" element={<ElementLoginScreen />} />
-                      <Route path="/key" element={<PrivateRoute element={<ApiKeyScreen />}/>} />
-                      <Route path="/forgotpwd" element={<ForgotpwdScreen />} />
-                      <Route path="/resetpwd" element={<ResetpwdScreen />} />
-                      <Route path="/googlelogin" element={<GoogleLogin />} />
-                    </Routes>
-                </div>
-            </div>
+            
+              <div className="overlap-group">
+                  <img className="ellipse" alt="Ellipse" src={ellipse2} />
+                  <img className="hexagon-dotted" alt="Hexagon dotted" src={hexagonDottedConnectLineBackground1} />
+                  <img className="ellipse2" alt="Ellipse" src={ellipse1} />
+                  <div className="frame">
+                      <img className="union" alt="Union" src={union} />
+                      <div className="div">EnzyHTP-GPT</div>
+                  </div>
+                  <p className="p">Developed by Yang Lab at Vanderbilt University</p>
+                  <p className="text-wrapper-2">
+                    Access to molecular-level insights of your experiment with ease
+                    by your AI-based virtual assistant
+                    for Molecular Dynamics and more
+                  </p>
+                  <Routes>
+                    <Route path="/" element={<ElementSignUpScreen />} />
+                    <Route path="/login" element={<ElementLoginScreen />} />
+                    <Route path="/key" element={<PrivateRoute element={<ApiKeyScreen />}/>} />
+                    <Route path="/forgotpwd" element={<ForgotpwdScreen />} />
+                    <Route path="/resetpwd" element={<ResetpwdScreen />} />
+                    <Route path="/googlelogin" element={<GoogleLogin />} />
+                  </Routes>
+              </div>
+            
         </div>
           
   );

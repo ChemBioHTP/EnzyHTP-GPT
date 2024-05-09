@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useState, useReducer, useEffect} from 'react';
 // Components
 import { IconArrowRight } from "./icons/IconArrowRight/IconArrowRight";
-import { Button } from "./components/Button/Button";
-import { TextInputDefault } from "./components/TextInputDefault/TextInputDefault";
+import { Button } from "../../components/Button/Button";
+import { TextInputDefault } from "../../components/TextInputDefault/TextInputDefault";
 import { Link } from 'react-router-dom';
 import Cookies from 'js-cookie';
 
@@ -123,31 +123,21 @@ export const ElementSignUpScreen = () => {
             <div className="frame-5">
                 <div className="frame-6">
                     <TextInputDefault
-                        backgroundClassName="text-input-default-2"
                         className="text-input-default-instance"
                         placeholderText=""
-                        showHelper={false}
                         showLabel={true}
                         labelText="Email address"
                         errorText="Please provide a vaild email"
-                        size="large"
-                        spacerClassName="design-component-instance-node"
                         state={state.emailState}
-                        textFilled={false}
                         onInputChange={onChangeEmail}
                     />
                     <TextInputDefault
-                        backgroundClassName="text-input-default-2"
                         className="text-input-default-instance"
                         placeholderText=""
-                        showHelper={false}
                         showLabel={true}
                         labelText="Password"
                         errorText="Your password needs to be at least 8 characters including a lower-case letter, an upper case letter, a number and one special chatacter (!@#$%^&*)"
-                        size="large"
-                        spacerClassName="design-component-instance-node"
                         state={state.pwdState}
-                        textFilled={false}
                         inputType="password"
                         onInputChange={onChangePwd}
                     />
@@ -161,7 +151,7 @@ export const ElementSignUpScreen = () => {
                         size="large"
                         stateProp={state.bottonState}
                         disabled={state.bottonDisabled}
-                        format="primary"
+                        style="primary"
                         type="text-icon"
                     />
                 </div>
@@ -185,7 +175,7 @@ export const ElementSignUpScreen = () => {
                     override={<IconArrowRight className="icon-arrow-right" />}
                     size="large"
                     stateProp="enabled"
-                    format="tertiary"
+                    style="tertiary"
                     type="text-icon"
                 />                          
             </div>

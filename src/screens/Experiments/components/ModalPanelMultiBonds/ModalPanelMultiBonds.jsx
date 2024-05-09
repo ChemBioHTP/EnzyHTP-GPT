@@ -1,5 +1,5 @@
 import React from "react";
-import { TextInputDefault } from "../../../Login/components/TextInputDefault";
+import { TextInputDefault } from "../../../../components/TextInputDefault";
 import { IconHelpCircle1 } from "../../icons/IconHelpCircle1";
 import "./style.css";
 

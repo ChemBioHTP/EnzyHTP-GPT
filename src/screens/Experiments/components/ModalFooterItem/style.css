@@ -31,7 +31,7 @@
   display: flex !important;
   flex: 1 !important;
   flex-grow: 1 !important;
-  background-color: var(--backgroundbackground-active);
+  /* background-color: var(--backgroundbackground-active); */
 }
 
 .modal-footer-item .spacer {
