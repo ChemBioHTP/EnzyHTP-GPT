@@ -6,7 +6,7 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 import PropTypes from "prop-types";
 import React from "react";
 
-export const IconUser1 = ({ color = "black", className }) => {
+export const IconUser = ({ color = "black", className }) => {
   return (
     <svg
       className={`icon-user-1 ${className}`}
@@ -34,6 +34,6 @@ export const IconUser1 = ({ color = "black", className }) => {
   );
 };
 
-IconUser1.propTypes = {
+IconUser.propTypes = {
   color: PropTypes.string,
 };
