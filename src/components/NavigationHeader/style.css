@@ -1,6 +1,6 @@
 .navigation-header {
   align-items: center;
-  background-color: var(--theme-background-background-inverse);
+  background-color: #393939;
   display: flex;
   height: 48px;
   justify-content: space-between;
@@ -18,7 +18,7 @@
 }
 
 .navigation-header .text-wrapper {
-  color: var(--theme-text-text-on-color);
+  color: #FFFFFF;
   font-family: "Lexend Tera", Helvetica;
   font-size: 14px;
   font-weight: 700;
