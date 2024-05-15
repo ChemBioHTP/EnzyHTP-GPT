@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "../../../components/Button";
 import { DirectionHorizontalWrapper } from "../components/DirectionHorizontalWrapper";
-import { NavigationHeader } from "../components/NavigationHeader";
 import { NavigationPage } from "../components/NavigationPage";
 import { NavigationSideNav } from "../components/NavigationSideNav";
 import { TabsItems } from "../components/TabsItems";
@@ -12,10 +11,10 @@ import { IconArrowRight } from "../icons/IconArrowRight";
 import { IconEdit3 } from "../icons/IconEdit3";
 import { IconMoreHorizontal } from "../icons/IconMoreHorizontal";
 import { Incomplete } from "../icons/Incomplete";
-import line15 from "../../../assets/images/Experiments/ElementCreate/line-15.svg"
+import line15 from "../../../assets/images/Experiments/ElementCreate/line-15.svg";
 import "./style.css";
 import { ModalPanelWorkflow } from "../components/ModalPanelWorkflow";
-import navRock from "../../../assets/images/Experiments/navigate-rock-the-boat-1.png"
+import navRock from "../../../assets/images/Experiments/navigate-rock-the-boat-1.png";
 import ElementChangeWorkFLow from "../ChangeWorkFlow/ElementChangeWorkFlow";
 import { useNavigate } from "react-router-dom";
 import { ModalPanelMetrics } from "../components/ModalPanelMetrics/ModalPanelMetrics";
@@ -23,18 +22,21 @@ import { ModalPanelBond } from "../components/ModalPanelBond/ModalPanelBond";
 import { ModalPanelMultiBonds } from "../components/ModalPanelMultiBonds/ModalPanelMultiBonds";
 import { ModalPanelChoose } from "../components/ModalPanelChoose";
 
-export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awesome experiment", onClickWrapper = () => { }}) => {
+export const ElementCreateWorkFlow = ({
+  sideVisible = true,
+  titleText = "My awesome experiment",
+  onClickWrapper = () => {},
+}) => {
   const handleWrapperClick = (id) => {
     onClickWrapper(id);
   };
 
   useEffect(() => {
     if (sideVisible) {
-      document.body.style.setProperty('--flow-left-distance', '0px');
+      document.body.style.setProperty("--flow-left-distance", "0px");
     } else {
-      document.body.style.setProperty('--flow-left-distance', '-214px');
+      document.body.style.setProperty("--flow-left-distance", "-214px");
     }
-
   }, [sideVisible]);
 
   let navigate = useNavigate();
@@ -46,43 +48,44 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
   const [chooseMd, setchooseMd] = useState(false);
 
   const handleChangeFlowClick = () => {
-    
-    setChangeFlow(changeFlow => !changeFlow);
+    setChangeFlow((changeFlow) => !changeFlow);
   };
 
   const handleChangeTargetClick = () => {
-    
-    setChangeTarget(changeTarget => !changeTarget);
+    setChangeTarget((changeTarget) => !changeTarget);
   };
 
   const handleChangeBondClick = () => {
-    
-    setChangeBond(changeBond => !changeBond);
+    setChangeBond((changeBond) => !changeBond);
   };
 
   const handleChangeBondsClick = (value) => {
-
-    setChangeBonds(changeBonds => !changeBonds);
+    setChangeBonds((changeBonds) => !changeBonds);
   };
 
   const handleChooseMdClick = () => {
-
-    setchooseMd(chooseMd => !chooseMd);
+    setchooseMd((chooseMd) => !chooseMd);
   };
 
   const handleBackToList = () => {
-    let path = '/exp'; 
+    let path = "/exp";
     navigate(path);
   };
 
   const handleSaveMdOption = () => {
     let path = "/exp/result";
     navigate(path);
-  }
+  };
 
-  const [sideLabel, setSideLabel] = useState(["Example experiment 01", "Example experiment 02", "Example experiment 03", "Example experiment 04", "Example experiment 05"]);
+  const [sideLabel, setSideLabel] = useState([
+    "Example experiment 01",
+    "Example experiment 02",
+    "Example experiment 03",
+    "Example experiment 04",
+    "Example experiment 05",
+  ]);
   return (
-    <div className="element-create">      
+    <div className="element-create">
       <NavigationPage
         buttonIcon={<IconMoreHorizontal className="icon-instance-node-3" />}
         className="navigation-page-header"
@@ -119,11 +122,13 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
             <ElementChangeWorkFLow
               title="Change workflow"
               content="Choose a workflow to determine the processes to apply to the wild type."
-              slotItem={<ModalPanelWorkflow
-                backgroundClassName="modal-panel-workflow-2"
-                className="modal-panel-workflow-instance"
-                navigateRockThe={navRock}
-              />}
+              slotItem={
+                <ModalPanelWorkflow
+                  backgroundClassName="modal-panel-workflow-2"
+                  className="modal-panel-workflow-instance"
+                  navigateRockThe={navRock}
+                />
+              }
               onCloseClick={handleChangeFlowClick}
             />
           </div>
@@ -140,7 +145,7 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
               slotItem={
                 <ModalPanelMetrics
                   className="modal-panel-metrics-instance"
-                  onClickEidt={(value)=>handleChangeBondsClick(value)}
+                  onClickEidt={(value) => handleChangeBondsClick(value)}
                 />
               }
               onCloseClick={handleChangeTargetClick}
@@ -156,7 +161,7 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
             <ElementChangeWorkFLow
               title="Adding inputs for EF"
               content="The metric you selected (EF) needs further details. Please provide the following inputs."
-              slotItem={<ModalPanelBond/>}
+              slotItem={<ModalPanelBond />}
               onCloseClick={handleChangeBondClick}
             />
           </div>
@@ -170,7 +175,7 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
             <ElementChangeWorkFLow
               title="Adding inputs for EF"
               content="The metric you selected (EF) needs further details. Please provide the following inputs."
-              slotItem={<ModalPanelMultiBonds/>}
+              slotItem={<ModalPanelMultiBonds />}
               onCloseClick={handleChangeBondsClick}
             />
           </div>
@@ -184,9 +189,7 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
             <ElementChangeWorkFLow
               title="Choose Your MD Simulation Option"
               content="Please select one of the options below based on your preference and resources:"
-              slotItem={
-                <ModalPanelChoose/>
-              }
+              slotItem={<ModalPanelChoose />}
               onCloseClick={handleChooseMdClick}
               onSaveClick={handleSaveMdOption}
             />
@@ -197,11 +200,15 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
         <DirectionHorizontalWrapper
           className="progress-indicator-item"
           direction="vertical"
-          icon={<CheckmarkOutline className="icon-instance-node-3" color="#0F62FE" />}
+          icon={
+            <CheckmarkOutline
+              className="icon-instance-node-3"
+              color="#0F62FE"
+            />
+          }
           optionalLabel={false}
           progressIndicatorStepText="Target mutants"
           state="completed"
-
         />
         <DirectionHorizontalWrapper
           className="progress-indicator-item"
@@ -210,7 +217,6 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
           optionalLabel={false}
           progressIndicatorStepText="Workflow"
           state="current"
-
         />
 
         {/* <DirectionHorizontalWrapper
@@ -222,13 +228,13 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
           state="current"
 
         /> */}
-
       </div>
       <div className="label-description">
         <div className="label">Review your workflow</div>
         <p className="p">
-          Use natural language or HTP to describe what mutation you want to apply to the wild type. You can apply
-          multiple mutants to the wild type.
+          Use natural language or HTP to describe what mutation you want to
+          apply to the wild type. You can apply multiple mutants to the wild
+          type.
         </p>
       </div>
       <div className="frame-12">
@@ -241,7 +247,7 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
           stateProp="enabled"
           style="tertiary"
           type="text-icon"
-          onClick={()=>handleWrapperClick(0)}
+          onClick={() => handleWrapperClick(0)}
         />
         <Button
           buttonText="Run experiment"
@@ -256,12 +262,16 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
           onClick={handleChooseMdClick}
         />
       </div>
-      
+
       <div className="frame-13">
         <div className="frame-14">
           <div className="frame-15">
             <div className="text-wrapper-7">Workflow</div>
-            <IconEdit3 className="icon-edit" color="#0F62FE" onClick={handleChangeFlowClick}/>
+            <IconEdit3
+              className="icon-edit"
+              color="#0F62FE"
+              onClick={handleChangeFlowClick}
+            />
           </div>
           <div className="frame-16">
             <Tile
@@ -320,9 +330,15 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
           <div className="frame-15">
             <div className="frame-17">
               <div className="text-wrapper-7">Target metrics</div>
-              <p className="text-wrapper-8">SPI, AI metrics, MMPB/GBSA binding, Trajectories, Stabilities</p>
+              <p className="text-wrapper-8">
+                SPI, AI metrics, MMPB/GBSA binding, Trajectories, Stabilities
+              </p>
             </div>
-            <IconEdit3 className="icon-edit" color="#0F62FE" onClick={handleChangeTargetClick} />
+            <IconEdit3
+              className="icon-edit"
+              color="#0F62FE"
+              onClick={handleChangeTargetClick}
+            />
           </div>
         </div>
         <div className="frame-14">
@@ -331,14 +347,16 @@ export const ElementCreateWorkFlow = ({ sideVisible = true,  titleText= "My awes
               <div className="text-wrapper-9">Geometry constraint</div>
               <div className="text-wrapper-8">Whole enzyme</div>
             </div>
-            <IconEdit3 className="icon-edit" color="#0F62FE" onClick={handleChangeBondClick} />
+            <IconEdit3
+              className="icon-edit"
+              color="#0F62FE"
+              onClick={handleChangeBondClick}
+            />
           </div>
         </div>
       </div>
-      
     </div>
   );
 };
 
 export default ElementCreateWorkFlow;
-

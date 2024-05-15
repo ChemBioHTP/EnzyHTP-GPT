@@ -1,5 +1,5 @@
 import React from "react";
-import { NavigationHeader } from "./components/NavigationHeader";
+import { NavigationHeader } from "../../components/NavigationHeader";
 import { NavigationPage } from "./components/NavigationPage";
 import { IconAlertCircle2 } from "./icons/IconAlertCircle2";
 import { IconEdit3 } from "./icons/IconEdit3";

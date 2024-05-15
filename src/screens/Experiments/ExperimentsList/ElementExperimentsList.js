@@ -1,7 +1,6 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { DataTableToolbar } from "../components/DataTableToolbar";
-import { NavigationHeader } from "../components/NavigationHeader";
 import { NavigationSideNav } from "../components/NavigationSideNav";
 import { NewExperimentModal } from "../components/NewExperimentModal";
 import chemistImage from "../../../assets/images/Experiments/group-11.png";
@@ -11,29 +10,31 @@ import { IconTrash2 } from "../icons/IconTrash2";
 import "./style.css";
 import { DataTable } from "../../../components/DataTable";
 
-export const ElementExperimentsList = ({ sideVisible = true, experiments=[], createNewExp=()=>{}}) => {
-
+export const ElementExperimentsList = ({
+  sideVisible = true,
+  experiments = [],
+  createNewExp = () => {},
+}) => {
   useEffect(() => {
     console.log(sideVisible.type);
     if (sideVisible == true) {
-      console.log('1');
-      document.body.style.setProperty('--list-left-distance', '214px');
+      console.log("1");
+      document.body.style.setProperty("--list-left-distance", "214px");
     } else {
-      console.log('2');
-      document.body.style.setProperty('--list-left-distance', '0px');
+      console.log("2");
+      document.body.style.setProperty("--list-left-distance", "0px");
     }
-
   }, [sideVisible]);
 
   const processExperimentResponse = (data) => {
     // Process the data here
     console.log(data);
-  }
+  };
 
-  const createNewExperiment=()=>{
+  const createNewExperiment = () => {
     console.log("12345");
     createNewExp();
-  }
+  };
   // Conditionally render loading page or datatable
   const renderContent = () => {
     if (experiments.length === 0) {
@@ -41,9 +42,15 @@ export const ElementExperimentsList = ({ sideVisible = true, experiments=[], cre
         <>
           <div className="frame-9">
             <div className="text-wrapper-5">No experiments yet</div>
-            <p className="p">Once you create experiments, they will show up here</p>
+            <p className="p">
+              Once you create experiments, they will show up here
+            </p>
           </div>
-          <NewExperimentModal blank={true} className="new-experiment-modal-instance" onSaveClick={createNewExperiment}/>
+          <NewExperimentModal
+            blank={true}
+            className="new-experiment-modal-instance"
+            onSaveClick={createNewExperiment}
+          />
           <img className="group" alt="Group" src={chemistImage} />
         </>
       );
@@ -61,8 +68,8 @@ export const ElementExperimentsList = ({ sideVisible = true, experiments=[], cre
             visible={false}
             onSaveClick={createNewExp}
           />
-          <div className="overlap-group">  
-          {/* <DataTableRowItem
+          <div className="overlap-group">
+            {/* <DataTableRowItem
             className="data-table-row-item-instance"
             dataTableRowCellCellText="Name"
             dataTableRowCellCellText1="Type"
@@ -98,10 +105,18 @@ export const ElementExperimentsList = ({ sideVisible = true, experiments=[], cre
             visible={false}
             /> */}
             <DataTable
-              headerData={["Name", "Type", "Status", "Description", "Metrics", "Date Created", "Date Updated"]}
+              headerData={[
+                "Name",
+                "Type",
+                "Status",
+                "Description",
+                "Metrics",
+                "Date Created",
+                "Date Updated",
+              ]}
               cellData={undefined}
             />
-          {/* {experiments.map((experiment, index) => (
+            {/* {experiments.map((experiment, index) => (
             <DataTableRowItem
             key={index}
             className="data-table-row-item-9"
@@ -124,12 +139,11 @@ export const ElementExperimentsList = ({ sideVisible = true, experiments=[], cre
             visible1={false}
             />
           ))} */}
-        </div>
-      </>
+          </div>
+        </>
       );
     }
   };
-
 
   return (
     <div className="element-experiments-list">
@@ -137,7 +151,6 @@ export const ElementExperimentsList = ({ sideVisible = true, experiments=[], cre
         <div className="text-wrapper-4">All experiments</div>
       </div>
       {renderContent()}
-
     </div>
   );
 };

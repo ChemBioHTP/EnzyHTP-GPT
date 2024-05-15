@@ -6,10 +6,10 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 import PropTypes from "prop-types";
 import React from "react";
 
-export const IconBell2 = ({ color = "white", className }) => {
+export const IconUser = ({ color = "black", className }) => {
   return (
     <svg
-      className={`icon-bell-2 ${className}`}
+      className={`icon-user-1 ${className}`}
       fill="none"
       height="16"
       viewBox="0 0 16 16"
@@ -18,14 +18,14 @@ export const IconBell2 = ({ color = "white", className }) => {
     >
       <path
         className="path"
-        d="M12 5.33333C12 4.27247 11.5786 3.25505 10.8284 2.50491C10.0783 1.75476 9.06087 1.33333 8 1.33333C6.93913 1.33333 5.92172 1.75476 5.17157 2.50491C4.42143 3.25505 4 4.27247 4 5.33333C4 10 2 11.3333 2 11.3333H14C14 11.3333 12 10 12 5.33333Z"
+        d="M13.3332 14V12.6667C13.3332 11.9594 13.0522 11.2811 12.5521 10.781C12.052 10.281 11.3737 10 10.6665 10H5.33317C4.62593 10 3.94765 10.281 3.44755 10.781C2.94746 11.2811 2.6665 11.9594 2.6665 12.6667V14"
         stroke={color}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <path
         className="path"
-        d="M9.15335 14C9.03614 14.2021 8.86791 14.3698 8.6655 14.4864C8.46309 14.6029 8.2336 14.6643 8.00001 14.6643C7.76643 14.6643 7.53694 14.6029 7.33453 14.4864C7.13212 14.3698 6.96389 14.2021 6.84668 14"
+        d="M8.00016 7.33333C9.47292 7.33333 10.6668 6.13943 10.6668 4.66667C10.6668 3.19391 9.47292 2 8.00016 2C6.5274 2 5.3335 3.19391 5.3335 4.66667C5.3335 6.13943 6.5274 7.33333 8.00016 7.33333Z"
         stroke={color}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -34,6 +34,6 @@ export const IconBell2 = ({ color = "white", className }) => {
   );
 };
 
-IconBell2.propTypes = {
+IconUser.propTypes = {
   color: PropTypes.string,
 };

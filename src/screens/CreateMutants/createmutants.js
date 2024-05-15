@@ -4,7 +4,7 @@ import { Button } from "./components/Button";
 import { DirectionHorizontalWrapper } from "./components/DirectionHorizontalWrapper";
 import { ModalPanel } from "./components/ModalPanel";
 import { ModalPanelTargets } from "./components/ModalPanelTargets";
-import { NavigationHeader } from "./components/NavigationHeader";
+import { NavigationHeader } from "../../components/NavigationHeader";
 import { NavigationPage } from "./components/NavigationPage";
 import { NavigationSideNav } from "./components/NavigationSideNav";
 import { TabsItems } from "./components/TabsItems";
