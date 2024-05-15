@@ -15,8 +15,6 @@ export const UiShellLeftPanel = ({
   linkImg = "img",
   hideText = false,
   hideImg = true,
-  iconRight = false,
-  iconLeft = false,
   type,
   level,
   stateProp,
