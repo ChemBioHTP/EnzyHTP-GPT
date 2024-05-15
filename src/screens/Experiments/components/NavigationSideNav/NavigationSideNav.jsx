@@ -5,7 +5,7 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 
 import PropTypes from "prop-types";
 import React, { useState } from "react";
-import { UiShellLeftPanel } from "../UiShellLeftPanel";
+import { UiShellLeftPanel } from "../../../../components/UiShellLeftPanel";
 import HideNav from "../../../../assets/images/Experiments/hide-nav.svg"
 import "./style.css";
 

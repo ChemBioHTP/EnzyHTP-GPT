@@ -7,20 +7,18 @@ import PropTypes from "prop-types";
 import React from "react";
 import { Checkbox23 } from "../../icons/Checkbox23";
 import { Checkbox24 } from "../../icons/Checkbox24";
-import { Checkbox3 } from "../../icons/Checkbox3";
+import { Checkbox } from "../../../../assets/icons/Checkbox";
 import { CheckboxCheckedFilled } from "../../icons/CheckboxCheckedFilled";
 import { CheckboxCheckedFilled14 } from "../../icons/CheckboxCheckedFilled14";
 import { CheckboxCheckedFilled17 } from "../../icons/CheckboxCheckedFilled17";
 import { CheckboxIndeterminateFilled } from "../../icons/CheckboxIndeterminateFilled";
-import { Chevron4 } from "../../icons/Chevron4";
-import { Chevron9 } from "../../icons/Chevron9";
+import { Chevron } from "../../../../assets/icons/Chevron";
 import { ChevronDown3 } from "../../icons/ChevronDown3";
 import { ChevronUp17 } from "../../icons/ChevronUp17";
 import { RadioButton } from "../../icons/RadioButton";
 import { RadioButton2 } from "../../icons/RadioButton2";
 import { RadioButtonChecked2 } from "../../icons/RadioButtonChecked2";
 import { RadioButtonChecked5 } from "../../icons/RadioButtonChecked5";
-import { Checkbox } from "../Checkbox";
 import { DataTableBodyRow } from "../DataTableBodyRow";
 import { DataTableHeader } from "../DataTableHeader";
 import { DataTableRowCell } from "../DataTableRowCell";
@@ -72,7 +70,7 @@ export const DataTableRowItem = ({
         (expandable && selectType === "none" && type === "header") ||
         (selectType === "radio-button" && type === "header")) && (
         <div className={`data-table-select select-type-${selectType} selectable-0-${selectable} size-12-${size}`}>
-          {selection === "unchecked" && <Checkbox3 className="instance-node-2" color="#161616" />}
+          {selection === "unchecked" && <Checkbox className="instance-node-2" color="#161616" />}
 
           {["none", "radio-button"].includes(selectType) && <Checkbox />}
 
@@ -301,10 +299,10 @@ export const DataTableRowItem = ({
       {type === "header" && expandable && selectType === "checkbox" && (
         <>
           <div className="data-table-expand">
-            <Chevron9 className="instance-node-3" color="#161616" />
+            <Chevron className="instance-node-3" color="#161616" />
           </div>
           <div className="data-table-select-2">
-            {selection === "unchecked" && <Checkbox3 className="instance-node-2" color="#161616" />}
+            {selection === "unchecked" && <Checkbox className="instance-node-2" color="#161616" />}
 
             {selection === "checked" && <CheckboxCheckedFilled className="instance-node-2" />}
 
@@ -497,7 +495,7 @@ export const DataTableRowItem = ({
               className={`data-table-expand-2 select-type-0-${selectType} size-15-${size} expandable-1-${expandable}`}
             >
               {expanded && ["extra-large", "large", "small"].includes(size) && (
-                <Chevron4 className="instance-node-3" color="#161616" />
+                <Chevron className="instance-node-3" color="#161616" />
               )}
 
               {expanded && ["extra-small", "medium"].includes(size) && <ChevronUp17 className="instance-node-3" />}
@@ -506,7 +504,7 @@ export const DataTableRowItem = ({
                 (selection === "unchecked" && size === "extra-small") ||
                 (selection === "unchecked" && size === "large") ||
                 (selection === "unchecked" && size === "small")) && (
-                <Checkbox3 className="instance-node-4" color="#161616" />
+                <Checkbox className="instance-node-4" color="#161616" />
               )}
 
               {((selection === "unselected" && size === "extra-large") ||
@@ -527,7 +525,7 @@ export const DataTableRowItem = ({
                 (expandable && !expanded && size === "large") ||
                 (expandable && !expanded && size === "medium" && state === "enabled") ||
                 (expandable && !expanded && size === "small")) && (
-                <Chevron9 className="instance-node-3" color="#161616" />
+                <Chevron className="instance-node-3" color="#161616" />
               )}
 
               {selection === "unchecked" && size === "medium" && state === "enabled" && (
@@ -576,7 +574,7 @@ export const DataTableRowItem = ({
                   (expanded && size === "extra-small" && state === "hover") ||
                   (expanded && size === "small" && state === "enabled") ||
                   (selection === "none" && state === "hover")) && (
-                  <Chevron4 className="instance-node-3" color="#161616" />
+                  <Chevron className="instance-node-3" color="#161616" />
                 )}
 
                 {state === "hover" && expanded && selection === "unchecked" && size === "medium" && (
@@ -587,7 +585,7 @@ export const DataTableRowItem = ({
                   (!expanded && size === "extra-small" && state === "hover") ||
                   (!expanded && size === "large" && state === "hover") ||
                   (!expanded && size === "small" && state === "hover") ||
-                  (!expanded && state === "enabled")) && <Chevron9 className="instance-node-3" color="#161616" />}
+                  (!expanded && state === "enabled")) && <Chevron className="instance-node-3" color="#161616" />}
 
                 {!expanded && state === "hover" && size === "medium" && <ChevronDown3 className="instance-node-3" />}
               </div>
@@ -597,7 +595,7 @@ export const DataTableRowItem = ({
                   (selection === "unchecked" && size === "large" && state === "hover") ||
                   (selection === "unchecked" && size === "small" && state === "hover") ||
                   (selection === "unchecked" && state === "enabled")) && (
-                  <Checkbox3 className="instance-node-2" color="#161616" />
+                  <Checkbox className="instance-node-2" color="#161616" />
                 )}
 
                 {((expanded && selection === "checked" && size === "medium" && state === "hover") ||
@@ -2433,7 +2431,7 @@ export const DataTableRowItem = ({
       {!expandable && selection === "unchecked" && state === "hover" && size === "extra-large" && (
         <div className="data-table-row-2">
           <div className="checkbox-wrapper">
-            <Checkbox3 className="instance-node-4" color="#161616" />
+            <Checkbox className="instance-node-4" color="#161616" />
           </div>
           <DataTableRowCell
             cellText="Content"

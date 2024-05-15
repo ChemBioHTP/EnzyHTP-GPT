@@ -11,7 +11,7 @@ import {
 } from "react-router-dom";
 import Cookies from "js-cookie";
 import "./style.css";
-import { NavigationSideBar } from "../components/NavigationSideBar/NavigationSideBar";
+import { NavigationToolbar } from "../../../components/NavigationToolbar";
 import ElementCreateWorkFlow from "../CreateWorkFLow/ElementCreateWorkFlow";
 import ElementCreateTarget from "../CreateTarget/ElementCreateTarget";
 import ElementExperimentsList from "../ExperimentsList/ElementExperimentsList";
@@ -285,8 +285,8 @@ export const ElementExperiment = () => {
             />
           </div>
         )}
-        <NavigationSideBar
-          className="navigation-side-nav-instance"
+        <NavigationToolbar
+          className="navigation-toolbar-instance"
           onButtonClick={handleSideBarClick}
         />
 

@@ -6,14 +6,14 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 import PropTypes from "prop-types";
 import React from "react";
 import { UiShellLeftPanel } from "../UiShellLeftPanel";
-import Grid from "../../../../assets/images/Experiments/grid.svg"
-import GitMerge from "../../../../assets/images/Experiments/git-merge.svg"
-import Help from "../../../../assets/images/Experiments/help.svg"
-import Feedback from "../../../../assets/images/Experiments/feedback.svg"
-import Settings from "../../../../assets/images/Experiments/settings.svg"
+import Grid from "../../assets/images/Experiments/grid.svg"
+import GitMerge from "../../assets/images/Experiments/git-merge.svg"
+import Help from "../../assets/images/Experiments/help.svg"
+import Feedback from "../../assets/images/Experiments/feedback.svg"
+import Settings from "../../assets/images/Experiments/settings.svg"
 import "./style.css";
 
-export const NavigationSideBar = ({
+export const NavigationToolbar = ({
   className,
   onButtonClick = () => {},
 }) => {
@@ -21,7 +21,7 @@ export const NavigationSideBar = ({
     onButtonClick(buttonId);
   };
   return (
-    <div className={`navigation-side-nav version-4 ${className}`}>
+    <div className={`navigation-toolbar version-4 ${className}`}>
       <div className="frame-4">
         <UiShellLeftPanel
           className="UI-shell-left-panel-menu-item"
@@ -101,7 +101,7 @@ export const NavigationSideBar = ({
   );
 };
 
-NavigationSideBar.propTypes = {
+NavigationToolbar.propTypes = {
   UIShellLeftPanelStateProp: PropTypes.string,
   UIShellLeftPanelSelected: PropTypes.bool,
   UIShellLeftPanelStateProp1: PropTypes.string,

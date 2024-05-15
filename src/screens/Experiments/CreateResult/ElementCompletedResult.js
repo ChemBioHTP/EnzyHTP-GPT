@@ -10,7 +10,7 @@ import { ProgressBarTrack } from "../components/ProgressBarTrack";
 import efImage from "../../../assets/images/Experiments/ElementCreateResult/coarse_ef_dist_kde.png";
 import stabilityImage from "../../../assets/images/Experiments/ElementCreateResult/coarse_stab_dist_kde.png";
 import downloadIcon from "../../../assets/images/Experiments/hide-nav.svg";
-import { Checkbox } from "../components/Checkbox";
+import { Checkbox } from "../../../assets/icons/Checkbox";
 
 export const ElementCompletedResult = ({
   sideVisible = true,
@@ -71,17 +71,38 @@ export const ElementCompletedResult = ({
       </div>
 
       <div className="workspace">
-        <div className="matrics-title title"><span>Target Matrics</span><img className="download-icon" src={downloadIcon} /></div>
-        <div className="download-title title"><span>Downloadable Files</span><img className="download-icon" src={downloadIcon} /></div>
+        <div className="matrics-title title">
+          <span>Target Matrics</span>
+          <img className="download-icon" src={downloadIcon} />
+        </div>
+        <div className="download-title title">
+          <span>Downloadable Files</span>
+          <img className="download-icon" src={downloadIcon} />
+        </div>
         <table className="download-table">
           <thead>
-            <tr className="table-header"><th>Name</th><th>Format</th></tr>
+            <tr className="table-header">
+              <th>Name</th>
+              <th>Format</th>
+            </tr>
           </thead>
           <tbody>
-            <tr className="table-row"><td>WT structure (fixed)</td><td>.pdb</td></tr>
-            <tr className="table-row"><td>MD instruction file</td><td>.in</td></tr>
-            <tr className="table-row"><td>MD constraint file</td><td>.rs</td></tr>
-            <tr className="table-row"><td>MD trajectory files</td><td>.zip</td></tr>
+            <tr className="table-row">
+              <td>WT structure (fixed)</td>
+              <td>.pdb</td>
+            </tr>
+            <tr className="table-row">
+              <td>MD instruction file</td>
+              <td>.in</td>
+            </tr>
+            <tr className="table-row">
+              <td>MD constraint file</td>
+              <td>.rs</td>
+            </tr>
+            <tr className="table-row">
+              <td>MD trajectory files</td>
+              <td>.zip</td>
+            </tr>
           </tbody>
         </table>
 
@@ -91,14 +112,50 @@ export const ElementCompletedResult = ({
         </div>
         <table className="mutations">
           <thead>
-            <tr className="table-header"><th>Number</th><th>Pattern</th><th>EF (MV/cm)</th><th>SPI</th><th>Stability</th></tr>
+            <tr className="table-header">
+              <th>Number</th>
+              <th>Pattern</th>
+              <th>EF (MV/cm)</th>
+              <th>SPI</th>
+              <th>Stability</th>
+            </tr>
           </thead>
           <tbody>
-            <tr className="table-row"><td>01</td><td>NA22K EA24K KA162L RA163L</td><td>3.144062</td><td>1.561</td><td>-2.25</td></tr>
-            <tr className="table-row"><td>02</td><td>NA22R SA29K EA24Q KA162I RA163F</td><td>2.746778</td><td>1.308</td><td>-0.30</td></tr>
-            <tr className="table-row"><td>02</td><td>NA22K SA29K EA24V KA162D RA163F</td><td>2.285668</td><td>1.427</td><td>1.83</td></tr>
-            <tr className="table-row"><td>02</td><td>SA29K EA24Q KA162D RA163L</td><td>1.540748</td><td>1.654</td><td>-0.10</td></tr>
-            <tr className="table-row"><td>02</td><td>WT</td><td>-4.458684</td><td>1.486</td><td>0.0</td></tr>
+            <tr className="table-row">
+              <td>01</td>
+              <td>NA22K EA24K KA162L RA163L</td>
+              <td>3.144062</td>
+              <td>1.561</td>
+              <td>-2.25</td>
+            </tr>
+            <tr className="table-row">
+              <td>02</td>
+              <td>NA22R SA29K EA24Q KA162I RA163F</td>
+              <td>2.746778</td>
+              <td>1.308</td>
+              <td>-0.30</td>
+            </tr>
+            <tr className="table-row">
+              <td>02</td>
+              <td>NA22K SA29K EA24V KA162D RA163F</td>
+              <td>2.285668</td>
+              <td>1.427</td>
+              <td>1.83</td>
+            </tr>
+            <tr className="table-row">
+              <td>02</td>
+              <td>SA29K EA24Q KA162D RA163L</td>
+              <td>1.540748</td>
+              <td>1.654</td>
+              <td>-0.10</td>
+            </tr>
+            <tr className="table-row">
+              <td>02</td>
+              <td>WT</td>
+              <td>-4.458684</td>
+              <td>1.486</td>
+              <td>0.0</td>
+            </tr>
           </tbody>
         </table>
       </div>

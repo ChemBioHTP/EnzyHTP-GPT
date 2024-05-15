@@ -6,9 +6,8 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 import PropTypes from "prop-types";
 import React from "react";
 import { useReducer, useState, useEffect} from "react";
-import { Checkbox3 } from "../../icons/Checkbox3";
-import { Chevron4 } from "../../icons/Chevron4";
-import { Chevron9 } from "../../icons/Chevron9";
+import { Checkbox } from "../../assets/icons/Checkbox";
+import { Chevron } from "../../assets/icons/Chevron";
 import "./style.css";
 
 export const UiShellLeftPanel = ({
@@ -66,7 +65,7 @@ export const UiShellLeftPanel = ({
           {!state.divider && !hideText && <div className={`link-2 ${state.state}`}>{linkText}</div>}
           {!hideImg && <img className="link-3" src={linkImg} alt="img" />}
           {!state.expanded && state.type === "sub-menu" && (
-            <Chevron9
+            <Chevron
               className="instance-node"
               color={["enabled", "focus"].includes(state.state) ? "#525252" : "#161616"}
               fillOpacity={state.state === "disabled" ? "0.25" : undefined}
@@ -74,7 +73,7 @@ export const UiShellLeftPanel = ({
           )}
 
           {state.expanded && (
-            <Chevron4
+            <Chevron
               className="instance-node"
               color={["enabled", "focus"].includes(state.state) ? "#525252" : "#161616"}
               fillOpacity={state.state === "disabled" ? "0.25" : undefined}
@@ -84,7 +83,7 @@ export const UiShellLeftPanel = ({
       )}
 
       {state.compact && !state.divider && (
-        <Checkbox3
+        <Checkbox
           className="instance-node"
           color={
             ["enabled", "focus"].includes(state.state)

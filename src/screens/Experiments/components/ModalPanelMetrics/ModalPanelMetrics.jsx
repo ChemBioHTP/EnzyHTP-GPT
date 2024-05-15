@@ -5,7 +5,7 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 
 import React from "react";
 import { IconEdit3 } from "../../icons/IconEdit3";
-import { Checkbox } from "../Checkbox";
+import { Checkbox } from "../../../../assets/icons/Checkbox";
 import "./style.css";
 
 export const ModalPanelMetrics = ({ className, onClickEidt = () => { } }) => {

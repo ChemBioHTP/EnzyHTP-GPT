@@ -5,7 +5,7 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 
 import React, { useState } from "react";
 import { IconEdit3 } from "../../icons/IconEdit3";
-import { Checkbox } from "../Checkbox";
+import { Checkbox } from "../../../../assets/icons/Checkbox";
 import "./style.css";
 import { Tile } from "../../../../components/Tile";
 
