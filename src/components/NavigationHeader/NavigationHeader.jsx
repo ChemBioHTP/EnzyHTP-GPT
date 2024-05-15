@@ -1,6 +1,6 @@
 import React from "react";
-import { IconBell } from "../../icons/IconBell";
-import { IconUser } from "../../icons/IconUser";
+import { IconBell } from "../../assets/icons/IconBell";
+import { IconUser } from "../../assets/icons/IconUser";
 import "./style.css";
 
 export const NavigationHeader = ({ className, onClick=()=>{} }) => {
