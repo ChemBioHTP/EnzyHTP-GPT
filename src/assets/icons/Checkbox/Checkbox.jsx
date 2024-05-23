@@ -6,10 +6,10 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 import PropTypes from "prop-types";
 import React from "react";
 
-export const Checkbox3 = ({ opacity = "unset", color = "#525252", fillOpacity = "unset", className }) => {
+export const Checkbox = ({ opacity = "unset", color = "#525252", fillOpacity = "unset", className }) => {
   return (
     <svg
-      className={`checkbox-3 ${className}`}
+      className={`checkbox ${className}`}
       fill="none"
       height="16"
       viewBox="0 0 16 16"
@@ -34,7 +34,7 @@ export const Checkbox3 = ({ opacity = "unset", color = "#525252", fillOpacity = 
   );
 };
 
-Checkbox3.propTypes = {
+Checkbox.propTypes = {
   opacity: PropTypes.string,
   color: PropTypes.string,
   fillOpacity: PropTypes.string,

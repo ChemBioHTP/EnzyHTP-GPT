@@ -88,7 +88,7 @@
   flex-grow: 1 !important;
 }
 
-.element-create .navigation-side-nav-instance {
+.element-create .navigation-toolbar-instance {
   left: 0 !important;
   position: absolute !important;
   top: 48px !important;

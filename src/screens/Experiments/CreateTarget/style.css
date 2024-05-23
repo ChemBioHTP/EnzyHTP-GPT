@@ -57,7 +57,7 @@
   flex-grow: 1 !important;
 }
 
-.element-create-target .navigation-side-nav-instance {
+.element-create-target .navigation-toolbar-instance {
   left: 0 !important;
   position: absolute !important;
   top: 48px !important;

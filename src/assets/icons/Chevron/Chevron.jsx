@@ -6,28 +6,23 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 import PropTypes from "prop-types";
 import React from "react";
 
-export const Chevron9 = ({ color = "#161616", opacity = "unset", className }) => {
+export const Chevron = ({ color = "#525252", opacity = "unset", className }) => {
   return (
     <svg
-      className={`chevron-9 ${className}`}
+      className={`chevron-4 ${className}`}
       fill="none"
       height="16"
       viewBox="0 0 16 16"
       width="16"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <rect className="rect" fill="white" height="16" style="mix-blend-mode:multiply" width="16" />
-      <path
-        className="path"
-        d="M8 11L3 5.99999L3.7 5.29999L8 9.59999L12.3 5.29999L13 5.99999L8 11Z"
-        fill={color}
-        fillOpacity={opacity}
-      />
+      {/* <rect className="rect" fill="white" height="16" style={{mixBlendMode:'multiply'}} width="16" /> */}
+      <path className="path" d="M8 5L13 10L12.3 10.7L8 6.4L3.7 10.7L3 10L8 5Z" fill={color} fillOpacity={opacity} />
     </svg>
   );
 };
 
-Chevron9.propTypes = {
+Chevron.propTypes = {
   color: PropTypes.string,
   opacity: PropTypes.string,
 };

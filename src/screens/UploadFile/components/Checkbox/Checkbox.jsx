@@ -4,9 +4,9 @@ Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcN
 */
 
 import React from "react";
-import { Checkbox3 } from "../../icons/Checkbox3";
+import { Checkbox } from "../../../../assets/icons/Checkbox";
 import "./style.css";
 
 export const Checkbox = () => {
-  return <Checkbox3 className="checkbox-3" color="#161616" opacity="0.01" />;
+  return <Checkbox className="checkbox-3" color="#161616" opacity="0.01" />;
 };

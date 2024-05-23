@@ -8,8 +8,7 @@ import React from "react";
 import { useReducer } from "react";
 import { AccordionContentSkeleton1 } from "../../icons/AccordionContentSkeleton1";
 import { AccordionContentSkeleton6 } from "../../icons/AccordionContentSkeleton6";
-import { Chevron4 } from "../../icons/Chevron4";
-import { Chevron9 } from "../../icons/Chevron9";
+import { Chevron } from "../../../../assets/icons/Chevron";
 import { Slot } from "../Slot";
 import "./style.css";
 
@@ -55,9 +54,9 @@ export const AccordionItem = ({
             <div className="accordion-header-2">
               {state.alignment === "right" && <div className="title-line" />}
 
-              {!state.expanded && <Chevron9 className="instance-node-2" color="#161616" />}
+              {!state.expanded && <Chevron className="instance-node-2" color="#161616" />}
 
-              {state.expanded && <Chevron4 className="instance-node-2" color="#161616" />}
+              {state.expanded && <Chevron className="instance-node-2" color="#161616" />}
 
               {state.alignment === "left" && <div className="title-line" />}
             </div>
@@ -79,7 +78,7 @@ export const AccordionItem = ({
           )}
 
           {(state.state === "disabled" || state.state === "enabled" || (!state.flush && state.state === "focus")) && (
-            <Chevron9
+            <Chevron
               className={`${state.alignment === "left" ? "class-3" : "class-4"}`}
               color="#161616"
               fillOpacity={
@@ -93,7 +92,7 @@ export const AccordionItem = ({
           )}
 
           {(state.state === "hover" || (state.flush && state.state === "focus")) && (
-            <Chevron9 className={`${state.alignment === "left" ? "class-5" : "class-3"}`} color="#161616" />
+            <Chevron className={`${state.alignment === "left" ? "class-5" : "class-3"}`} color="#161616" />
           )}
 
           {state.alignment === "right" &&
@@ -133,7 +132,7 @@ export const AccordionItem = ({
             {state.alignment === "right" && <div className="title-of-accordion-3">{titleText}</div>}
 
             {(state.state === "disabled" || state.state === "enabled" || (!state.flush && state.state === "focus")) && (
-              <Chevron4
+              <Chevron
                 className={`${state.alignment === "left" ? "class-3" : "class-4"}`}
                 color="#161616"
                 fillOpacity={state.state === "disabled" ? "0.25" : undefined}
@@ -141,7 +140,7 @@ export const AccordionItem = ({
             )}
 
             {(state.state === "hover" || (state.flush && state.state === "focus")) && (
-              <Chevron4 className={`${state.alignment === "left" ? "class-5" : "class-3"}`} color="#161616" />
+              <Chevron className={`${state.alignment === "left" ? "class-5" : "class-3"}`} color="#161616" />
             )}
 
             {state.alignment === "right" &&
