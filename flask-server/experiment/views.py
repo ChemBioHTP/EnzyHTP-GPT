@@ -30,7 +30,7 @@ from config import EXPERIMENT_FILE_DIRECTORY, DEFAULT_FILE_PATH
 # Here put enzy_htp modules.
 import enzy_htp.structure
 import enzy_htp.mutation.api as mapi
-import enzy_htp.mutation.mutation as mt
+from enzy_htp.mutation_class import get_mutant_name_str, get_mutant_name_tag
 import enzy_htp.mutation.mutation_pattern.api as pattern_api
 from enzy_htp.preparation.validity import is_structure_valid
 from enzy_htp.core import (
@@ -360,14 +360,20 @@ def generate_mutation_pattern(experiment_id: str):
     
     # TODO: how to improve prompt in prompts.py?
     try:
-        completions = openai_client.completions.create(
-            prompt=prompt,
-            model="gpt-3.5-turbo-instruct",
-            max_tokens=70,
-            frequency_penalty=-0.5,
+        response = openai_client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            model="gpt-4-turbo",
+            max_tokens=4096,
+            frequency_penalty=0,
             temperature=0.01,
+            top_p=0.3
         )
-        pattern = completions.choices[0].text
+        pattern = response.choices[0].message.content
     except Exception as e:
         raise Exception(f'API Error: {str(e)}')
     
@@ -379,7 +385,7 @@ def generate_mutation_pattern(experiment_id: str):
     try:
         mutations = pattern_api.decode_mutation_pattern(stru, pattern)
         for mut in mutations:
-            mut_string += mt.get_mutant_name_str(mut) + ";"
+            mut_string += get_mutant_name_str(mut) + ";"
     except pattern_api.InvalidMutationPatternSyntax as e:
         # raise Exception(f'Invalid mutation: {str(e)}')
         _LOGGER.error(f"InvalidMutationPatternSyntax: {e}")
@@ -416,7 +422,7 @@ def generate_muts(file: FileStorage, pattern):
             res_file = sp.get_file_str(mutant_stru)
         except Exception as e:
             raise Exception(f'API Error: {str(e)}')
-    name_tag = mt.get_mutant_name_tag(mutations)
+    name_tag = get_mutant_name_tag(mutations)
     res.append((res_file, name_tag))
 
     return res
