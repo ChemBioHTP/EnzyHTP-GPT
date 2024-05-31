@@ -12,8 +12,9 @@
 from __future__ import annotations  # To enable the annotation that a staticmethod of a class returns an instance of the class.
 from flask_login import UserMixin
 from context import db
-from datetime import datetime
-from typing import List
+from datetime import datetime, timedelta
+from typing import List, Union, Tuple
+from json import dumps, loads
 import uuid
 
 # Here put local imports.
@@ -26,6 +27,7 @@ class Experiment(db.Model):
     id = db.Column(db.String(36), primary_key=True, unique=True)
     type = db.Column(db.Integer, nullable=False, default=0)
     name = db.Column(db.String(128), nullable=False, default=0)
+    slurm_job_uuid = db.Column(db.String(36), nullable=True)
     status = db.Column(db.Integer, nullable=False, default=0)
     metrics = db.Column(db.String(64), nullable=True)
     description = db.Column(db.String(128), nullable=True)
@@ -99,4 +101,173 @@ class Experiment(db.Model):
         from json import dumps
         serialized_data = self.as_dict()
         return dumps(serialized_data)
+
+############### Slurm Jobs ###############
+
+from config import ACCRE_SLURM_URL, ACCRE_SLURM_AUTHORIZATION
+from requests import (
+    get as req_get, 
+    post as req_post, 
+    delete as req_delete
+)
+
+class SlurmJobRequest:
+    """The configuration information to start a slurm job on Vanderbilt ACCRE.
+    
+    Attributes:
+        partition (str): Partition requested.
+        nodes (str): Number of Nodes on which to run (N = min[-max]).
+        job_name (str): Name of Job.
+        mem (str): Minimum amount of real Memory.
+        account (str): Charge job to specified Account.
+        time (timedelta): Time limit.
+        tasks_per_node (int): Number of Tasks to invoke on each Node.
+        ntasks (int): Number of Tasks to run.
+        cpus_per_task (int): Number of CPUs required per spawned task.
+        nodelist (list): Request a specific list of hosts.
+        exclude (list): Exclude a specific list of hosts.
+        array (list): Job array index values.
+        mail_user (str): Who to send email notification for job state changes.
+        mail_type (str): Notify on state change: BEGIN, END, FAIL or ALL.
+        depend (str): Defer job until condition on jobid is satisfied. Format: type:jobid[:time]
+        constraint (str): Specify a list of Constraints.
+        gres (str): Flags related to GRES management.
+    """
+
+    def __init__(self, partition: str, nodes: str,
+            job_name: str = "EnzyHTP Workflow", mem: str = "6G", 
+            account: str = None, time: timedelta = timedelta(days=10), 
+            tasks_per_node: int = 1, ntasks: int = 1, 
+            cpus_per_task: int = 1, nodelist: List[str] = list(),
+            exclude: List[str] = list(), array: list = list(),
+            mail_user: str = None, mail_type: str = None,
+            depend: str = str(), constraint: str = str(), gres: str = str()):
+        """The configuration information to start a slurm job on Vanderbilt ACCRE.
         
+        Args:
+            partition (str): Partition requested.
+            nodes (str): Number of Nodes on which to run (N = min[-max]).
+            job_name (str): Name of Job. Default "EnzyHTP Workflow".
+            mem (str): Minimum amount of real Memory. Default "6G".
+            account (str): Charge job to specified Account. Default None.
+            time (timedelta): Time limit. Default 10 days.
+            tasks_per_node (int): Number of Tasks to invoke on each Node. Default 1.
+            ntasks (int): Number of Tasks to run. Default 1.
+            cpus_per_task (int): Number of CPUs required per spawned task. Default 1.
+            nodelist (list): Request a specific list of hosts. Default Empty.
+            exclude (list): Exclude a specific list of hosts. Default Empty.
+            array (list): Job array index values. Default Empty.
+            mail_user (str): Who to send email notification for job state changes. Default None.
+            mail_type (str): Notify on state change: BEGIN, END, FAIL or ALL. Default None.
+            depend (str): Defer job until condition on jobid is satisfied. Format: type:jobid[:time]. Default Empty.
+            constraint (str): Specify a list of Constraints. Default Empty.
+            gres (str): Flags related to GRES management. Default Empty.
+        """
+        self.job_name = job_name
+        self.time = time
+        self.nodes = nodes
+        self.mem = mem
+        self.tasks_per_node = tasks_per_node
+        self.account = account
+        self.ntasks = ntasks
+        self.cpus_per_task = cpus_per_task
+        self.nodelist = nodelist
+        self.exclude = exclude
+        self.array = array
+        self.mail_user = mail_user
+        self.mail_type = mail_type
+        self.depend = depend
+        self.constraint = constraint
+        self.partition = partition
+        self.gres = gres
+
+    def serialize(self) -> str:
+        """Serialize the current instance to json string, None or Empty value will be omitted."""
+        from json import dumps
+
+        dict_to_serialize = dict()
+        for key, value in self.__dict__.items():
+            if value:
+                dict_to_serialize[key] = value
+        
+        dict_to_serialize["time"] = f"{self.time.days}-{self.time.seconds//3600}:{(self.time.seconds % 3600) // 60}:{self.time.seconds%60}"
+        return dumps(dict_to_serialize)
+
+class SlurmJobData:
+    """The information from the slurm job."""
+
+    def __init__(self, job_uuid: str = str(),
+            job_name: str = str(), user: str = str(),
+            job_details: Union[dict, str] = dict(), job_state: str = str(), 
+            created_at: datetime = datetime.now(), alternate_user: str = str(),
+            remote_job_id: str = None, failure_reason: str = str(), **kwargs) -> None:
+        self.job_uuid = job_uuid
+        self.job_name = job_name
+        self.user = user
+        if (isinstance(job_details, dict)):
+            self.job_details = job_details
+        else:
+            self.job_details = loads(job_details)
+        self.job_state = job_state
+        self.created_at = created_at
+        self.alternate_user = alternate_user
+        self.remote_job_id = remote_job_id
+        self.failure_reason = failure_reason
+        self.kwargs = kwargs
+        
+    @staticmethod
+    def get(id: str) -> Tuple[int, SlurmJobData] | None:
+        """Get the information of a specific slurm job.
+        
+        Args:
+            id (str): The `uuid` of a specific slurm job.
+
+        Returns:
+            status (int): The status from the response.
+            job_data (SlurmJobData): The Slurm Job Data instance.
+        """
+        headers = {
+            "Authorization": ACCRE_SLURM_AUTHORIZATION
+        }
+        response = req_get(f"{ACCRE_SLURM_URL}{id}", headers=headers)
+        if (response.status_code == 200):
+            response_dict: dict = loads(response.text)
+            slurm_job_data_dict = response_dict.get("data", dict())
+            slurm_job_data = __class__(**slurm_job_data_dict)
+            return 200, slurm_job_data
+        else:
+            return response.status_code, None
+
+    def delete(id: str) -> Tuple[int, str]:
+        """Delete a specific slurm job.
+        
+        Args:
+            id (str): The `uuid` of a specific slurm job.
+        
+        Returns:
+            status (int): The status from the response.
+            message (str): The message to describe the consequence.
+        """
+        headers = {
+            "Authorization": ACCRE_SLURM_AUTHORIZATION
+        }
+        status, job_data = __class__.get(id)
+        if (status != 200):
+            return status, "Unable to delete the Slurm Job. The target job doesn't exist."
+
+        response = req_delete(f"{ACCRE_SLURM_URL}{id}", headers=headers)
+        if (response.status_code == 200):
+            return 200, "The Slurm Job has successfully be deleted."
+        else:
+            return response.status_code, "Unable to delete the Slurm Job."
+
+    def __bool__(self):
+        return bool(self.job_uuid)
+
+    def serialize(self) -> str:
+        """Serialize the current instance to json string."""
+        serialized_data = self.__dict__.copy()
+        for key, value in self.kwargs.items():
+            serialized_data[key] = value
+        del serialized_data["kwargs"]
+        return dumps(serialized_data)

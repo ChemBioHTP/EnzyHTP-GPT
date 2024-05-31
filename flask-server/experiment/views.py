@@ -13,19 +13,20 @@ import os
 import prompts
 from flask import Response, request, redirect, jsonify, send_file
 from flask_login import login_required, current_user
-from json import dumps
+from json import dumps, loads
 from typing import List
 from string import Template
 from datetime import datetime
+from requests import get, post, delete
 from werkzeug.datastructures import FileStorage
 from openai import OpenAI
 
 # Here put local imports.
 from . import experiment as experiment_blueprint
-from .models import Experiment
+from .models import Experiment, SlurmJobData
 from auth.models import User
 from context import db, login_manager
-from config import EXPERIMENT_FILE_DIRECTORY, DEFAULT_FILE_PATH
+from config import EXPERIMENT_FILE_DIRECTORY, DEFAULT_FILE_PATH, ACCRE_SLURM_URL
 
 # Here put enzy_htp modules.
 import enzy_htp.structure
@@ -164,7 +165,6 @@ class ExperimentBehaviourResponseInfo():
     
     def serialize(self) -> str:
         """Serialize the current instance to json string."""
-        from json import dumps
         serialized_data = self.__dict__.copy()
         for key, value in self.kwargs.items():
             serialized_data[key] = value
@@ -426,3 +426,83 @@ def generate_muts(file: FileStorage, pattern):
     res.append((res_file, name_tag))
 
     return res
+
+@experiment_blueprint.route("/<experiment_id>/slurm", methods=["GET"])
+@login_required
+def experiment_slurm_get(experiment_id: str):
+    """Fetch the information of the job relevant to this experiment from the slurm cluster."""
+    user: User = current_user
+    experiment = Experiment.get(experiment_id)
+    if (not experiment.slurm_job_uuid):
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment,
+            user=user,
+            message="Slurm job information is not contained in the current experiment.",
+            is_authenticated=True,
+            is_successful=False,
+        )
+        return Response(response=response_info.serialize(), status=404, mimetype="application/json")
+
+    status, slurm_job_data = SlurmJobData.get(experiment.slurm_job_uuid)
+    if (slurm_job_data):
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment,
+            user=user,
+            message="Slurm job information is successfully fetched.",
+            is_authenticated=True,
+            data=slurm_job_data.serialize(),
+        )
+    else:
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment,
+            user=user,
+            message="Slurm job information is not able to be fetched.",
+            is_authenticated=True,
+            is_successful=False,
+        )
+    return Response(response=response_info.serialize(), status=status, mimetype="application/json")
+
+
+@experiment_blueprint.route("/<experiment_id>/slurm", methods=["POST"])
+@login_required
+def experiment_slurm_post(experiment_id: str):
+    """Submit Slurm jobs to the cluster."""
+    user: User = current_user
+    experiment = Experiment.get(experiment_id)
+    pass
+
+@experiment_blueprint.route("/<experiment_id>/slurm", methods=["DELETE"])
+@login_required
+def experiment_slurm_delete(experiment_id: str):
+    """Delete the Slurm jobs relevant to this experiment."""
+    user: User = current_user
+    experiment = Experiment.get(experiment_id)
+
+    if (experiment.slurm_job_uuid):
+        status, message = SlurmJobData.delete(experiment.slurm_job_uuid)
+        if (status == 200):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                message=message,
+                is_authenticated=True,
+                is_successful=True,
+            )
+        else:
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                message=message,
+                is_authenticated=True,
+                is_successful=False,
+            )
+        return Response(response=response_info.serialize(), status=status, mimetype="application/json")
+    else:
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment,
+            user=user,
+            message="Slurm job information is not contained in the current experiment.",
+            is_authenticated=True,
+            is_successful=False,
+        )
+        return Response(response=response_info.serialize(), status=404, mimetype="application/json")
