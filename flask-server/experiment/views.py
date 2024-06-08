@@ -17,13 +17,12 @@ from json import dumps, loads
 from typing import List
 from string import Template
 from datetime import datetime
-from requests import get, post, delete
 from werkzeug.datastructures import FileStorage
 from openai import OpenAI
 
 # Here put local imports.
 from . import experiment as experiment_blueprint
-from .models import Experiment, SlurmJobData
+from .models import Experiment
 from auth.models import User
 from context import db, login_manager
 from config import EXPERIMENT_FILE_DIRECTORY, DEFAULT_FILE_PATH, ACCRE_SLURM_URL
@@ -427,10 +426,18 @@ def generate_muts(file: FileStorage, pattern):
 
     return res
 
+#region Slurm Jobs.
+
+from models import SlurmJobRequest, SlurmJobData
+
 @experiment_blueprint.route("/<experiment_id>/slurm", methods=["GET"])
 @login_required
 def experiment_slurm_get(experiment_id: str):
-    """Fetch the information of the job relevant to this experiment from the slurm cluster."""
+    """Fetch the information of the job relevant to this experiment from the slurm cluster.
+    
+    Args:
+        experiment_id (str): The identifier of an experiment instance.
+    """
     user: User = current_user
     experiment = Experiment.get(experiment_id)
     if (not experiment.slurm_job_uuid):
@@ -466,15 +473,62 @@ def experiment_slurm_get(experiment_id: str):
 @experiment_blueprint.route("/<experiment_id>/slurm", methods=["POST"])
 @login_required
 def experiment_slurm_post(experiment_id: str):
-    """Submit Slurm jobs to the cluster."""
+    """Submit Slurm jobs to the cluster.
+    
+    Args:
+        experiment_id (str): The identifier of an experiment instance.
+    """
     user: User = current_user
     experiment = Experiment.get(experiment_id)
-    pass
+    
+    if (experiment.slurm_job_uuid):
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment,
+            user=user,
+            message="Slurm job is already submitted. You cannot submit another job unless you cancel and delete the current one.",
+            is_authenticated=True,
+            is_successful=False,
+        )
+        return Response(response=response_info.serialize(), status=400, mimetype="application/json")
+    elif (not os.path.isfile(experiment.pdb_filepath)):
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment,
+            user=user,
+            message="This experiment does not contain a PDB file. Please upload your PDB file before submitting your computation.",
+            is_authenticated=True,
+            is_successful=False,
+        )
+        return Response(response=response_info.serialize(), status=400, mimetype="application/json")
+    else:
+        slurm_request = SlurmJobRequest()
+        files = [
+            open(experiment.pdb_filepath)
+        ]
+        status, message, job_uuid = SlurmJobData.submit(slurm_request=slurm_request, files=files)
+        
+        experiment.slurm_job_uuid = job_uuid
+        db.session.commit()
+
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment,
+            user=user,
+            message=message,
+            is_authenticated=True,
+            is_successful=True if job_uuid else False,
+            job_uuid = job_uuid
+        )
+        return Response(response=response_info.serialize(), status=status, mimetype="application/json")
+
+
 
 @experiment_blueprint.route("/<experiment_id>/slurm", methods=["DELETE"])
 @login_required
 def experiment_slurm_delete(experiment_id: str):
-    """Delete the Slurm jobs relevant to this experiment."""
+    """Delete the Slurm jobs relevant to this experiment.
+    
+    Args:
+        experiment_id (str): The identifier of an experiment instance.
+    """
     user: User = current_user
     experiment = Experiment.get(experiment_id)
 
@@ -488,6 +542,8 @@ def experiment_slurm_delete(experiment_id: str):
                 is_authenticated=True,
                 is_successful=True,
             )
+            experiment.slurm_job_uuid = None
+            db.session.commit()
         else:
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,

@@ -9,7 +9,8 @@
 '''
 
 # Here put the import lib.
-from __future__ import annotations  # To enable the annotation that a staticmethod of a class returns an instance of the class.
+from __future__ import annotations
+from io import BufferedReader  # To enable the annotation that a staticmethod of a class returns an instance of the class.
 from flask_login import UserMixin
 from context import db
 from datetime import datetime, timedelta
@@ -104,7 +105,7 @@ class Experiment(db.Model):
 
 ############### Slurm Jobs ###############
 
-from config import ACCRE_SLURM_URL, ACCRE_SLURM_AUTHORIZATION
+from config import ACCRE_SLURM_URL, ACCRE_SLURM_AUTHORIZATION, SLURM_ACCOUNT, SLURM_PARTITION
 from requests import (
     get as req_get, 
     post as req_post, 
@@ -134,22 +135,25 @@ class SlurmJobRequest:
         gres (str): Flags related to GRES management.
     """
 
-    def __init__(self, partition: str, nodes: str,
-            job_name: str = "EnzyHTP Workflow", mem: str = "6G", 
-            account: str = None, time: timedelta = timedelta(days=10), 
+    def __init__(self, account: str = SLURM_ACCOUNT, 
+            partition: str = SLURM_PARTITION, 
+            job_name: str = "EnzyHTP Workflow", 
+            nodes: int = 1, mem: str = "6G", 
+            time: timedelta = timedelta(days=10), 
             tasks_per_node: int = 1, ntasks: int = 1, 
             cpus_per_task: int = 1, nodelist: List[str] = list(),
             exclude: List[str] = list(), array: list = list(),
             mail_user: str = None, mail_type: str = None,
-            depend: str = str(), constraint: str = str(), gres: str = str()):
+            depend: str = str(), constraint: str = str(),
+            gres: str = str(), **kwargs):
         """The configuration information to start a slurm job on Vanderbilt ACCRE.
         
         Args:
+            account (str): Charge job to specified Account.
             partition (str): Partition requested.
-            nodes (str): Number of Nodes on which to run (N = min[-max]).
             job_name (str): Name of Job. Default "EnzyHTP Workflow".
+            nodes (int): Number of Nodes on which to run (N = min[-max]).
             mem (str): Minimum amount of real Memory. Default "6G".
-            account (str): Charge job to specified Account. Default None.
             time (timedelta): Time limit. Default 10 days.
             tasks_per_node (int): Number of Tasks to invoke on each Node. Default 1.
             ntasks (int): Number of Tasks to run. Default 1.
@@ -163,12 +167,13 @@ class SlurmJobRequest:
             constraint (str): Specify a list of Constraints. Default Empty.
             gres (str): Flags related to GRES management. Default Empty.
         """
+        self.account = account
+        self.partition = partition
         self.job_name = job_name
         self.time = time
         self.nodes = nodes
         self.mem = mem
         self.tasks_per_node = tasks_per_node
-        self.account = account
         self.ntasks = ntasks
         self.cpus_per_task = cpus_per_task
         self.nodelist = nodelist
@@ -178,7 +183,6 @@ class SlurmJobRequest:
         self.mail_type = mail_type
         self.depend = depend
         self.constraint = constraint
-        self.partition = partition
         self.gres = gres
 
     def serialize(self) -> str:
@@ -237,7 +241,51 @@ class SlurmJobData:
             return 200, slurm_job_data
         else:
             return response.status_code, None
+    
+    @staticmethod
+    def submit(slurm_request: SlurmJobRequest, files: List[BufferedReader]) -> Tuple[int, str, str]:
+        """Submit a slurm job to the Vanderbilt ACCRE Slurm.
+        
+        Args:
+            slurm_request (SlurmJobRequest): The configuration of the slurm request.
+            files (list): A list of files to be sent to the working directory on Vanderbilt ACCRE.
 
+        Returns:
+            status (int): The status from the response.
+            message (str): The Slurm Job Data instance.        
+            job_uuid (str): The UUID of the Slurm Job.
+        """
+        headers = {
+            "Authorization": ACCRE_SLURM_AUTHORIZATION
+        }
+
+        # TODO Zhong.
+        payload = {
+            'slurm_request': slurm_request.serialize(),
+            'entry_script': '/home/zhongy8/drug_resistance_colab/sim-7si9/hpc_no_cluster_reload_execute.sh'
+        }
+        # TODO Zhong.
+        files = [("files", (fobj.name, fobj, "text/plain" if fobj.mode=="r" else "application/octet-stream")) for fobj in files]
+
+        response = req_post(f"{ACCRE_SLURM_URL}{id}", headers=headers, data=payload, files=files)
+        if (response.status_code == 200):
+            response_dict: dict = loads(response.text)
+            message = response_dict.get("message", str())
+            if (response_dict.get("success", False)):
+                job_uuid = response_dict.get("data", dict()).get("job_uuid", str())
+                return 200, message, job_uuid
+            else:
+                return 200, message, str()
+        else:
+            message = str()
+            try:
+                response_dict: dict = loads(response.text)
+                message = response_dict.get("message", str())
+            except:
+                message = "The Slurm Job submission is failed."
+            return response.status_code, message, None
+
+    @staticmethod
     def delete(id: str) -> Tuple[int, str]:
         """Delete a specific slurm job.
         
