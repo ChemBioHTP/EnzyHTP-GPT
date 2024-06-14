@@ -170,6 +170,25 @@ class ExperimentBehaviourResponseInfo():
         del serialized_data["kwargs"]
         return dumps(serialized_data)
 
+def forbidden_response(user: User, experiment: Experiment) -> Response:
+    """Generate a 403 FORBIDDEN Response when the user doesn't have the permission to the experiment.
+    
+    Args:
+        user (User): Current user.
+        experiment (experiment): The experiment record associated to the `experiment_id`.
+
+    Returns:
+        A 403 FORBIDDEN Response instance.
+    """
+    response_info = ExperimentBehaviourResponseInfo(
+        experiment=experiment,
+        user=user,
+        is_successful=False,
+        message="The current user doesn't have the permission to the experiment.",
+        is_authenticated=True
+    )
+    return Response(response=response_info.serialize(), status=403, mimetype="application/json")
+
 @experiment_blueprint.route("/create", methods=["POST"])
 @login_required
 def create_experiment():
@@ -201,6 +220,9 @@ def update_information(experiment_id: str):
     """
     user: User = current_user
     experiment = Experiment.get(experiment_id)
+
+    if (experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
 
     name = request.form.get("name")
     description = request.form.get("description")
@@ -234,12 +256,8 @@ def pdb_file_upload(experiment_id: str):
             message=f"The experiment with id '{experiment_id}' doesn't exist.")
         return Response(response=response_info.serialize(), status=404, mimetype="application/json")
 
-    if experiment.user_id != user.id:
-        message = "You are not allowed to upload file to this experiment."
-        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
-            is_successful=False,
-            message=message)
-        return Response(response=response_info.serialize(), status=403, mimetype="application/json")
+    if (experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
     
     fs.safe_mkdir(EXPERIMENT_FILE_DIRECTORY)
     
@@ -305,12 +323,8 @@ def pdb_file_download(experiment_id: str):
             message=f"The experiment with id '{experiment_id}' doesn't exist.")
         return Response(response=response_info.serialize(), status=404, mimetype="application/json")
 
-    if experiment.user_id != user.id:
-        message = "You are not allowed to download file from this experiment."
-        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
-            is_successful=False,
-            message=message)
-        return Response(response=response_info.serialize(), status=403, mimetype="application/json")
+    if (experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
     
     if (not experiment.pdb_filepath):
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
@@ -329,7 +343,6 @@ def pdb_file_download(experiment_id: str):
             message=f"Failed to find the attached PDB file.")
         return Response(response=response_info.serialize(), status=404, mimetype="application/json")
 
-
 @experiment_blueprint.route("/<experiment_id>/generate_mutation_pattern", methods=["POST"])
 @login_required
 def generate_mutation_pattern(experiment_id: str):
@@ -343,12 +356,8 @@ def generate_mutation_pattern(experiment_id: str):
 
     filepath = experiment.pdb_filepath
 
-    if experiment.user_id != user.id:
-        message = "You are not allowed to access this experiment."
-        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
-            is_successful=False,
-            message=message)
-        return Response(response=response_info.serialize(), status=403, mimetype="application/json")
+    if (experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
 
     mutation_request = request.form.get("mutation_request")
     openai_client = OpenAI(api_key=user.openai_secret_key)
@@ -428,7 +437,12 @@ def generate_muts(file: FileStorage, pattern):
 
 #region Slurm Jobs.
 
-from models import SlurmJobRequest, SlurmJobData
+from io import StringIO, BytesIO
+from os.path import basename
+from zipfile import ZipFile, ZIP_DEFLATED
+
+from .models import SlurmJobRequest, SlurmJobData
+from config import SLURM_JOB_ENTRY_SCRIPT_FILENAME, SLURM_JOB_ENTRY_SCRIPT, SLURM_DEPLOY_SCRIPT_FILENAME, SLURM_DEPLOY_SCRIPT
 
 @experiment_blueprint.route("/<experiment_id>/slurm", methods=["GET"])
 @login_required
@@ -440,6 +454,10 @@ def experiment_slurm_get(experiment_id: str):
     """
     user: User = current_user
     experiment = Experiment.get(experiment_id)
+
+    if (experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
+    
     if (not experiment.slurm_job_uuid):
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
@@ -469,7 +487,6 @@ def experiment_slurm_get(experiment_id: str):
         )
     return Response(response=response_info.serialize(), status=status, mimetype="application/json")
 
-
 @experiment_blueprint.route("/<experiment_id>/slurm", methods=["POST"])
 @login_required
 def experiment_slurm_post(experiment_id: str):
@@ -480,6 +497,9 @@ def experiment_slurm_post(experiment_id: str):
     """
     user: User = current_user
     experiment = Experiment.get(experiment_id)
+
+    if (experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
     
     if (experiment.slurm_job_uuid):
         response_info = ExperimentBehaviourResponseInfo(
@@ -490,7 +510,7 @@ def experiment_slurm_post(experiment_id: str):
             is_successful=False,
         )
         return Response(response=response_info.serialize(), status=400, mimetype="application/json")
-    elif (not os.path.isfile(experiment.pdb_filepath)):
+    elif (experiment.pdb_filepath == None or not os.path.isfile(experiment.pdb_filepath)):
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
             user=user,
@@ -501,8 +521,18 @@ def experiment_slurm_post(experiment_id: str):
         return Response(response=response_info.serialize(), status=400, mimetype="application/json")
     else:
         slurm_request = SlurmJobRequest()
+        pdb_filepath = experiment.pdb_filepath
+
+        entry_script_str_io = StringIO()
+        entry_script_str_io.write(Template(SLURM_JOB_ENTRY_SCRIPT).safe_substitute({
+            "pdb_filename": basename(pdb_filepath),
+        }))
+        entry_script_str_io.name = SLURM_JOB_ENTRY_SCRIPT_FILENAME
+        entry_script_str_io.mode = "r"
+
         files = [
-            open(experiment.pdb_filepath)
+            open(pdb_filepath),
+            entry_script_str_io,
         ]
         status, message, job_uuid = SlurmJobData.submit(slurm_request=slurm_request, files=files)
         
@@ -520,7 +550,6 @@ def experiment_slurm_post(experiment_id: str):
         return Response(response=response_info.serialize(), status=status, mimetype="application/json")
 
 
-
 @experiment_blueprint.route("/<experiment_id>/slurm", methods=["DELETE"])
 @login_required
 def experiment_slurm_delete(experiment_id: str):
@@ -531,6 +560,9 @@ def experiment_slurm_delete(experiment_id: str):
     """
     user: User = current_user
     experiment = Experiment.get(experiment_id)
+
+    if (experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
 
     if (experiment.slurm_job_uuid):
         status, message = SlurmJobData.delete(experiment.slurm_job_uuid)
@@ -562,3 +594,34 @@ def experiment_slurm_delete(experiment_id: str):
             is_successful=False,
         )
         return Response(response=response_info.serialize(), status=404, mimetype="application/json")
+
+@experiment_blueprint.route("/<experiment_id>/deploy", methods=["GET"])
+@login_required
+def experiment_slurm_deploy_get(experiment_id: str):
+    """Download the MD simulation script to run MD by the users themselves.
+    
+    Args:
+        experiment_id (str): The identifier of an experiment instance.
+    """
+    user: User = current_user
+    experiment = Experiment.get(experiment_id)
+
+    if (not experiment):
+        return Response(None, status=404)
+
+    if (experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
+    
+    deploy_script = Template(SLURM_DEPLOY_SCRIPT).safe_substitute({
+        "pdb_filename": basename(experiment.pdb_filepath)
+    })
+
+    deploy_pack_io = BytesIO()
+    deploy_pack_zip = ZipFile(deploy_pack_io, "w")
+
+    deploy_pack_zip.writestr(SLURM_DEPLOY_SCRIPT_FILENAME, deploy_script.encode("utf-8"), compress_type=ZIP_DEFLATED)       # Add bash into zip.
+    deploy_pack_zip.write(experiment.pdb_filepath, arcname=basename(experiment.pdb_filepath), compress_type=ZIP_DEFLATED)   # Add PDB file into zip.
+    
+    deploy_pack_zip.close()
+    deploy_pack_io.seek(0)
+    return send_file(deploy_pack_io, mimetype="application/zip", as_attachment=True, download_name="EnzyHTP Deploy Pack.zip")

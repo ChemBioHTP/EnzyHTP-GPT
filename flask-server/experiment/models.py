@@ -104,13 +104,14 @@ class Experiment(db.Model):
         return dumps(serialized_data)
 
 ############### Slurm Jobs ###############
-
-from config import ACCRE_SLURM_URL, ACCRE_SLURM_AUTHORIZATION, SLURM_ACCOUNT, SLURM_PARTITION
+from os.path import basename
 from requests import (
     get as req_get, 
     post as req_post, 
     delete as req_delete
 )
+
+from config import ACCRE_SLURM_URL, ACCRE_SLURM_AUTHORIZATION, SLURM_ACCOUNT, SLURM_PARTITION, SLURM_JOB_ENTRY_SCRIPT_FILENAME
 
 class SlurmJobRequest:
     """The configuration information to start a slurm job on Vanderbilt ACCRE.
@@ -137,7 +138,7 @@ class SlurmJobRequest:
 
     def __init__(self, account: str = SLURM_ACCOUNT, 
             partition: str = SLURM_PARTITION, 
-            job_name: str = "EnzyHTP Workflow", 
+            job_name: str = "EnzyHTP-Web", 
             nodes: int = 1, mem: str = "6G", 
             time: timedelta = timedelta(days=10), 
             tasks_per_node: int = 1, ntasks: int = 1, 
@@ -258,16 +259,14 @@ class SlurmJobData:
         headers = {
             "Authorization": ACCRE_SLURM_AUTHORIZATION
         }
-
-        # TODO Zhong.
         payload = {
             'slurm_request': slurm_request.serialize(),
-            'entry_script': '/home/zhongy8/drug_resistance_colab/sim-7si9/hpc_no_cluster_reload_execute.sh'
+            'entry_script': SLURM_JOB_ENTRY_SCRIPT_FILENAME,
         }
-        # TODO Zhong.
-        files = [("files", (fobj.name, fobj, "text/plain" if fobj.mode=="r" else "application/octet-stream")) for fobj in files]
+        print(slurm_request.serialize())
+        files = [("files", (basename(fobj.name), fobj, "text/plain" if fobj.mode=="r" else "application/octet-stream")) for fobj in files]
 
-        response = req_post(f"{ACCRE_SLURM_URL}{id}", headers=headers, data=payload, files=files)
+        response = req_post(f"{ACCRE_SLURM_URL}", headers=headers, data=payload, files=files)
         if (response.status_code == 200):
             response_dict: dict = loads(response.text)
             message = response_dict.get("message", str())
@@ -279,6 +278,7 @@ class SlurmJobData:
         else:
             message = str()
             try:
+                print(response.text)
                 response_dict: dict = loads(response.text)
                 message = response_dict.get("message", str())
             except:
