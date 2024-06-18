@@ -241,46 +241,71 @@ def profile() -> Response:
         is_authenticated=True)
     return Response(response=response_info.serialize(), status=200, mimetype='application/json')
 
-@auth.route('/profile/update', methods=['POST', 'PUT'])
+@auth.route('/profile', methods=['POST', 'PUT'])
 @login_required
 def profile_update() -> Response:
     """Update the editable field(s) in the user profile."""
     user: User = current_user
     editable_profile_fields = ['username', 'openai_secret_key'] # Only fields in the list are editable.
 
-    field_name = request.form.get(key='field', default=None)
-    field_value = request.form.get(key='value', default=None)
+    updated_profile_fields = list()
+    nonexistent_profile_fields = list()
+    blocked_profile_fields = list()
+    verify_openai_secret_key = False
 
-    if (field_name in editable_profile_fields and field_value):
-        setattr(user, field_name, field_value)
-        db.session.commit()
+    for field_name, field_value in request.form.items():
+        if (hasattr(user, field_name)):
+            if field_name in editable_profile_fields:
+                if (field_value):
+                    setattr(user, field_name, field_value)
+                    db.session.commit()
+                    updated_profile_fields.append(field_name)
+
+                if (field_name == "openai_secret_key"):
+                    verify_openai_secret_key = True
+                continue
+            else:
+                blocked_profile_fields.append(field_name)
+        else:
+            nonexistent_profile_fields.append(field_name)
+
+    message = str()
+    if (updated_profile_fields):
+        message += f"Updated field(s): {', '.join(updated_profile_fields)}. "
+    if (blocked_profile_fields):
+        message += f"Uneditable field(s): {', '.join(blocked_profile_fields)}. "
+    if (nonexistent_profile_fields):
+        message += f"Nonexistent field(s): {', '.join(nonexistent_profile_fields)}. "
+
+
+    if (not (updated_profile_fields or blocked_profile_fields or nonexistent_profile_fields)):
         response_info = AuthResponseInfo(
             id=user.id,
             email=user.email,
             username=user.username,
             is_successful=True,
-            message=f'The field `{field_name}` is successfully updated.',
-            is_authenticated=True,
-            verify_openai_secret_key=(field_name == 'openai_secret_key')
+            message=f'Nothing to be updated.',
+            is_authenticated=True
         )
         return Response(response=response_info.serialize(), status=200, mimetype='application/json')
-    elif (field_name not in editable_profile_fields):
+    if (updated_profile_fields):
         response_info = AuthResponseInfo(
             id=user.id,
             email=user.email,
             username=user.username,
-            is_successful=False,
-            message=f'The field `{field_name}` is not recognizable or not editable.',
-            is_authenticated=True
+            is_successful=True,
+            message=message,
+            is_authenticated=True,
+            verify_openai_secret_key=verify_openai_secret_key,
         )
-        return Response(response=response_info.serialize(), status=403, mimetype='application/json')
+        return Response(response=response_info.serialize(), status=200, mimetype='application/json')
     else:
         response_info = AuthResponseInfo(
             id=user.id,
             email=user.email,
             username=user.username,
             is_successful=False,
-            message=f'The `field` or `value` is null in the request.',
+            message=message,
             is_authenticated=True
         )
         return Response(response=response_info.serialize(), status=400, mimetype='application/json')
