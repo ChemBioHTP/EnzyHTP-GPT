@@ -233,7 +233,7 @@ def logout() -> Response:
 @login_required
 def profile() -> Response:
     """User Profile."""
-    user = current_user
+    user: User = current_user
     response_info = AuthResponseInfo(
         id=user.id,
         email=user.email,
@@ -514,7 +514,7 @@ def __perform_oauth_login(
     """
     oauth_vendor = OAuthUser.camel_case_oauth_vendor(oauth_vendor)
     oauth_user = OAuthUser.get_by_email_and_vendor(email=oauth_email, oauth_vendor=oauth_vendor)
-    if (oauth_user and oauth_user.user_id):
+    if (oauth_user and oauth_user.user_id): # If account exists, match.
         user = oauth_user.user
         login_user(user=user, remember=remember)
         oauth_response_info = OAuthResponseInfo(
@@ -527,7 +527,7 @@ def __perform_oauth_login(
             is_authenticated=True,
             verify_openai_secret_key=True)
         return Response(response=oauth_response_info.serialize(), status=200, mimetype='application/json')
-    elif (user := User.get_by_email(email=oauth_email)):
+    elif (user := User.get_by_email(email=oauth_email)):    # If social login account is identical with existing user's, bind.
         oauth_user = OAuthUser(
             email=oauth_email,
             oauth_vendor=oauth_vendor,
@@ -545,7 +545,7 @@ def __perform_oauth_login(
             is_authenticated=True,
             verify_openai_secret_key=True)
         return Response(response=oauth_response_info.serialize(), status=201, mimetype='application/json')
-    else:
+    else:       # If social login email doesn't exist in the `users` table, create new user.
         user = User(email=oauth_email, password=str(uuid4())[:8], username=username)
         db.session.add(user)
         oauth_user = OAuthUser(email=oauth_email, oauth_vendor=oauth_vendor, user_id=user.id)

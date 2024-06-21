@@ -255,7 +255,7 @@ class OAuthUser(db.Model):
     oauth_vendor = db.Column(db.String(64), nullable=False)
     registered_on = db.Column(db.DateTime, nullable=False)
     user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
-    user = db.relationship('User', backref=db.backref('oauth_users'))
+    user: User = db.relationship('User', backref=db.backref('oauth_users'))
 
     @staticmethod
     def camel_case_oauth_vendor(oauth_vendor: str) -> str:
@@ -304,7 +304,7 @@ class OAuthUser(db.Model):
         self.id = str(uuid.uuid4())
         self.email = email
         self.oauth_vendor = OAuthUser.camel_case_oauth_vendor(oauth_vendor)
-        self.registered_on = datetime.utcnow()
+        self.registered_on = datetime.now()
         self.user_id = user_id
         self.user = User.get(user_id)
         return
