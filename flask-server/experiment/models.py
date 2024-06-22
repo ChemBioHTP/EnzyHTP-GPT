@@ -22,14 +22,24 @@ import uuid
 from auth.models import User
 
 class Experiment(db.Model):
-    """Experiment Model: Experiment information."""
+    """Experiment Model: Experiment information.
+    
+    Attributes:
+        user_id (int): The user ID associated with this experiment.
+        name (str): The name of the experiment.
+        type (int): The type of the experiment (default is 0).
+        status (int): The status of the experiment (default is 0).
+        metrics (str): Additional metrics information (default is None).
+        description (str): A description of the experiment (default is None).
+    """
 
     __tablename__ = 'experiments'
     id = db.Column(db.String(36), primary_key=True, unique=True)
     type = db.Column(db.Integer, nullable=False, default=0)
     name = db.Column(db.String(128), nullable=False, default=0)
     slurm_job_uuid = db.Column(db.String(36), nullable=True)
-    status = db.Column(db.Integer, nullable=False, default=0)
+    status = db.Column(db.Integer, nullable=False, default=-9)
+    progress = db.Column(db.Float, nullable=False, default=0.0)
     metrics = db.Column(db.String(64), nullable=True)
     description = db.Column(db.String(128), nullable=True)
     created_time = db.Column(db.DateTime, nullable=False)
@@ -38,14 +48,13 @@ class Experiment(db.Model):
     user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
     user = db.relationship('User', backref=db.backref('experiments'))
 
-    def __init__(self, user_id: str, name: str, type: int = 0, status: int = 0, metrics: List[float] = list(), description: str = None, **kwargs):
+    def __init__(self, user_id: str, name: str, type: int = 0, metrics: List[float] = list(), description: str = None, **kwargs):
         """Initializes an instance of Experiment with the provided parameters.
 
         Args:
             user_id (int): The user ID associated with this experiment.
             name (str): The name of the experiment.
             type (int, optional): The type of the experiment (default is 0).
-            status (int, optional): The status of the experiment (default is 0).
             metrics (str, optional): Additional metrics information (default is None).
             description (str, optional): A description of the experiment (default is None).
             kwargs: A placeholder to avoid TypeError caused by unexpected keyword arguments.
@@ -53,8 +62,7 @@ class Experiment(db.Model):
         self.id = str(uuid.uuid4())
         self.type = type
         self.name = name
-        self.status = status
-        self.metrics = str(metrics)
+        self.metrics = str(metrics) # TODO (Zhong): No need to convert when using no-sql.
         self.description = description
         self.created_time = datetime.now()
         self.updated_time = datetime.now()
@@ -100,7 +108,10 @@ class Experiment(db.Model):
     def serialize(self) -> str:
         """Serialize the current instance to json string."""
         from json import dumps
+        from enzy_htp.workflow.config import StatusCode
+
         serialized_data = self.as_dict()
+        serialized_data["status"] = StatusCode.status_text_mapper.get(self.status, self.status)
         return dumps(serialized_data)
 
 ############### Slurm Jobs ###############

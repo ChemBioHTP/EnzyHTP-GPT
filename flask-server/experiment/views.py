@@ -39,6 +39,7 @@ from enzy_htp.core import (
     file_system as fs,
     exception as core_exc
 )
+from enzy_htp.workflow.config import StatusCode
 
 class ExperimentIndexResponse():
     """Experiment List Information Response Body."""
@@ -95,7 +96,7 @@ def index():
 
 @experiment_blueprint.route("/<experiment_id>", methods=["GET"])
 @login_required
-def detail(experiment_id: str):
+def experiment_get(experiment_id: str):
     """Get the detailed information of a selected experiment instance.
     
     Args:
@@ -106,6 +107,7 @@ def detail(experiment_id: str):
         return Response(experiment.serialize(), status=200, mimetype='application/json')
     else:
         return Response(experiment.serialize(), status=404)
+
 
 ################# Experiment Behaviour #################
 
@@ -210,9 +212,9 @@ def create_experiment():
     )
     return Response(response=response_info.serialize(), status=201, mimetype="application/json")
 
-@experiment_blueprint.route("/<experiment_id>/update_information", methods=["POST", "PUT"])
+@experiment_blueprint.route("/<experiment_id>", methods=["POST", "PUT"])
 @login_required
-def update_information(experiment_id: str):
+def experiment_update(experiment_id: str):
     """Update experiment information.
     
     Args:
@@ -223,19 +225,82 @@ def update_information(experiment_id: str):
 
     if (experiment.user_id != user.id):
         return forbidden_response(user, experiment)
-
-    name = request.form.get("name")
-    description = request.form.get("description")
-
-    if name:
-        experiment.name = name
-    if description:
-        experiment.description = description
-    db.session.commit()
     
-    response_info = ExperimentBehaviourResponseInfo(experiment, user,
-        is_successful=True, message="The information is successfully updated.")
-    return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+    editable_profile_fields = ['name', 'description', 'status', 'progress'] # Only fields in the list are editable.
+
+    updated_profile_fields = list()
+    nonexistent_profile_fields = list()
+    blocked_profile_fields = list()
+
+    for field_name, field_value in request.form.items():
+        if (hasattr(experiment, field_name)):
+            if field_name in editable_profile_fields:
+                if (field_value):
+                    setattr(experiment, field_name, field_value)
+                    db.session.commit()
+                    updated_profile_fields.append(field_name)
+                continue
+            else:
+                blocked_profile_fields.append(field_name)
+                continue
+        else:
+            nonexistent_profile_fields.append(field_name)
+            continue
+
+    message = str()
+    if (updated_profile_fields):
+        message += f"Updated field(s): {', '.join(updated_profile_fields)}. "
+    if (blocked_profile_fields):
+        message += f"Uneditable field(s): {', '.join(blocked_profile_fields)}. "
+    if (nonexistent_profile_fields):
+        message += f"Nonexistent field(s): {', '.join(nonexistent_profile_fields)}. "
+
+    if (not (updated_profile_fields or blocked_profile_fields or nonexistent_profile_fields)):
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment, user,
+            is_successful=True,
+            message='Nothing to be updated.')
+        return Response(response=response_info.serialize(), status=200, mimetype='application/json')
+    elif (updated_profile_fields):
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment, user,
+            is_successful=True,
+            message=message)
+        return Response(response=response_info.serialize(), status=200, mimetype='application/json')
+    else:
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment, user,
+            is_successful=False,
+            message=message)
+        return Response(response=response_info.serialize(), status=400, mimetype='application/json')
+
+@experiment_blueprint.route("/<experiment_id>", methods=["DELETE"])
+def experiment_delete(experiment_id: str):
+    """Delete a selected experiment instance.
+    
+    Args:
+        experiment_id (str): The identifier of an experiment instance.
+    """
+    user: User = current_user
+    experiment = Experiment.get(experiment_id)
+
+    if (experiment == None):
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment, user,
+            is_successful=False, 
+            message=f"The experiment instance '{experiment_id}' is unable to be found.")
+        return Response(response=response_info.serialize(), status=404, mimetype="application/json")
+    elif (experiment.status == StatusCode.RUNNING or experiment.status == StatusCode.RUNNING_WITH_PAUSE_IN_INNER_UNITS):
+        response_info = ExperimentBehaviourResponseInfo(experiment, user,
+            is_successful=False, 
+            message=f"The experiment instance '{experiment_id}' is {StatusCode.status_text_mapper[experiment.status]}, which is unable to be deleted.")
+        return Response(response=response_info.serialize(), status=400, mimetype="application/json")
+    else:   # TODO (Zhong): Handling running experiment is a must.
+        db.session.delete(experiment)
+        db.session.commit()
+        response_info = ExperimentBehaviourResponseInfo(experiment, user,
+            is_successful=True, message=f"The experiment instance '{experiment.id}' is successfully deleted.")
+        return Response(response=response_info.serialize(), status=200, mimetype="application/json")
 
 @experiment_blueprint.route("/<experiment_id>/pdb_file", methods=["POST"])
 @login_required
