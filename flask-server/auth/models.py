@@ -23,10 +23,11 @@ from os import getcwd, path
 
 from context import db, mail
 from config import (
-    OPENAI_API_URI,
-
+    SECRET_KEY,
     MAIL_PASSWORD_RESET_HTML_TEMPLATE,
 )
+
+from services import OpenAIService
 
 class User(db.Model, UserMixin):
     """User Model: User Information.
@@ -121,8 +122,8 @@ class User(db.Model, UserMixin):
         self.id = str(uuid.uuid4())
         self.email = email
         self.password = User.__generate_password_hash(password)
-        if (User.check_username(username)):  # Do when a legal username is given.
-            self.username = username
+        if (self.set_username(username)):  # Do when a legal username is given.
+            pass
         elif (email.count('@') > 0):    # Do when the user has no username but has a regular email address.
             self.username = email.split('@')[0]
         else:
@@ -155,7 +156,6 @@ class User(db.Model, UserMixin):
         """Set username.
         
         Args:
-            self: Current instance.
             username: The new username to set.
 
         Returns:
@@ -181,54 +181,15 @@ class User(db.Model, UserMixin):
         - If the account has sufficient credit?        
 
         Returns:
-            is_valid (bool): Is the user's key valid?
-            status_code (int): The status code from OpenAI.
-            response_msg (str): The response message to describe the status.
+            is_valid (bool): Whether the API key is valid.
+            status_code (int): The HTTP status code from the API response.
+            response_content (str): The response message to describe the status.
         """
-        valid_key_response_code_list = [200, 400, 429]
-        response_msg_dict = {
-            200: "Your OpenAI Secret Key is valid and your account balance is sufficient.",
-            429: "You exceeded your current OpenAI API quota, please check your plan and billing details.",
-            400: "Your OpenAI Secret Key is valid, but you sent a bad request.",
-            401: "Invalid OpenAI Secret Key.",
-            500: "OpenAI Internal Server Error. Unable to verify."
-        }
-        is_valid = False
-        status_code = 500
-
-        if self.openai_secret_key:
-            is_valid = False
-
-            headers = {
-                'Authorization': f'Bearer {self.openai_secret_key}',
-                'Content-Type': 'application/json',
-            }
-            url = OPENAI_API_URI
-            request_body = {
-                "model": "gpt-3.5-turbo",
-                "max_tokens": 30,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": "Please say an emotional welcome speech, no less than 8 words, to welcome me to ChatGPT, and add punctuation at the end."
-                    }
-                ]
-            }
-            try:
-                response = post(url, headers=headers, json=request_body)
-                status_code = response.status_code
-                if status_code in valid_key_response_code_list:
-                    is_valid = True
-                    if status_code == 200:
-                        response_json = response.json()
-                        response_msg_dict[200] = response_json['choices'][0]['message']['content']
-                else:
-                    pass
-            except:
-                pass
+        if (not self.openai_secret_key):
+            return False, 500, "OpenAI Secret Key does not exist."
         else:
-            response_msg_dict[500] = "OpenAI Secret Key does not exist."
-        return is_valid, status_code, response_msg_dict[status_code]
+            service = OpenAIService(self.openai_secret_key, max_tokens=30)
+            return service.ask_gpt("Please say an emotional welcome speech, no less than 8 words, to welcome me to ChatGPT, and add punctuation at the end.")
 
     @property
     def has_openai_secret_key(self) -> bool:

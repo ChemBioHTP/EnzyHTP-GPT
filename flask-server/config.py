@@ -18,7 +18,7 @@ DEVELOPMENT = "development"
 ENV = os.environ.get("FLASK_ENV", DEVELOPMENT)
 DEBUG = os.environ.get("DEBUG", True)
 APP_HOST = os.environ.get("APP_HOST", "localhost")
-SECRET_KEY = os.environ.get("SECRET_KEY", "9131-0120-MA1H") # A custom value but mandatory.
+SECRET_KEY = os.environ.get("SECRET_KEY", "91-310120-MA1H") # A custom value but mandatory.
 
 # Enable Non-ASCII Characters.
 JSON_AS_ASCII =False
@@ -39,7 +39,6 @@ DEFAULT_FILE_PATH = str()
 
 # Uri
 OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI = os.environ.get("OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI", "/api/auth/profile")
-OPENAI_API_URI = "https://api.openai.com/v1/chat/completions"
 
 # Email for password reset.
 MAIL_SERVER = "smtp.gmail.com"

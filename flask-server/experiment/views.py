@@ -18,12 +18,12 @@ from typing import List
 from string import Template
 from datetime import datetime
 from werkzeug.datastructures import FileStorage
-from openai import OpenAI
 
 # Here put local imports.
 from . import experiment as experiment_blueprint
 from .models import Experiment
 from auth.models import User
+from services import OpenAIService
 from context import db, login_manager
 from config import EXPERIMENT_FILE_DIRECTORY, DEFAULT_FILE_PATH
 
@@ -39,6 +39,8 @@ from enzy_htp.core import (
     file_system as fs,
     exception as core_exc
 )
+
+#region Experiment Index
 
 class ExperimentIndexResponse():
     """Experiment List Information Response Body."""
@@ -107,7 +109,9 @@ def detail(experiment_id: str):
     else:
         return Response(experiment.serialize(), status=404)
 
-################# Experiment Behaviour #################
+#endregion
+
+#region Experiment Behaviour
 
 class ExperimentBehaviourResponseInfo():
     """Experiment Behaviour Response Information.
@@ -352,30 +356,18 @@ def generate_mutation_pattern(experiment_id: str):
         return Response(response=response_info.serialize(), status=403, mimetype="application/json")
 
     mutation_request = request.form.get("mutation_request")
-    openai_client = OpenAI(api_key=user.openai_secret_key)
 
     prompt = Template(prompts.prompt_skeleton).safe_substitute({
         "question": mutation_request
     })
     
     # TODO: how to improve prompt in prompts.py?
-    try:
-        response = openai_client.chat.completions.create(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model="gpt-4-turbo",
-            max_tokens=4096,
-            frequency_penalty=0,
-            temperature=0.01,
-            top_p=0.3
-        )
-        pattern = response.choices[0].message.content
-    except Exception as e:
-        raise Exception(f'API Error: {str(e)}')
+    service = OpenAIService(user.openai_secret_key, model="gpt-4-turbo", max_tokens=4096, frequency_penalty=0, temperature=0.01, top_p=0.3)
+    is_openai_key_valid, status_code, response_content = service.ask_gpt(prompt=prompt)
+    if (status_code != 200):
+        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False, message=response_content)
+        return Response(response_info.serialize(), status=status_code, mimetype="application/json")
+    pattern = response_content
     
     # pattern = "r:3[resi 1 around 4:all not self]*10"
     sp = enzy_htp.structure.PDBParser()
@@ -426,3 +418,5 @@ def generate_muts(file: FileStorage, pattern):
     res.append((res_file, name_tag))
 
     return res
+
+#endregion
