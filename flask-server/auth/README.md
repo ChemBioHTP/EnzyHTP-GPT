@@ -25,7 +25,7 @@ The `url_prefix` of this component is `'/api/auth'`.
 
 ### 1.1 Functions under construction
 
-Some functions should be modified or have their routers to be commented in production mode since they are not completed or unsafe.
+Some functions should be treated cautiously since they has different behaviours in `development` and `production` environments.
 
 | Function                        | Router                                                                        | Detail                                        |
 | ------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------- |
