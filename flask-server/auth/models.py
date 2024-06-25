@@ -13,13 +13,15 @@ from __future__ import annotations  # To enable the annotation that a staticmeth
 from flask_login import UserMixin
 from flask_mail import Message
 from sqlalchemy import and_
-import uuid
 from typing import Tuple
 from datetime import datetime, timedelta
 from requests import post
 from random import choice
 from string import Template
 from os import getcwd, path
+
+import uuid
+import jwt
 
 from context import db, mail
 from config import (
@@ -190,6 +192,49 @@ class User(db.Model, UserMixin):
         else:
             service = OpenAIService(self.openai_secret_key, max_tokens=30)
             return service.ask_gpt("Please say an emotional welcome speech, no less than 8 words, to welcome me to ChatGPT, and add punctuation at the end.")
+
+    def encode_auth_token(self, algorithm: str = "HS256"):
+        """Encode Auth Token.
+        
+        Args:
+            algorithm (str, optional): The symmetric algorithm to encode the token.
+                There are 3 symmetric algorithms available which are HS256, HS384, HS512.
+        """
+        payload = {
+            "exp": datetime.now() + timedelta(days=20),
+            "iat": datetime.now(),
+            "sub": self.id
+        }
+        return jwt.encode(
+            payload=payload,
+            key=SECRET_KEY,
+            algorithm=algorithm,
+        )
+        
+    @staticmethod
+    def decode_auth_token(auth_token: str) -> Tuple[User | None, int, str]:
+        """Decode Auth Token.
+        
+        Args:
+            auth_token (str): The Auth Token to decode.
+
+        Returns:
+            user (User): The User instance from the Auth Token.
+            status_code (int): The status code of the authentication.
+            message (str): The message describing the authentication.
+        """
+        try:
+            payload: dict = jwt.decode(auth_token, SECRET_KEY)
+            user_id = payload.get("sub")
+            user = __class__.get(user_id)
+            if (user is not None):
+                return user, 200, "Login successfully."
+            else:
+                return None, 404, "User not found."
+        except jwt.ExpiredSignatureError:
+            return None, 401, "ExpiredSignatureError: The auth token is with an expired signature."
+        except jwt.InvalidTokenError:
+            return None, 401, "InvalidTokenError: The auth token is invalid."
 
     @property
     def has_openai_secret_key(self) -> bool:

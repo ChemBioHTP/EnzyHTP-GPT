@@ -38,7 +38,7 @@ class OpenAIService:
         
         # Prepare the additional API arguments by filtering out irrelevant parameters.
         openai_param_list = [param_name for param_name in signature(self.client.chat.completions.create).parameters]
-        self.openai_args_dict = {key: value for key, value in kwargs.items() if key in openai_param_list and key not in ["messages", "model"]}
+        self.openai_args_dict = {key: value for key, value in kwargs.items() if key in openai_param_list}
 
     def ask_gpt(self, prompt: str) -> Tuple[bool, int, str]:
         """
