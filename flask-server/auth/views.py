@@ -19,6 +19,8 @@ from string import Template
 
 # Here put local imports.
 from config import (
+    ENV,
+    DEVELOPMENT,
     OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI,
 )
 from . import auth
@@ -156,7 +158,7 @@ def unregister() -> Response:
             is_successful=False,
             message=f'Target user `{email_to_match}` does not exist.',
             is_authenticated=True)
-        return Response(response=response_info.serialize(), status=403, mimetype='application/json')
+        return Response(response=response_info.serialize(), status=404, mimetype='application/json')
     elif (user_to_unregister.id == user.id):  # User.id matched.
         response_info = AuthResponseInfo(
             id=user.id,
@@ -467,7 +469,7 @@ class OAuthResponseInfo(AuthResponseInfo):
             username: str = str(),
             is_successful: bool = True,
             message: str = str(),
-            timestamp = datetime.now(),
+            timestamp = datetime.__new__(datetime, 1970, 1, 1),
             is_authenticated: bool = False,
             verify_openai_secret_key: bool = False
             ) -> None:
@@ -700,7 +702,7 @@ def oauth_vendor_login_callback(oauth_vendor: str) -> Response:
     return redirect(OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI, code=301)
 
 @auth.route('oauth/unsafe/login', methods=['POST'])
-def oauth_login_unsafe() -> Response:
+def oauth_unsafe_login() -> Response:
     """This method is only to test if the application works properly after passing the social login.
     This method is for development mode only.
     This method cannot be used in production mode, where its router should be commented.
@@ -710,6 +712,13 @@ def oauth_login_unsafe() -> Response:
     oauth_vendor = 'Unsafe'
     username = request.form.get('username', '')
     remember = bool(request.form.get('remember', False))
+
+    if (ENV != DEVELOPMENT):    # If the environment is not in development mode, respond with `405 METHOD NOT ALLOWED`.
+        oauth_response_info = OAuthResponseInfo(id=None, email=None, oauth_email=oauth_email, oauth_vendor=oauth_vendor,
+            username=username, is_successful=False, message="Unsafe Login is not allowed in production mode.",
+            is_authenticated=False, verify_openai_secret_key=False)
+        return Response(response=oauth_response_info.serialize(), status=405, mimetype='application/json')
+    
     response = __perform_oauth_login(
         oauth_email=oauth_email,
         oauth_vendor=oauth_vendor,

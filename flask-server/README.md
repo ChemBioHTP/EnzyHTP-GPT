@@ -48,7 +48,7 @@ SSL Context (named `ssl_context`) is also declared here to enable HTTPS Protocol
 
 Those instances can only be declared in an individual file and imported into the main file and anywhere else in the server. Otherwise, a number of "Exception(s)", and a "Warning" prompt which will be set to "Exception" in the next version, will be triggered.
 
-#### 2.2.3 Database (on Ubuntu WSL)
+#### 2.2.3 NoSQL Database (on Ubuntu WSL)
 
 Install the MongoDB database by `sudo apt-get install -y mongodb-org`, and start it by `sudo service mongod start`.
 
@@ -63,7 +63,7 @@ https://deepinout.com/mongodb/mongodb-questions/109_mongodb_mongod_is_not_a_serv
 
 ## 3. SSL Certificates
 
-- Filepath: `/flask-server/config.py`
+- Filepath: `/flask-server/context.py`
 
 Social Login(s), such as *Google Login*, require **HTTPS Protocol** to complete its login workflow for the sake of security, thus, the `certs` directory is made to save some self-signed certificates generated with OpenSSL.
 
@@ -125,6 +125,6 @@ To test the backend, please set the address to the host server and the port to 1
 
 Functions that require HTTPS, such as Google Login, need to work with a website server loaded with an SSL certificate and use a reverse proxy to test and run.
 
-**Attention:** You must have your oauth_client files ready before running the docker container!
+**Attention:** You must have your `oauth_client` files ready before running the docker container!
 
 **Attention:** Database instance, if it's a file, should be deleted to avoid potential permission error, which will be generated automatically.
