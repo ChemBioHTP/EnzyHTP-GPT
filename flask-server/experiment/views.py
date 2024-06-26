@@ -18,27 +18,15 @@ from typing import List
 from string import Template
 from datetime import datetime
 from werkzeug.datastructures import FileStorage
-from openai import OpenAI
 
 # Here put local imports.
 from . import experiment as experiment_blueprint
 from .models import Experiment
 from auth.models import User
 from context import db, login_manager
-from config import EXPERIMENT_FILE_DIRECTORY, DEFAULT_FILE_PATH
+from config import EXPERIMENT_FILE_DIRECTORY
 
-# Here put enzy_htp modules.
-import enzy_htp.structure
-import enzy_htp.mutation.api as mapi
-from enzy_htp.mutation_class import get_mutant_name_str, get_mutant_name_tag
-import enzy_htp.mutation.mutation_pattern.api as pattern_api
-from enzy_htp.preparation.validity import is_structure_valid
-from enzy_htp.core import (
-    general as eg,
-    _LOGGER,
-    file_system as fs,
-    exception as core_exc
-)
+#region Experiment Index
 
 class ExperimentIndexResponse():
     """Experiment List Information Response Body."""
@@ -107,7 +95,26 @@ def detail(experiment_id: str):
     else:
         return Response(experiment.serialize(), status=404)
 
-################# Experiment Behaviour #################
+#endregion
+
+#region Experiment Behaviour
+
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
+
+from services import OpenAIService
+
+# Here put enzy_htp modules.
+from enzy_htp.structure import PDBParser
+import enzy_htp.mutation.api as mapi
+from enzy_htp.mutation_class import get_mutant_name_str, get_mutant_name_tag
+import enzy_htp.mutation.mutation_pattern.api as pattern_api
+from enzy_htp.preparation.validity import is_structure_valid
+from enzy_htp.core import (
+    general as eg,
+    _LOGGER,
+    file_system as fs,
+    exception as core_exc
+)
 
 class ExperimentBehaviourResponseInfo():
     """Experiment Behaviour Response Information.
@@ -171,28 +178,54 @@ class ExperimentBehaviourResponseInfo():
         del serialized_data["kwargs"]
         return dumps(serialized_data)
 
-@experiment_blueprint.route("/create", methods=["POST"])
+@experiment_blueprint.route("/", methods=["POST"])
 @login_required
 def create_experiment():
     """Create new experiment instance."""
     user: User = current_user
     
     name = request.form.get("name", f"{user.username}'s experiment")
-    experiment_type = int(request.form.get("type", 0))
+    experiment_type = int(request.form.get("type", -1))
     description = request.form.get("description")
 
     experiment = Experiment(user_id=user.id, name=name, type=experiment_type, description=description)
     db.session.add(experiment)
     db.session.commit()
-    response_info = ExperimentBehaviourResponseInfo(
-        experiment=experiment,
-        user=user,
-        message="You have successfully created a new experiment.",
-        is_authenticated=True
-    )
+    response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user)
+
+    file = request.files.get("file", None)
+    if (file is not None):
+        has_pdb_file, pdb_file_description = experiment.update_pdb(file)
+
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment,
+            user=user,
+            message="You have successfully created a new experiment.",
+            is_authenticated=True,
+            has_pdb_file=has_pdb_file,
+            pdb_file_description=pdb_file_description
+        )
+    else:
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment,
+            user=user,
+            message="You have successfully created a new experiment.",
+            is_authenticated=True,
+            has_pdb_file=False
+        )
     return Response(response=response_info.serialize(), status=201, mimetype="application/json")
 
-@experiment_blueprint.route("/<experiment_id>/update_information", methods=["POST", "PUT"])
+@experiment_blueprint.route("/", methods=["DELETE"])
+def delete_experiment():
+    """Delete an existing experiment instance."""
+    user: User = current_user
+    
+    experiment_id = request.form.get("experiment_id", None)
+    experiment = Experiment.get(experiment_id)
+    pass
+
+
+@experiment_blueprint.route("/<experiment_id>", methods=["PUT"])
 @login_required
 def update_information(experiment_id: str):
     """Update experiment information.
@@ -214,6 +247,23 @@ def update_information(experiment_id: str):
     
     response_info = ExperimentBehaviourResponseInfo(experiment, user,
         is_successful=True, message="The information is successfully updated.")
+    return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+
+@experiment_blueprint.route("/validation/pdb_file", methods=["POST"])
+@login_required
+def pdb_file_validation():
+    """Validate the PDB File from the user."""
+    user: User = current_user
+
+    is_valid = False
+    message = str()
+    try:
+        file = request.files.get("file")
+        is_valid, message = Experiment.validate_pdb(file)
+    except Exception as e:
+        is_valid = False
+        message = str(e)
+    response_info = ExperimentBehaviourResponseInfo(user=user, experiment=None, is_successful=is_valid, message=message)
     return Response(response=response_info.serialize(), status=200, mimetype="application/json")
 
 @experiment_blueprint.route("/<experiment_id>/pdb_file", methods=["POST"])
@@ -242,47 +292,9 @@ def pdb_file_upload(experiment_id: str):
             message=message)
         return Response(response=response_info.serialize(), status=403, mimetype="application/json")
     
-    fs.safe_mkdir(EXPERIMENT_FILE_DIRECTORY)
-    
-    save_folder = os.path.join(EXPERIMENT_FILE_DIRECTORY, experiment_id)
-    fs.safe_mkdir(save_folder)
-    
-    with eg.CaptureLogging(_LOGGER) as log_str:
-        try:
-            file = request.files.get("file")
+    pdb_file = request.files.get("file")
+    is_valid, message = experiment.update_pdb(pdb_file=pdb_file)
 
-            if not file:
-                is_valid = False
-                message = "No selected file."
-            else:
-                filepath = os.path.join(save_folder, file.filename)
-                file.save(filepath)
-
-                sp = enzy_htp.structure.PDBParser()
-                stru = sp.get_structure(filepath)
-                if (stru.num_atoms > 0):
-                    is_valid, intermediate_message = is_structure_valid(stru, print_report=True)
-                    message += "The following errors were found in the PDB file: \n"
-                    for reason, source, suggestion in intermediate_message:
-                        message += f"Reason: {str(reason)}\tSource: {str(source)}\tSuggestion: {str(suggestion)};\n"
-                    
-                    if is_valid:
-                        message = "The PDB file is valid."
-                        if (experiment.pdb_filepath and fs.check_file_exists(experiment.pdb_filepath)):
-                            fs.safe_rm(experiment.pdb_filepath) # Delete existing file.
-                        experiment.pdb_filepath = filepath
-                        db.session.commit()
-                    else:
-                        fs.safe_rm(filepath)
-                else:
-                    is_valid = False
-                    message = "This is not a PDB file."
-                    fs.safe_rm(filepath)
-        except:
-            is_valid = False
-            fs.safe_rm(filepath)
-        finally:
-            message += f"\n{log_str.getvalue()}"
     response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
         is_successful=is_valid,
         message=message)
@@ -352,33 +364,21 @@ def generate_mutation_pattern(experiment_id: str):
         return Response(response=response_info.serialize(), status=403, mimetype="application/json")
 
     mutation_request = request.form.get("mutation_request")
-    openai_client = OpenAI(api_key=user.openai_secret_key)
 
     prompt = Template(prompts.prompt_skeleton).safe_substitute({
         "question": mutation_request
     })
     
     # TODO: how to improve prompt in prompts.py?
-    try:
-        response = openai_client.chat.completions.create(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model="gpt-4-turbo",
-            max_tokens=4096,
-            frequency_penalty=0,
-            temperature=0.01,
-            top_p=0.3
-        )
-        pattern = response.choices[0].message.content
-    except Exception as e:
-        raise Exception(f'API Error: {str(e)}')
+    service = OpenAIService(user.openai_secret_key, model="gpt-4-turbo", max_tokens=4096, frequency_penalty=0, temperature=0.01, top_p=0.3)
+    is_openai_key_valid, status_code, response_content = service.ask_gpt(prompt=prompt)
+    if (status_code != 200):
+        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False, message=response_content)
+        return Response(response_info.serialize(), status=status_code, mimetype="application/json")
+    pattern = response_content
     
     # pattern = "r:3[resi 1 around 4:all not self]*10"
-    sp = enzy_htp.structure.PDBParser()
+    sp = PDBParser()
     stru = sp.get_structure(filepath)
 
     mut_string = ""
@@ -405,7 +405,7 @@ def generate_mutation_pattern(experiment_id: str):
 
 def generate_muts(file: FileStorage, pattern):
     """Generate Mutants."""
-    sp = enzy_htp.structure.PDBParser()
+    sp = PDBParser()
     stru = sp.get_structure(file.name)
 
     # checks to make sure mutation is valid before continuing
@@ -426,3 +426,5 @@ def generate_muts(file: FileStorage, pattern):
     res.append((res_file, name_tag))
 
     return res
+
+#endregion

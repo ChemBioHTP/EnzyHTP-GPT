@@ -19,6 +19,8 @@ from string import Template
 
 # Here put local imports.
 from config import (
+    ENV,
+    DEVELOPMENT,
     OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI,
 )
 from . import auth
@@ -156,7 +158,7 @@ def unregister() -> Response:
             is_successful=False,
             message=f'Target user `{email_to_match}` does not exist.',
             is_authenticated=True)
-        return Response(response=response_info.serialize(), status=403, mimetype='application/json')
+        return Response(response=response_info.serialize(), status=404, mimetype='application/json')
     elif (user_to_unregister.id == user.id):  # User.id matched.
         response_info = AuthResponseInfo(
             id=user.id,
@@ -233,7 +235,7 @@ def logout() -> Response:
 @login_required
 def profile() -> Response:
     """User Profile."""
-    user = current_user
+    user: User = current_user
     response_info = AuthResponseInfo(
         id=user.id,
         email=user.email,
@@ -241,46 +243,71 @@ def profile() -> Response:
         is_authenticated=True)
     return Response(response=response_info.serialize(), status=200, mimetype='application/json')
 
-@auth.route('/profile/update', methods=['POST', 'PUT'])
+@auth.route('/profile', methods=['POST', 'PUT'])
 @login_required
 def profile_update() -> Response:
     """Update the editable field(s) in the user profile."""
     user: User = current_user
     editable_profile_fields = ['username', 'openai_secret_key'] # Only fields in the list are editable.
 
-    field_name = request.form.get(key='field', default=None)
-    field_value = request.form.get(key='value', default=None)
+    updated_profile_fields = list()
+    nonexistent_profile_fields = list()
+    blocked_profile_fields = list()
+    verify_openai_secret_key = False
 
-    if (field_name in editable_profile_fields and field_value):
-        setattr(user, field_name, field_value)
-        db.session.commit()
+    for field_name, field_value in request.form.items():
+        if (hasattr(user, field_name)):
+            if field_name in editable_profile_fields:
+                if (field_value):
+                    setattr(user, field_name, field_value)
+                    db.session.commit()
+                    updated_profile_fields.append(field_name)
+
+                if (field_name == "openai_secret_key"):
+                    verify_openai_secret_key = True
+                continue
+            else:
+                blocked_profile_fields.append(field_name)
+        else:
+            nonexistent_profile_fields.append(field_name)
+
+    message = str()
+    if (updated_profile_fields):
+        message += f"Updated field(s): {', '.join(updated_profile_fields)}. "
+    if (blocked_profile_fields):
+        message += f"Uneditable field(s): {', '.join(blocked_profile_fields)}. "
+    if (nonexistent_profile_fields):
+        message += f"Nonexistent field(s): {', '.join(nonexistent_profile_fields)}. "
+
+
+    if (not (updated_profile_fields or blocked_profile_fields or nonexistent_profile_fields)):
         response_info = AuthResponseInfo(
             id=user.id,
             email=user.email,
             username=user.username,
             is_successful=True,
-            message=f'The field `{field_name}` is successfully updated.',
-            is_authenticated=True,
-            verify_openai_secret_key=(field_name == 'openai_secret_key')
+            message=f'Nothing to be updated.',
+            is_authenticated=True
         )
         return Response(response=response_info.serialize(), status=200, mimetype='application/json')
-    elif (field_name not in editable_profile_fields):
+    if (updated_profile_fields):
         response_info = AuthResponseInfo(
             id=user.id,
             email=user.email,
             username=user.username,
-            is_successful=False,
-            message=f'The field `{field_name}` is not recognizable or not editable.',
-            is_authenticated=True
+            is_successful=True,
+            message=message,
+            is_authenticated=True,
+            verify_openai_secret_key=verify_openai_secret_key,
         )
-        return Response(response=response_info.serialize(), status=403, mimetype='application/json')
+        return Response(response=response_info.serialize(), status=200, mimetype='application/json')
     else:
         response_info = AuthResponseInfo(
             id=user.id,
             email=user.email,
             username=user.username,
             is_successful=False,
-            message=f'The `field` or `value` is null in the request.',
+            message=message,
             is_authenticated=True
         )
         return Response(response=response_info.serialize(), status=400, mimetype='application/json')
@@ -442,7 +469,7 @@ class OAuthResponseInfo(AuthResponseInfo):
             username: str = str(),
             is_successful: bool = True,
             message: str = str(),
-            timestamp = datetime.now(),
+            timestamp = datetime.__new__(datetime, 1970, 1, 1),
             is_authenticated: bool = False,
             verify_openai_secret_key: bool = False
             ) -> None:
@@ -489,7 +516,7 @@ def __perform_oauth_login(
     """
     oauth_vendor = OAuthUser.camel_case_oauth_vendor(oauth_vendor)
     oauth_user = OAuthUser.get_by_email_and_vendor(email=oauth_email, oauth_vendor=oauth_vendor)
-    if (oauth_user and oauth_user.user_id):
+    if (oauth_user and oauth_user.user_id): # If account exists, match.
         user = oauth_user.user
         login_user(user=user, remember=remember)
         oauth_response_info = OAuthResponseInfo(
@@ -502,7 +529,7 @@ def __perform_oauth_login(
             is_authenticated=True,
             verify_openai_secret_key=True)
         return Response(response=oauth_response_info.serialize(), status=200, mimetype='application/json')
-    elif (user := User.get_by_email(email=oauth_email)):
+    elif (user := User.get_by_email(email=oauth_email)):    # If social login account is identical with existing user's, bind.
         oauth_user = OAuthUser(
             email=oauth_email,
             oauth_vendor=oauth_vendor,
@@ -520,7 +547,7 @@ def __perform_oauth_login(
             is_authenticated=True,
             verify_openai_secret_key=True)
         return Response(response=oauth_response_info.serialize(), status=201, mimetype='application/json')
-    else:
+    else:       # If social login email doesn't exist in the `users` table, create new user.
         user = User(email=oauth_email, password=str(uuid4())[:8], username=username)
         db.session.add(user)
         oauth_user = OAuthUser(email=oauth_email, oauth_vendor=oauth_vendor, user_id=user.id)
@@ -675,7 +702,7 @@ def oauth_vendor_login_callback(oauth_vendor: str) -> Response:
     return redirect(OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI, code=301)
 
 @auth.route('oauth/unsafe/login', methods=['POST'])
-def oauth_login_unsafe() -> Response:
+def oauth_unsafe_login() -> Response:
     """This method is only to test if the application works properly after passing the social login.
     This method is for development mode only.
     This method cannot be used in production mode, where its router should be commented.
@@ -685,6 +712,13 @@ def oauth_login_unsafe() -> Response:
     oauth_vendor = 'Unsafe'
     username = request.form.get('username', '')
     remember = bool(request.form.get('remember', False))
+
+    if (ENV != DEVELOPMENT):    # If the environment is not in development mode, respond with `405 METHOD NOT ALLOWED`.
+        oauth_response_info = OAuthResponseInfo(id=None, email=None, oauth_email=oauth_email, oauth_vendor=oauth_vendor,
+            username=username, is_successful=False, message="Unsafe Login is not allowed in production mode.",
+            is_authenticated=False, verify_openai_secret_key=False)
+        return Response(response=oauth_response_info.serialize(), status=405, mimetype='application/json')
+    
     response = __perform_oauth_login(
         oauth_email=oauth_email,
         oauth_vendor=oauth_vendor,

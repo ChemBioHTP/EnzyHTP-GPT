@@ -18,7 +18,7 @@ DEVELOPMENT = "development"
 ENV = os.environ.get("FLASK_ENV", DEVELOPMENT)
 DEBUG = os.environ.get("DEBUG", True)
 APP_HOST = os.environ.get("APP_HOST", "localhost")
-SECRET_KEY = os.environ.get("SECRET_KEY", "9131-0120-MA1H") # A custom value but mandatory.
+SECRET_KEY = os.environ.get("SECRET_KEY", "91-310120-MA1H") # A custom value but mandatory.
 
 # Enable Non-ASCII Characters.
 JSON_AS_ASCII =False
@@ -35,11 +35,14 @@ MONGODB_TRACK_MODIFICATIONS=False
 # File system
 FILE_SYSTEM_FOLDER = os.environ.get("FILE_SYSTEM_FOLDER", os.path.join(__basedir, "static"))
 EXPERIMENT_FILE_DIRECTORY = os.path.join(FILE_SYSTEM_FOLDER, "experiments")
-DEFAULT_FILE_PATH = str()
+SCRATCH_FOLDER = os.path.join(FILE_SYSTEM_FOLDER, "scratch")
+
+for folder in [FILE_SYSTEM_FOLDER, EXPERIMENT_FILE_DIRECTORY, SCRATCH_FOLDER]:
+    if (not os.path.isdir(folder)):
+        os.mkdir(folder)
 
 # Uri
 OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI = os.environ.get("OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI", "/api/auth/profile")
-OPENAI_API_URI = "https://api.openai.com/v1/chat/completions"
 
 # Email for password reset.
 MAIL_SERVER = "smtp.gmail.com"
