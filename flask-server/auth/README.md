@@ -11,17 +11,27 @@ This component serves as the authentication module for EnzyHTP Webapp.
 
 This component provides following methods.
 
+1. Registration.
 - `register`: New User Registration.
 - `unregister`: Unregister the current User. Only the user him/herself is permitted to do so.
+
+2. Log in and Log out.
 - `login`: User Login and create a cookie.
 - `logout`: User Logout and delete the cookie.
+
+3. Get or Update User Profile.
 - `profile`: Get or Update the profile of the user.
+
+4. Password Operation:
 - `password/change`: Change the password of the user him/herself.
-- `password/reset`: Reset the password of the user him/herself.
-- `oauth/unsafe/login`: Test if the application works properly after passing the social login.
+- `password/reset/generate`: Send a verification code to the mailbox of the user so as to reset the password.
+- `password/reset`: Reset the password of the user him/herself with the given verification code.
+
+5. Open Auth Login:
+- `oauth/unsafe/login`: Test if the application works properly after passing the social login (which does not work in production environment).
 - `oauth/<oauth_vendor>/login`: Perform Social Login with OAuth vendors (e.g. Google, Microsoft, etc.)
 
-The `url_prefix` of this component is `'/api/auth'`.
+The `url_prefix` of this component is `'/api/auth'`. For more details, please go to [3. Basic Authentication](#3-basic-authentication) and [4. OAuth](#4-oauth).
 
 ### 1.1 Functions under construction
 
@@ -34,13 +44,15 @@ Some functions should be treated cautiously since they has different behaviours 
 
 ## 2. Database
 
+*Note: The database here is for temporary use in the development mode. It will be migrated to a NoSQL Database for production use.*
+
 The table in the database for `auth` is named `users` and `oauth_users`, which is defined as follows in the `models.py` file located in the current directory.
 
 The sqlite database will be generated as `/flask-server/instance/enzyhtp-gpt.db` the first time we run the `server.py` if no existing database file in the folder.
 
 Shut down the server, change the directory to the `/flask-server` directory, and run `python instance/init_db.py`. Then, some example fake data will be added to the `users` table of the sqlite database.
 
-## 3. Email Authentication
+## 3. Basic Authentication
 
 Here, we use the account `maura.attaway@example.com` for instance to show its function, which is an account generated randomly.
 

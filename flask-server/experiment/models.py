@@ -140,7 +140,7 @@ class Experiment(db.Model):
                 sp = PDBParser()
                 stru = sp.get_structure(pdb_filepath)
                 if (stru.num_atoms > 0):
-                    is_valid, intermediate_message = is_structure_valid(stru, print_report=True)
+                    is_valid, intermediate_message = is_structure_valid(stru, print_report=False)
                     message = "The following errors were found in the PDB file: \n"
                     for reason, source, suggestion in intermediate_message:
                         message += f"Reason: {str(reason)}\tSource: {str(source)}\tSuggestion: {str(suggestion)};\n"
