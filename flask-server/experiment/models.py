@@ -48,8 +48,8 @@ class Experiment(db.Model):
     type = db.Column(db.Integer, nullable=False, default=0)
     name = db.Column(db.String(128), nullable=False, default=0)
     slurm_job_uuid = db.Column(db.String(36), nullable=True)
-    status = db.Column(db.Integer, nullable=False, default=-9)
-    progress = db.Column(db.Float, nullable=False, default=0.0)
+    _status = db.Column("status", db.Integer, nullable=False, default=-9)
+    _progress = db.Column("progress", db.Float, nullable=False, default=0.0)
     metrics = db.Column(db.String(64), nullable=True)
     description = db.Column(db.String(128), nullable=True)
     created_time = db.Column(db.DateTime, nullable=False)
@@ -109,21 +109,45 @@ class Experiment(db.Model):
 
     def as_dict(self) -> str:
         """Serialize the current instance to a dictionary."""
+        from enzy_htp.workflow.config import StatusCode
         dict_data = self.__dict__
         del dict_data["_sa_instance_state"]
         dict_data["created_time"] = str(self.created_time)
         dict_data["updated_time"] = str(self.updated_time)
+        dict_data["status"] = str(self._status)
+        dict_data["progress"] = str(self._progress)
+        dict_data["status_text"] = StatusCode.status_text_mapper.get(self.status, self.status)
+        del dict_data["_status"]
+        del dict_data["_progress"]
         return dict_data
     
     def serialize(self) -> str:
         """Serialize the current instance to json string."""
         from json import dumps
-        from enzy_htp.workflow.config import StatusCode
 
         serialized_data = self.as_dict()
-        serialized_data["status"] = StatusCode.status_text_mapper.get(self.status, self.status)
         return dumps(serialized_data)
     
+    @property
+    def status(self):
+        return self._status
+    
+    @status.setter
+    def status(self, value):
+        self._status = value
+        self.updated_time = datetime.now()
+        return
+    
+    @property
+    def progress(self):
+        return self._progress
+    
+    @progress.setter
+    def progress(self, value):
+        self._progress = value
+        self.updated_time = datetime.now()
+        return
+
     @staticmethod
     def validate_pdb(pdb_file: str | FileStorage) -> Tuple[bool, str]:
         """Validate PDB file.
@@ -171,6 +195,8 @@ class Experiment(db.Model):
 
         if (from_filestorage):
             os.remove(pdb_filepath)
+            pdb_file.stream.seek(0) # Reset the cursor for further use.
+            pass
         
         return is_valid, message
 
@@ -200,13 +226,27 @@ class Experiment(db.Model):
             db.session.commit()
 
         return is_valid, message
+    
+    def clear_folder(self, remove_folder: bool = False):
+        """Remove the folder of the current directory.
+        
+        Args:
+            remove_folder (bool): If true, remove the folder itself as well; otherwise leave the empty folder.
+        """
+        save_folder = os.path.join(EXPERIMENT_FILE_DIRECTORY, self.id)
+        fs.safe_rmdir(save_folder)
+        if (remove_folder):
+            return
+        else:
+            fs.safe_mkdir(save_folder)
+            
 
 ############### Slurm Jobs ###############
 from os.path import basename
 from requests import (
     get as req_get, 
     post as req_post, 
-    delete as req_delete
+    delete as req_delete,
 )
 
 from config import ACCRE_SLURM_URL, ACCRE_SLURM_AUTHORIZATION, SLURM_ACCOUNT, SLURM_PARTITION, SLURM_JOB_ENTRY_SCRIPT_FILENAME
@@ -332,8 +372,8 @@ class SlurmJobData:
         headers = {
             "Authorization": ACCRE_SLURM_AUTHORIZATION
         }
-        response = req_get(f"{ACCRE_SLURM_URL}{id}", headers=headers)
-        if (response.status_code == 200):
+        response = req_get(f"{ACCRE_SLURM_URL}/{id}", headers=headers)
+        if (response.ok):
             response_dict: dict = loads(response.text)
             slurm_job_data_dict = response_dict.get("data", dict())
             slurm_job_data = __class__(**slurm_job_data_dict)
@@ -359,20 +399,19 @@ class SlurmJobData:
         }
         payload = {
             'slurm_request': slurm_request.serialize(),
-            'entry_script': SLURM_JOB_ENTRY_SCRIPT_FILENAME,
+            'entry_script': f"sbatch input/{SLURM_JOB_ENTRY_SCRIPT_FILENAME}",
         }
-        print(slurm_request.serialize())
-        files = [("files", (basename(fobj.name), fobj, "text/plain" if fobj.mode=="r" else "application/octet-stream")) for fobj in files]
+        files = [("files", (basename(fobj.name), fobj, "application/octet-stream")) for fobj in files]
 
         response = req_post(f"{ACCRE_SLURM_URL}", headers=headers, data=payload, files=files)
-        if (response.status_code == 200):
+        if (response.ok):
             response_dict: dict = loads(response.text)
             message = response_dict.get("message", str())
             if (response_dict.get("success", False)):
                 job_uuid = response_dict.get("data", dict()).get("job_uuid", str())
                 return 200, message, job_uuid
             else:
-                return 200, message, str()
+                return 400, message, None
         else:
             message = str()
             try:
@@ -391,7 +430,7 @@ class SlurmJobData:
             id (str): The `uuid` of a specific slurm job.
         
         Returns:
-            status (int): The status from the response.
+            status (int): The status code from the response.
             message (str): The message to describe the consequence.
         """
         headers = {
@@ -401,19 +440,25 @@ class SlurmJobData:
         if (status != 200):
             return status, "Unable to delete the Slurm Job. The target job doesn't exist."
 
-        response = req_delete(f"{ACCRE_SLURM_URL}{id}", headers=headers)
-        if (response.status_code == 200):
+        cancel_response = req_post(f"{ACCRE_SLURM_URL}/{id}/cancel", headers=headers)
+        delete_response = req_delete(f"{ACCRE_SLURM_URL}/{id}", headers=headers)
+        if (delete_response.status_code == 200):
             return 200, "The Slurm Job has successfully be deleted."
         else:
-            return response.status_code, "Unable to delete the Slurm Job."
+            return delete_response.status_code, "Unable to delete the Slurm Job."
 
     def __bool__(self):
         return bool(self.job_uuid)
+    
+    def as_dict(self):
+        """Serialize the current instance to a dictionary."""
+        dict_data = self.__dict__
+        for key, value in self.kwargs.items():
+            dict_data[key] = value
+        del dict_data["kwargs"]
+        return dict_data
 
     def serialize(self) -> str:
         """Serialize the current instance to json string."""
-        serialized_data = self.__dict__.copy()
-        for key, value in self.kwargs.items():
-            serialized_data[key] = value
-        del serialized_data["kwargs"]
+        serialized_data = self.as_dict()
         return dumps(serialized_data)

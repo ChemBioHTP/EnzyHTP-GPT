@@ -10,30 +10,32 @@
 
 # Here put the import lib.
 import os
+import re
 import prompts
 from flask import Response, request, redirect, jsonify, send_file
 from flask_login import login_required, current_user
 from json import dumps, loads
-from typing import List
+from typing import Any, List, Tuple
 from string import Template
-from datetime import datetime
-from werkzeug.datastructures import FileStorage
+from datetime import datetime, timedelta
+from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
 # Here put local imports.
 from . import experiment as experiment_blueprint
 from .models import Experiment
 from auth.models import User
+from auth.views import unauth_handler as unauth_handler_in_auth
 from context import db, login_manager
-from config import EXPERIMENT_FILE_DIRECTORY, ACCRE_SLURM_URL
+from config import EXPERIMENT_FILE_DIRECTORY, ACCRE_SLURM_URL, TOKEN_EXPIRES_DELTA
 
 # Here put enzy_htp modules.
 from enzy_htp.workflow.config import StatusCode
 
 class ExperimentIndexResponse():
-    """Experiment List Information Response Body."""
+    """Experiment Index Information Response Body."""
     
     def __init__(self, experiments: List[Experiment]):
-        """Experiment List Information Response Body."""
+        """Experiment Index Information Response Body."""
         user: User = current_user
         self.user_id = user.id
         self.email = user.email
@@ -65,7 +67,7 @@ def load_user(user_id: str) -> User:
 @login_manager.unauthorized_handler
 def unauth_handler() -> Response:
     """Handle unauthorized requests toward an `@login_required` method."""
-    return Response(response=None, status=401)
+    return unauth_handler_in_auth()
 
 @experiment_blueprint.route("/", methods=["GET"])
 @login_required
@@ -81,20 +83,6 @@ def index():
     experiments = Experiment.get_user_experiments(user=user)
     response_body = ExperimentIndexResponse(experiments)
     return Response(response=response_body.serialize(), status=200, mimetype='application/json')
-
-@experiment_blueprint.route("/<experiment_id>", methods=["GET"])
-@login_required
-def experiment_get(experiment_id: str):
-    """Get the detailed information of a selected experiment instance.
-    
-    Args:
-        experiment_id (str): The identifier of an experiment instance.
-    """
-    experiment = Experiment.get(experiment_id)
-    if experiment:
-        return Response(experiment.serialize(), status=200, mimetype='application/json')
-    else:
-        return Response(experiment.serialize(), status=404)
 
 #endregion
 
@@ -178,6 +166,34 @@ class ExperimentBehaviourResponseInfo():
         del serialized_data["kwargs"]
         return dumps(serialized_data)
 
+def notfound_response(user: User, experiment_id: str = str()) -> Response:
+    """Generate a 403 FORBIDDEN Response when the user doesn't have the permission to the experiment.
+    
+    Args:
+        user (User): Current user.
+        experiment_id (str): The `experiment_id` which is sought for.
+
+    Returns:
+        A 404 NOT FOUND Response instance.
+    """
+    if (experiment_id):
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=None,
+            user=user,
+            is_successful=False,
+            message=f"Unable to find the experiment with id '{experiment_id}'.",
+            is_authenticated=True
+        )
+        return Response(response=response_info.serialize(), status=404, mimetype="application/json")
+    else:
+        response_info = ExperimentBehaviourResponseInfo(
+            user=user,
+            is_successful=False,
+            message=f"No experiment specified.",
+            is_authenticated=True
+        )
+        return Response(response=response_info.serialize(), status=404, mimetype="application/json")
+
 def forbidden_response(user: User, experiment: Experiment) -> Response:
     """Generate a 403 FORBIDDEN Response when the user doesn't have the permission to the experiment.
     
@@ -197,13 +213,13 @@ def forbidden_response(user: User, experiment: Experiment) -> Response:
     )
     return Response(response=response_info.serialize(), status=403, mimetype="application/json")
 
-@experiment_blueprint.route("/create", methods=["POST"])
+@experiment_blueprint.route("/", methods=["POST"])
 @login_required
 def create_experiment():
     """Create new experiment instance."""
     user: User = current_user
     
-    name = request.form.get("name", f"{user.username}'s experiment")
+    name = request.form.get("name", f"{user.username} experiment")
     experiment_type = int(request.form.get("type", -1))
     description = request.form.get("description")
 
@@ -241,12 +257,89 @@ def delete_experiment():
     
     experiment_id = request.form.get("experiment_id", None)
     experiment = Experiment.get(experiment_id)
-    pass
 
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
+    if (experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
+    
+    if (experiment.status in StatusCode.queued_status):
+        response_info = ExperimentBehaviourResponseInfo(experiment, user,
+            is_successful=False, 
+            message=f"The experiment instance '{experiment_id}' is {StatusCode.status_text_mapper[experiment.status]}, which is unable to be deleted.")
+        return Response(response=response_info.serialize(), status=400, mimetype="application/json")
+    else:   # TODO (Zhong): Handling running experiment is a must.
+        experiment.clear_folder(remove_folder=True)
+        db.session.delete(experiment)
+        db.session.commit()
+        response_info = ExperimentBehaviourResponseInfo(experiment, user,
+            is_successful=True, message=f"The experiment instance '{experiment.id}' is successfully deleted.")
+        return Response(response=response_info.serialize(), status=200, mimetype="application/json")
 
-@experiment_blueprint.route("/<experiment_id>", methods=["PUT"])
+@experiment_blueprint.route("/<experiment_id>", methods=["GET"])
 @login_required
-def experiment_update(experiment_id: str):
+def experiment_get(experiment_id: str):
+    """Get the detailed information of a selected experiment instance.
+    
+    Args:
+        experiment_id (str): The identifier of an experiment instance.
+    """
+    user: User = current_user
+    experiment = Experiment.get(experiment_id)
+
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
+    if (experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
+    
+    return Response(experiment.serialize(), status=200, mimetype='application/json')
+
+def update_attributes(instance: Any, mapper: ImmutableMultiDict, editable_attrs: list = list()) -> Tuple[list, list, list, str]:
+    """Update the attribute of a specified instance.
+    
+    Args:
+        instance: The instance of a class who has attributes to be updated.
+        mapper (ImmutableMultiDict): A dict-like mapper which contains the fields and values.
+        editable_attrs (list): A list of editable attributes of the instance.
+
+    Returns:
+        updated_attrs (list): A list of updated attributes.
+        blocked_attrs (list): A list of blocked attributes (Fields that are not editable).
+        nonexistent_attrs (list): A list of nonexistent attributes (Fields that the instance does not have).
+        message (str): A string value describing the updating.
+    """
+    updated_attrs = list()
+    nonexistent_attrs = list()
+    blocked_attrs = list()
+
+    for field_name, field_value in mapper.items():
+        if (hasattr(instance, field_name)):
+            if field_name in editable_attrs:
+                if (field_value):
+                    setattr(instance, field_name, field_value)
+                    db.session.commit()
+                    updated_attrs.append(field_name)
+                continue
+            else:
+                blocked_attrs.append(field_name)
+                continue
+        else:
+            nonexistent_attrs.append(field_name)
+            continue
+
+    message = str()
+    if (updated_attrs):
+        message += f"Updated attribute(s): {', '.join(updated_attrs)}. "
+    if (blocked_attrs):
+        message += f"Uneditable attribute(s): {', '.join(blocked_attrs)}. "
+    if (nonexistent_attrs):
+        message += f"Nonexistent attribute(s): {', '.join(nonexistent_attrs)}. "
+
+    return updated_attrs, blocked_attrs, nonexistent_attrs, message
+
+@experiment_blueprint.route("/<experiment_id>", methods=["POST", "PUT"])
+@login_required
+def experiment_update_profile(experiment_id: str):
     """Update experiment information.
     
     Args:
@@ -255,37 +348,15 @@ def experiment_update(experiment_id: str):
     user: User = current_user
     experiment = Experiment.get(experiment_id)
 
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
     if (experiment.user_id != user.id):
         return forbidden_response(user, experiment)
     
-    editable_profile_fields = ['name', 'description', 'status', 'progress'] # Only fields in the list are editable.
-
-    updated_profile_fields = list()
-    nonexistent_profile_fields = list()
-    blocked_profile_fields = list()
-
-    for field_name, field_value in request.form.items():
-        if (hasattr(experiment, field_name)):
-            if field_name in editable_profile_fields:
-                if (field_value):
-                    setattr(experiment, field_name, field_value)
-                    db.session.commit()
-                    updated_profile_fields.append(field_name)
-                continue
-            else:
-                blocked_profile_fields.append(field_name)
-                continue
-        else:
-            nonexistent_profile_fields.append(field_name)
-            continue
-
-    message = str()
-    if (updated_profile_fields):
-        message += f"Updated field(s): {', '.join(updated_profile_fields)}. "
-    if (blocked_profile_fields):
-        message += f"Uneditable field(s): {', '.join(blocked_profile_fields)}. "
-    if (nonexistent_profile_fields):
-        message += f"Nonexistent field(s): {', '.join(nonexistent_profile_fields)}. "
+    editable_profile_fields = ['name', 'description'] # Only fields in the list are editable.
+    
+    updated_profile_fields, blocked_profile_fields, nonexistent_profile_fields, message = update_attributes(
+        experiment, mapper=request.form, editable_attrs=editable_profile_fields)
 
     if (not (updated_profile_fields or blocked_profile_fields or nonexistent_profile_fields)):
         response_info = ExperimentBehaviourResponseInfo(
@@ -306,33 +377,47 @@ def experiment_update(experiment_id: str):
             message=message)
         return Response(response=response_info.serialize(), status=400, mimetype='application/json')
 
-@experiment_blueprint.route("/<experiment_id>", methods=["DELETE"])
-def experiment_delete(experiment_id: str):
-    """Delete a selected experiment instance.
+@experiment_blueprint.route("/<experiment_id>", methods=["PATCH"])
+@jwt_required()
+def experiment_update_progress(experiment_id: str):
+    """Update the status and progress of the experiment.
     
     Args:
         experiment_id (str): The identifier of an experiment instance.
     """
-    user: User = current_user
+    user: User = User.get(get_jwt_identity())
     experiment = Experiment.get(experiment_id)
 
-    if (experiment == None):
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
+    if (user is None or experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
+    
+    editable_profile_fields = ['status', 'progress'] # Only fields in the list are editable.
+    
+    updated_profile_fields, blocked_profile_fields, nonexistent_profile_fields, message = update_attributes(
+        experiment, mapper=request.form, editable_attrs=editable_profile_fields)
+
+    if (not (updated_profile_fields or blocked_profile_fields or nonexistent_profile_fields)):
         response_info = ExperimentBehaviourResponseInfo(
             experiment, user,
-            is_successful=False, 
-            message=f"The experiment instance '{experiment_id}' is unable to be found.")
-        return Response(response=response_info.serialize(), status=404, mimetype="application/json")
-    elif (experiment.status == StatusCode.RUNNING or experiment.status == StatusCode.RUNNING_WITH_PAUSE_IN_INNER_UNITS):
-        response_info = ExperimentBehaviourResponseInfo(experiment, user,
-            is_successful=False, 
-            message=f"The experiment instance '{experiment_id}' is {StatusCode.status_text_mapper[experiment.status]}, which is unable to be deleted.")
-        return Response(response=response_info.serialize(), status=400, mimetype="application/json")
-    else:   # TODO (Zhong): Handling running experiment is a must.
-        db.session.delete(experiment)
-        db.session.commit()
-        response_info = ExperimentBehaviourResponseInfo(experiment, user,
-            is_successful=True, message=f"The experiment instance '{experiment.id}' is successfully deleted.")
-        return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+            is_successful=True,
+            message='Nothing to be updated.')
+        return Response(response=response_info.serialize(), status=200, mimetype='application/json')
+    elif (updated_profile_fields):
+        # experiment.updated_time = datetime.now()
+        # db.session.commit()
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment, user,
+            is_successful=True,
+            message=message)
+        return Response(response=response_info.serialize(), status=200, mimetype='application/json')
+    else:
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment, user,
+            is_successful=False,
+            message=message)
+        return Response(response=response_info.serialize(), status=400, mimetype='application/json')
 
 @experiment_blueprint.route("/validation/pdb_file", methods=["POST"])
 @login_required
@@ -506,7 +591,7 @@ from os.path import basename
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from .models import SlurmJobRequest, SlurmJobData
-from config import SLURM_JOB_ENTRY_SCRIPT_FILENAME, SLURM_JOB_ENTRY_SCRIPT, SLURM_DEPLOY_SCRIPT_FILENAME, SLURM_DEPLOY_SCRIPT
+from config import SLURM_JOB_ENTRY_SCRIPT_FILENAME, SLURM_JOB_ENTRY_SCRIPT, SLURM_DEPLOY_SCRIPT_FILENAME, SLURM_JOB_MAIN_SCRIPT_FILEPATH, SLURM_DEPLOY_SCRIPT
 
 @experiment_blueprint.route("/<experiment_id>/slurm", methods=["GET"])
 @login_required
@@ -519,6 +604,8 @@ def experiment_slurm_get(experiment_id: str):
     user: User = current_user
     experiment = Experiment.get(experiment_id)
 
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
     if (experiment.user_id != user.id):
         return forbidden_response(user, experiment)
     
@@ -534,12 +621,15 @@ def experiment_slurm_get(experiment_id: str):
 
     status, slurm_job_data = SlurmJobData.get(experiment.slurm_job_uuid)
     if (slurm_job_data):
+        if (slurm_job_data.job_state == "FAILED"):
+            experiment.status = StatusCode.EXIT_WITH_ERROR
+            db.session.commit()
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
             user=user,
             message="Slurm job information is successfully fetched.",
             is_authenticated=True,
-            data=slurm_job_data.serialize(),
+            data=slurm_job_data.as_dict(),
         )
     else:
         response_info = ExperimentBehaviourResponseInfo(
@@ -562,6 +652,8 @@ def experiment_slurm_post(experiment_id: str):
     user: User = current_user
     experiment = Experiment.get(experiment_id)
 
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
     if (experiment.user_id != user.id):
         return forbidden_response(user, experiment)
     
@@ -569,11 +661,11 @@ def experiment_slurm_post(experiment_id: str):
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
             user=user,
-            message="Slurm job is already submitted. You cannot submit another job unless you cancel and delete the current one.",
+            message="Slurm job is already submitted. You cannot submit another job unless you delete the current one.",
             is_authenticated=True,
             is_successful=False,
         )
-        return Response(response=response_info.serialize(), status=400, mimetype="application/json")
+        return Response(response=response_info.serialize(), status=409, mimetype="application/json")
     elif (experiment.pdb_filepath == None or not os.path.isfile(experiment.pdb_filepath)):
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
@@ -582,7 +674,7 @@ def experiment_slurm_post(experiment_id: str):
             is_authenticated=True,
             is_successful=False,
         )
-        return Response(response=response_info.serialize(), status=400, mimetype="application/json")
+        return Response(response=response_info.serialize(), status=415, mimetype="application/json")
     else:
         slurm_request = SlurmJobRequest()
         pdb_filepath = experiment.pdb_filepath
@@ -590,17 +682,28 @@ def experiment_slurm_post(experiment_id: str):
         entry_script_str_io = StringIO()
         entry_script_str_io.write(Template(SLURM_JOB_ENTRY_SCRIPT).safe_substitute({
             "pdb_filename": basename(pdb_filepath),
+            "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA)
         }))
         entry_script_str_io.name = SLURM_JOB_ENTRY_SCRIPT_FILENAME
         entry_script_str_io.mode = "r"
+        entry_script_str_io.seek(0)
+
+        pdb_file_io = open(pdb_filepath)
+        pdb_file_io.seek(0)
+
+        main_script_io = open(SLURM_JOB_MAIN_SCRIPT_FILEPATH)
+        main_script_io.seek(0)
 
         files = [
-            open(pdb_filepath),
             entry_script_str_io,
+            main_script_io,
+            pdb_file_io,
         ]
         status, message, job_uuid = SlurmJobData.submit(slurm_request=slurm_request, files=files)
         
-        experiment.slurm_job_uuid = job_uuid
+        if (job_uuid):
+            experiment.slurm_job_uuid = job_uuid
+            experiment.status = StatusCode.PENDING
         db.session.commit()
 
         response_info = ExperimentBehaviourResponseInfo(
@@ -609,10 +712,9 @@ def experiment_slurm_post(experiment_id: str):
             message=message,
             is_authenticated=True,
             is_successful=True if job_uuid else False,
-            job_uuid = job_uuid
+            slurm_job_uuid=job_uuid
         )
         return Response(response=response_info.serialize(), status=status, mimetype="application/json")
-
 
 @experiment_blueprint.route("/<experiment_id>/slurm", methods=["DELETE"])
 @login_required
@@ -625,6 +727,8 @@ def experiment_slurm_delete(experiment_id: str):
     user: User = current_user
     experiment = Experiment.get(experiment_id)
 
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
     if (experiment.user_id != user.id):
         return forbidden_response(user, experiment)
 
@@ -639,6 +743,7 @@ def experiment_slurm_delete(experiment_id: str):
                 is_successful=True,
             )
             experiment.slurm_job_uuid = None
+            experiment.status = StatusCode.CANCELLED
             db.session.commit()
         else:
             response_info = ExperimentBehaviourResponseInfo(
@@ -670,9 +775,8 @@ def experiment_slurm_deploy_get(experiment_id: str):
     user: User = current_user
     experiment = Experiment.get(experiment_id)
 
-    if (not experiment):
-        return Response(None, status=404)
-
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
     if (experiment.user_id != user.id):
         return forbidden_response(user, experiment)
     
@@ -688,6 +792,7 @@ def experiment_slurm_deploy_get(experiment_id: str):
     
     deploy_pack_zip.close()
     deploy_pack_io.seek(0)
-    return send_file(deploy_pack_io, mimetype="application/zip", as_attachment=True, download_name="EnzyHTP Deploy Pack.zip")
+    zipfile_prefix = re.sub(r'[\\/:"*?<>|]', '', experiment.name)
+    return send_file(deploy_pack_io, mimetype="application/zip", as_attachment=True, download_name=f"{zipfile_prefix} Deploy Pack.zip")
 
 #endregion

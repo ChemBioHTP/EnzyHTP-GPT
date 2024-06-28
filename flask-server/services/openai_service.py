@@ -52,6 +52,8 @@ class OpenAIService:
             status_code (int): The HTTP status code from the API response.
             response_content (str): The actual response from GPT or an error message.
         """
+        if (not self.client.api_key):
+            return False, 500, "OpenAI Secret Key does not exist."
         try:
             response_content = str()
             if (self.conversation_mode):

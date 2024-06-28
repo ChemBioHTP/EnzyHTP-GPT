@@ -130,7 +130,7 @@ def register() -> Response:
             username=user.username,
             is_successful=False,
             message=f'New user `{user.email}` conflicted with an existing account.')
-        return Response(response=response_info.serialize(), status=400, mimetype='application/json')
+        return Response(response=response_info.serialize(), status=409, mimetype='application/json')
     else:
         db.session.add(user)
         db.session.commit()
@@ -713,11 +713,11 @@ def oauth_unsafe_login() -> Response:
     username = request.form.get('username', '')
     remember = bool(request.form.get('remember', False))
 
-    if (ENV != DEVELOPMENT):    # If the environment is not in development mode, respond with `405 METHOD NOT ALLOWED`.
+    if (ENV != DEVELOPMENT):    # If the environment is not in development mode, respond with `418 I'm a teapot`.
         oauth_response_info = OAuthResponseInfo(id=None, email=None, oauth_email=oauth_email, oauth_vendor=oauth_vendor,
-            username=username, is_successful=False, message="Unsafe Login is not allowed in production mode.",
+            username=username, is_successful=False, message="Unsafe Login is not active in production mode.",
             is_authenticated=False, verify_openai_secret_key=False)
-        return Response(response=oauth_response_info.serialize(), status=405, mimetype='application/json')
+        return Response(response=oauth_response_info.serialize(), status=418, mimetype='application/json')
     
     response = __perform_oauth_login(
         oauth_email=oauth_email,

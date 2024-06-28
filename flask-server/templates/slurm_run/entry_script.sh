@@ -9,7 +9,15 @@
 #SBATCH --no-requeue
 #SBATCH --export=NONE
 
-file_dir=$(dirname "$0")
+source ~/bin/enzyhtp_env.sh
+conda activate enzyhtp
+
+export file_dir=$(dirname "$0")
+export access_token="${access_token}"
+export pdb_filename="${pdb_filename}"
+
 echo "It's $(date +"%Y-%m-%d %T %Z") now. The bash script is in $file_dir directory."
-echo "The PDB file is ${pdb_filename}"
+echo "The PDB file is $pdb_filename"
 ls -l $file_dir
+
+python -u main_script.py
