@@ -399,7 +399,7 @@ class SlurmJobData:
         }
         payload = {
             'slurm_request': slurm_request.serialize(),
-            'entry_script': f"sbatch input/{SLURM_JOB_ENTRY_SCRIPT_FILENAME}",
+            'entry_script': f"bash input/{SLURM_JOB_ENTRY_SCRIPT_FILENAME}",
         }
         files = [("files", (basename(fobj.name), fobj, "application/octet-stream")) for fobj in files]
 
@@ -409,7 +409,7 @@ class SlurmJobData:
             message = response_dict.get("message", str())
             if (response_dict.get("success", False)):
                 job_uuid = response_dict.get("data", dict()).get("job_uuid", str())
-                return 200, message, job_uuid
+                return 201, message, job_uuid
             else:
                 return 400, message, None
         else:

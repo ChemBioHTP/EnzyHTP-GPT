@@ -19,5 +19,6 @@ export pdb_filename="${pdb_filename}"
 echo "It's $(date +"%Y-%m-%d %T %Z") now. The bash script is in $file_dir directory."
 echo "The PDB file is $pdb_filename"
 ls -l $file_dir
+cd $file_dir
 
 python -u main_script.py
