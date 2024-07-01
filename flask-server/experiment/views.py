@@ -315,7 +315,7 @@ def update_attributes(instance: Any, mapper: ImmutableMultiDict, editable_attrs:
     for field_name, field_value in mapper.items():
         if (hasattr(instance, field_name)):
             if field_name in editable_attrs:
-                if (field_value):
+                if (field_value != None):
                     setattr(instance, field_name, field_value)
                     db.session.commit()
                     updated_attrs.append(field_name)

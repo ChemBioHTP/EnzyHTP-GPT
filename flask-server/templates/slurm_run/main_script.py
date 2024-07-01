@@ -25,30 +25,31 @@ from enzy_htp.workflow.config import StatusCode
 
 
 # TODO (Zhong): JWT is required for authentication.
-experiment_id = "${experiment_id}"
-STATUS_UPDATE_URL = f"https://enzyhtp.app.vanderbilt.edu/api/experiment/{experiment_id}"
-
+experiment_id = environ.get("experiment_id")
 file_dir = environ.get("file_dir", path.curdir)
 access_token = environ.get("access_token")
 pdb_filename = environ.get("pdb_filename")
-mutation_pattern = "{WT}"
+
+STATUS_UPDATE_URL = f"https://enzyhtp.app.vanderbilt.edu/api/experiment/{experiment_id}"
+
+mutation_pattern = "{WT},{H41M},{M165C}"
 ph = 7.4
 
-def synchronize_job_status(status: int, progress: float) -> None:
+def synchronize_job_status(status: int = None, progress: float = None) -> None:
     """Synchronize the Job Status to the Web Server. If the web server is not accessible, log the status and error information.
     
     Args:
         status (int): Latest job status.
         progress (float): The progress of current job (Float value from 0 to 1).
-    """
+    """    
     try:
         response = put(STATUS_UPDATE_URL,
             headers={
                 "Authorization": f"Bearer {access_token}"
             },
             data={
-                "status": StatusCode.RUNNING,
-                "progress": 0.0
+                "status": status,
+                "progress": progress
             },
             timeout=30)
         if (response.ok):
@@ -65,7 +66,7 @@ def synchronize_job_status(status: int, progress: float) -> None:
 synchronize_job_status(status=StatusCode.INITIALIZING, progress=0.0)
 
 try:
-    wt_stru = PDBParser().get_structure(path.join(file_dir, pdb_filename))
+    wt_stru = PDBParser().get_structure(pdb_filename)
     remove_solvent(stru=wt_stru)
     remove_hydrogens(stru=wt_stru, polypeptide_only=True)
     protonate_stru(stru=wt_stru, ph=ph, protonate_ligand=True)

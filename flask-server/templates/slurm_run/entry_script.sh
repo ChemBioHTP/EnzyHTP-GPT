@@ -10,8 +10,9 @@
 #SBATCH --export=NONE
 
 source ~/bin/enzyhtp_env.sh
-conda activate enzyhtp
+source activate enzyhtp
 
+export experiment_id="${experiment_id}"
 export file_dir=$(dirname "$0")
 export access_token="${access_token}"
 export pdb_filename="${pdb_filename}"
