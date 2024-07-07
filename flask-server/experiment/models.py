@@ -27,9 +27,11 @@ from auth.models import User
 
 # Here put enzy_htp modules.
 from enzy_htp.core.general import CaptureLogging, _LOGGER
-from enzy_htp.core import file_system as fs
+from enzy_htp.core import exception as core_exc
 from enzy_htp.structure import PDBParser
 from enzy_htp.preparation.validity import is_structure_valid
+from enzy_htp.mutation.mutation_pattern import api as pattern_api
+from enzy_htp.mutation_class import get_mutant_name_str, get_mutant_name_tag
 
 class Experiment(db.Model):
     """Experiment Model: Experiment information.
@@ -50,6 +52,7 @@ class Experiment(db.Model):
     slurm_job_uuid = db.Column(db.String(36), nullable=True)
     _status = db.Column("status", db.Integer, nullable=False, default=-9)
     _progress = db.Column("progress", db.Float, nullable=False, default=0.0)
+    mutation_pattern = db.Column(db.String(256), nullable=True, default="WT")
     metrics = db.Column(db.String(64), nullable=True)
     description = db.Column(db.String(128), nullable=True)
     created_time = db.Column(db.DateTime, nullable=False)
@@ -147,6 +150,11 @@ class Experiment(db.Model):
         self._progress = value
         self.updated_time = datetime.now()
         return
+    
+    @property
+    def mutant_count(self) -> int:
+        is_successful, mutants, message = self.get_mutants()
+        return len(mutants)
 
     @staticmethod
     def validate_pdb(pdb_file: str | FileStorage) -> Tuple[bool, str]:
@@ -239,7 +247,77 @@ class Experiment(db.Model):
             return
         else:
             fs.safe_mkdir(save_folder)
-            
+    
+    def get_mutants(self) -> Tuple[bool, list, str]:
+        """Get the mutant list of the current experiment instance.
+
+        Returns:
+            is_successful (bool): Flag indicating if the update is successful.
+            mutants (str): The mutants assigned by the mutation pattern. None if the pattern is invalid.
+            message (str): The message describing the updating.
+        """
+        is_successful = False
+        mutants = list()
+        message = str()
+        if (not os.path.isfile(self.pdb_filepath)):
+            message = "The current experiment isn't associated with any PDB file."
+            return is_successful, mutants, message
+
+        protein_stru = PDBParser().get_structure(self.pdb_filepath)        
+        try:
+            mutants = pattern_api.decode_mutation_pattern(protein_stru, self.mutation_pattern)
+        except pattern_api.InvalidMutationPatternSyntax as e:
+            message = f"Mutation pattern parsing failed due to InvalidMutationPatternSyntax: {e}"
+        except core_exc.InvalidResidueCode as e:
+            message = f"Mutation pattern parsing failed due to InvalidResidueCode: {e}"
+        except Exception as e:
+            message = f"Mutation pattern parsing failed due to Uncategorized General Exception: {e}"
+        finally:
+            if (not message):
+                message = "Mutation pattern parsing succeeded!"
+                is_successful = True
+            else:
+                _LOGGER.error(message)
+        
+        return is_successful, mutants, message
+
+    def get_mutant_string_list(self) -> Tuple[bool, str, str]:
+        """Get a list of mutant string concerning the current experiment instance.
+
+        Returns:
+            is_successful (bool): Flag indicating if the update is successful.
+            mutant_string_list (str): A list of mutant string assigned by the mutation pattern. None if the pattern is invalid.
+            message (str): The message describing the updating.
+        """
+        mutant_string_list = list()
+        is_successful, mutants, message = self.get_mutants()
+        if (is_successful):
+            for mut in mutants:
+                mutant_string_list.append(get_mutant_name_str(mut))
+        return is_successful, mutant_string_list, message
+
+    def update_mutation_pattern(self, mutation_pattern: str, freeze: bool = False) -> Tuple[bool, str, str]:
+        """Update the mutation pattern of the current experiment instance.
+        If the mutation pattern can be successfully parsed, the update to mutation_pattern takes place; otherwise the mutation pattern is not updated.
+        
+        Args:
+            mutation_pattern (str): The updated mutation pattern to be assigned to the experiment.
+            freeze (bool): A flag indicating whether to convert a valid random mutation pattern to the mutation pattern of the specified target mutant.
+
+        Returns:
+            is_successful (bool): Flag indicating if the update is successful.
+            mutant_string (str): The mutants assigned by the mutation pattern. None if the pattern is invalid.
+            message (str): The message describing the updating.
+        """
+        self.mutation_pattern = mutation_pattern
+        is_successful, mutant_string_list, message = self.get_mutant_string_list()
+        if (is_successful):
+            if (freeze):
+                self.mutation_pattern = ",".join(["{}{}{}".format("{", mutant.replace(" ", ","), "}") for mutant in mutant_string_list])
+            db.session.commit()
+        message = message.replace("parsing", "update")
+        return is_successful, mutant_string_list, message
+        
 
 ############### Slurm Jobs ###############
 from os.path import basename

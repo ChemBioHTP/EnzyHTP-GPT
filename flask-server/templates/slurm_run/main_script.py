@@ -29,10 +29,11 @@ experiment_id = environ.get("experiment_id")
 file_dir = environ.get("file_dir", path.curdir)
 access_token = environ.get("access_token")
 pdb_filename = environ.get("pdb_filename")
+mutation_pattern = environ.get("mutation_pattern")
 
 STATUS_UPDATE_URL = f"https://enzyhtp.app.vanderbilt.edu/api/experiment/{experiment_id}"
+print(f"Send PATCH request to {STATUS_UPDATE_URL} so as to update the status and progress.")
 
-mutation_pattern = "{WT},{H41M},{M165C}"
 ph = 7.4
 
 def synchronize_job_status(status: int = None, progress: float = None) -> None:

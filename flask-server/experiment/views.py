@@ -12,6 +12,7 @@
 import os
 import re
 import prompts
+import pandas as pd
 from flask import Response, request, redirect, jsonify, send_file
 from flask_login import login_required, current_user
 from json import dumps, loads
@@ -26,7 +27,7 @@ from .models import Experiment
 from auth.models import User
 from auth.views import unauth_handler as unauth_handler_in_auth
 from context import db, login_manager
-from config import EXPERIMENT_FILE_DIRECTORY, ACCRE_SLURM_URL, TOKEN_EXPIRES_DELTA
+from config import EXPERIMENT_FILE_DIRECTORY, ACCRE_SLURM_URL, TOKEN_EXPIRES_DELTA, WORKSHEET_MUTATION_COLUMN_NAME
 
 # Here put enzy_htp modules.
 from enzy_htp.workflow.config import StatusCode
@@ -167,7 +168,7 @@ class ExperimentBehaviourResponseInfo():
         return dumps(serialized_data)
 
 def notfound_response(user: User, experiment_id: str = str()) -> Response:
-    """Generate a 403 FORBIDDEN Response when the user doesn't have the permission to the experiment.
+    """Generate a 404 NOT FOUND Response if the specified experiment instance doesn't exist.
     
     Args:
         user (User): Current user.
@@ -212,6 +213,25 @@ def forbidden_response(user: User, experiment: Experiment) -> Response:
         is_authenticated=True
     )
     return Response(response=response_info.serialize(), status=403, mimetype="application/json")
+
+def no_pdb_response(user: User, experiment: Experiment) -> Response:
+    """Generate a 404 NOT FOUND Response when the experiment isn't associated with any PDB file.
+    
+    Args:
+        user (User): Current user.
+        experiment (experiment): The experiment record associated to the `experiment_id`.
+
+    Returns:
+        A 404 NOT FOUND Response instance.
+    """
+    response_info = ExperimentBehaviourResponseInfo(
+        experiment=experiment,
+        user=user,
+        is_successful=False,
+        message="The current experiment isn't associated with any PDB file.",
+        is_authenticated=True
+    )
+    return Response(response=response_info.serialize(), status=404, mimetype="application/json")
 
 @experiment_blueprint.route("/", methods=["POST"])
 @login_required
@@ -478,36 +498,153 @@ def pdb_file_download(experiment_id: str):
     user: User = current_user
     experiment = Experiment.get(experiment_id)
 
-    if not experiment:
-        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
-            is_successful=False,
-            message=f"The experiment with id '{experiment_id}' doesn't exist.")
-        return Response(response=response_info.serialize(), status=404, mimetype="application/json")
-
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
     if (experiment.user_id != user.id):
-        return forbidden_response(user, experiment)
-    
-    if (not experiment.pdb_filepath):
-        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
-            is_successful=False,
-            message=f"No PDB file attached.")
-        return Response(response=response_info.serialize(), status=404, mimetype="application/json")
-    if (os.path.isfile(experiment.pdb_filepath)):
+        return forbidden_response(user, experiment)    
+    if (not os.path.isfile(experiment.pdb_filepath)):
+        return no_pdb_response()
+    else:
         base_filename = fs.base_file_name(experiment.pdb_filepath)
         return send_file(path_or_file=experiment.pdb_filepath, mimetype="text/plain",
             as_attachment=False, 
             download_name=base_filename, 
             attachment_filename=base_filename)
-    else:
-        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
-            is_successful=False,
-            message=f"Failed to find the attached PDB file.")
-        return Response(response=response_info.serialize(), status=404, mimetype="application/json")
 
-@experiment_blueprint.route("/<experiment_id>/generate_mutation_pattern", methods=["POST"])
+@experiment_blueprint.route("/<experiment_id>/mutations", methods=["GET"])
+@login_required
+def get_mutation_space(experiment_id: str):
+    """Return the current mutation space information of the experiment.
+        
+    Args:
+        experiment_id (str): The identifier of an experiment instance.
+    """
+    user: User = current_user
+    experiment = Experiment.get(experiment_id)
+
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
+    if (experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
+    
+    is_successful, mutant_string_list, message = experiment.get_mutant_string_list()
+    
+    response_info = ExperimentBehaviourResponseInfo(
+        experiment=experiment,
+        user=user,
+        is_successful=is_successful,
+        message=message,
+        mutant_string_list=mutant_string_list,
+    )
+    return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+
+@experiment_blueprint.route("/<experiment_id>/mutations/update", methods=["POST", "PUT"])
+@login_required
+def update_mutation_space(experiment_id: str):
+    """Update the mutation space according to formdata mutation_pattern or the uploaded .csv/.xlsx/.xls files.
+        
+    Args:
+        experiment_id (str): The identifier of an experiment instance.
+    """
+    allowed_extensions = [".csv", ".xlsx", ".xls"]
+    column_name = WORKSHEET_MUTATION_COLUMN_NAME
+
+    user: User = current_user
+    experiment = Experiment.get(experiment_id)
+
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
+    if (experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
+    if (not os.path.isfile(experiment.pdb_filepath)):
+        return no_pdb_response(user, experiment)
+
+    mutation_pattern = request.form.get("mutation_pattern", None)
+    if (mutation_pattern):
+        is_successful, mutant_string_list, message = experiment.update_mutation_pattern(mutation_pattern=mutation_pattern, freeze=True)
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment,
+            user=user,
+            is_successful=is_successful,
+            message=message,
+            mutation_pattern=mutation_pattern,
+            mutant_string_list=mutant_string_list,
+        )
+        return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+    else:
+        file = request.files.get("file", None)
+        # If the user does not select a file, the browser submits an
+        # empty file without a filename.
+        if file.filename == '':
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                is_successful=False,
+                message="The selected/uploaded file doesn't exist.",
+                is_authenticated=True,
+            )
+            return Response(response=response_info.serialize(), status=400, mimetype="application/json")
+        
+        file_ext = fs.get_file_ext(file.filename).lower()
+        
+        if file and (file_ext in allowed_extensions):
+            # Check the file extension to determine the file type
+            df = pd.DataFrame(None)
+            try:
+                if file_ext in ['.xlsx', '.xls']:
+                    df = pd.read_excel(file, engine='openpyxl')
+                else:
+                    df = pd.read_csv(file)
+            except Exception as e:
+                response_info = ExperimentBehaviourResponseInfo(
+                    experiment=experiment,
+                    user=user,
+                    is_successful=False,
+                    message="The file you uploaded is damaged, or the file content does not match its extension.",
+                    is_authenticated=True,
+                )
+                return Response(response=response_info.serialize(), status=415, mimetype="application/json")
+
+
+            # Try to read the column containing mutation info from the DataFrame.
+            if column_name in df.columns:
+                # Convert the column to a list and send it back
+                mutation_list = df[column_name].tolist()
+                mutation_pattern = (",".join(["{}{}{}".format("{", mutation, "}") for mutation in mutation_list])).replace(" ", "")
+                is_successful, mutant_string_list, message = experiment.update_mutation_pattern(mutation_pattern=mutation_pattern, freeze=True)
+                response_info = ExperimentBehaviourResponseInfo(
+                    experiment=experiment,
+                    user=user,
+                    is_successful=is_successful,
+                    message=message,
+                    mutation_pattern=mutation_pattern,
+                    mutant_string_list=mutant_string_list,
+                )
+                return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+            else:
+                # Column not found in the DataFrame.
+                response_info = ExperimentBehaviourResponseInfo(
+                    experiment=experiment,
+                    user=user,
+                    is_successful=False,
+                    message=f"Column '{column_name}' is not found.",
+                )
+                return Response(response=response_info.serialize(), status=404, mimetype="application/json")
+        else:
+            # File extension is not allowed
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                is_successful=False,
+                message=f"{file_ext} is an unsupported file format. Only {', '.join(allowed_extensions)} files are supported.",
+                is_authenticated=True,
+            )
+            return Response(response=response_info.serialize(), status=415, mimetype="application/json")
+
+@experiment_blueprint.route("/<experiment_id>/mutations/generate", methods=["POST", "PUT"])
 @login_required
 def generate_mutation_pattern(experiment_id: str):
-    """Generate mutation patterns based on natural language inputs.
+    """Generate mutation space (mutation pattern) based on natural language inputs.
     
     Args:
         experiment_id (str): The identifier of an experiment instance.
@@ -515,10 +652,12 @@ def generate_mutation_pattern(experiment_id: str):
     user: User = current_user
     experiment = Experiment.get(experiment_id)
 
-    filepath = experiment.pdb_filepath
-
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
     if (experiment.user_id != user.id):
         return forbidden_response(user, experiment)
+    if (not os.path.isfile(experiment.pdb_filepath)):
+        return no_pdb_response(user, experiment)
 
     mutation_request = request.form.get("mutation_request")
 
@@ -532,32 +671,13 @@ def generate_mutation_pattern(experiment_id: str):
     if (status_code != 200):
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False, message=response_content)
         return Response(response_info.serialize(), status=status_code, mimetype="application/json")
-    pattern = response_content
-    
-    # pattern = "r:3[resi 1 around 4:all not self]*10"
-    sp = PDBParser()
-    stru = sp.get_structure(filepath)
+    mutation_pattern = response_content
 
-    mut_string = ""
-    try:
-        mutations = pattern_api.decode_mutation_pattern(stru, pattern)
-        for mut in mutations:
-            mut_string += get_mutant_name_str(mut) + ";"
-    except pattern_api.InvalidMutationPatternSyntax as e:
-        # raise Exception(f'Invalid mutation: {str(e)}')
-        _LOGGER.error(f"InvalidMutationPatternSyntax: {e}")
-    except core_exc.InvalidResidueCode as e:
-        _LOGGER.error(f"InvalidResidueCode: {e}")
-    except Exception as e:
-        _LOGGER.error(f"Uncategorized General Exception: {e}")
-    
-    mut_string = mut_string[:-1]
-
-    # TODO: generate mutants with "generate_mut" function and save it
+    is_successful, mutant_string_list, message = experiment.update_mutation_pattern(mutation_pattern=mutation_pattern, freeze=True)
 
     response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
-        is_successful=(bool(pattern) and bool(mut_string)), message="Received response from OpenAI. Please check its output.",
-        pattern=pattern, mut_string=mut_string)
+        is_successful=is_successful, message=f"Received response from OpenAI. {message}",
+        mutation_pattern=mutation_pattern, mutant_string_list=mutant_string_list)
     return Response(response_info.serialize(), status=200, mimetype="application/json")
 
 def generate_muts(file: FileStorage, pattern):
@@ -591,7 +711,14 @@ from os.path import basename
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from .models import SlurmJobRequest, SlurmJobData
-from config import SLURM_JOB_ENTRY_SCRIPT_FILENAME, SLURM_JOB_ENTRY_SCRIPT, SLURM_DEPLOY_SCRIPT_FILENAME, SLURM_JOB_MAIN_SCRIPT_FILEPATH, SLURM_DEPLOY_SCRIPT
+from config import (
+    SLURM_JOB_ENTRY_SCRIPT_FILENAME, 
+    SLURM_JOB_ENTRY_SCRIPT, 
+    SLURM_DEPLOY_SCRIPT_FILENAME, 
+    SLURM_JOB_MAIN_SCRIPT_FILEPATH, 
+    SLURM_DEPLOY_SCRIPT, 
+    MAX_MUTANT_COUNT
+)
 
 @experiment_blueprint.route("/<experiment_id>/slurm", methods=["GET"])
 @login_required
@@ -631,6 +758,14 @@ def experiment_slurm_get(experiment_id: str):
             is_authenticated=True,
             data=slurm_job_data.as_dict(),
         )
+    elif (status == 404):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                message="The Slurm Job record exists in the database but was erased in the cluster. You can delete this slurm job record and submit a new one.",
+                is_authenticated=True,
+                is_successful=False,
+            )
     else:
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
@@ -676,13 +811,26 @@ def experiment_slurm_post(experiment_id: str):
         )
         return Response(response=response_info.serialize(), status=415, mimetype="application/json")
     else:
+        experiment_mutant_count = experiment.mutant_count
+        if (experiment_mutant_count > MAX_MUTANT_COUNT):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                message=f"The experiment contains {experiment_mutant_count} mutants, which exceeds the number that our server can support (no more than {MAX_MUTANT_COUNT}). Please deploy it to your or your institution's own cluster for computation.",
+                is_authenticated=True,
+                is_successful=False,
+            )
+            return Response(response=response_info.serialize(), status=429, mimetype="application/json")
+
         slurm_request = SlurmJobRequest()
         pdb_filepath = experiment.pdb_filepath
 
         entry_script_str_io = StringIO()
         entry_script_str_io.write(Template(SLURM_JOB_ENTRY_SCRIPT).safe_substitute({
             "pdb_filename": basename(pdb_filepath),
-            "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA)
+            "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
+            "experiment_id": experiment.id,
+            "mutation_pattern": experiment.mutation_pattern,
         }))
         entry_script_str_io.name = SLURM_JOB_ENTRY_SCRIPT_FILENAME
         entry_script_str_io.mode = "r"
@@ -742,6 +890,18 @@ def experiment_slurm_delete(experiment_id: str):
                 is_authenticated=True,
                 is_successful=True,
             )
+            experiment.slurm_job_uuid = None
+            experiment.status = StatusCode.CANCELLED
+            db.session.commit()
+        elif (status == 404):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                message="The Slurm Job record exists in the database but was erased in the cluster. Set Job UUID to None.",
+                is_authenticated=True,
+                is_successful=True,
+            )
+            status = 200
             experiment.slurm_job_uuid = None
             experiment.status = StatusCode.CANCELLED
             db.session.commit()
