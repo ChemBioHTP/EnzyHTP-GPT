@@ -32,6 +32,7 @@ from enzy_htp.structure import PDBParser
 from enzy_htp.preparation.validity import is_structure_valid
 from enzy_htp.mutation.mutation_pattern import api as pattern_api
 from enzy_htp.mutation_class import get_mutant_name_str, get_mutant_name_tag
+from enzy_htp.mutation.api import mutate_stru
 
 class Experiment(db.Model):
     """Experiment Model: Experiment information.
@@ -263,7 +264,7 @@ class Experiment(db.Model):
             message = "The current experiment isn't associated with any PDB file."
             return is_successful, mutants, message
 
-        protein_stru = PDBParser().get_structure(self.pdb_filepath)        
+        protein_stru = PDBParser().get_structure(self.pdb_filepath)
         try:
             mutants = pattern_api.decode_mutation_pattern(protein_stru, self.mutation_pattern)
         except pattern_api.InvalidMutationPatternSyntax as e:
@@ -281,7 +282,57 @@ class Experiment(db.Model):
         
         return is_successful, mutants, message
 
-    def get_mutant_string_list(self) -> Tuple[bool, str, str]:
+    def get_mutants_structure(self, engine: str = "pymol") -> Tuple[bool, dict, str]:
+        """Get the PDB file string of the mutated structure.
+        
+        Args:
+            engine (str, optional): The engine (method) used for determine the mutated structure
+                (current available keywords): "tleap_min", "pymol" & "rosetta".
+        
+        Returns:
+            is_successful (bool): Flag indicating if the update is successful.
+            tag_structure_pairs (dict): A dictionary with mutant tags as keys and the corresponding structure as values.
+            message (str): The message describing the updating.
+        """
+        tag_structure_pairs = dict()
+        is_successful, mutants, message = self.get_mutants()
+        if (is_successful):
+            try:
+                sp = PDBParser()
+                protein_stru = sp.get_structure(self.pdb_filepath)
+                for mutant in mutants:
+                    mutant_stru = mutate_stru(protein_stru, mutant, engine)
+                    name_tag = get_mutant_name_str(mutant)
+                    tag_structure_pairs[name_tag] = mutant_stru
+                message = "Getting Mutant structure succeeded!"
+            except Exception as e:
+                is_successful = False
+                message = f"Getting Mutant structure failed due to Exception: {e}"
+        return is_successful, tag_structure_pairs, message
+
+    def get_mutants_pdb_string(self, engine: str = "pymol") -> Tuple[bool, dict, str]:
+        """Get the PDB file string of the mutated structure.
+        
+        Args:
+            engine (str, optional): The engine (method) used for determine the mutated structure
+                (current available keywords): "tleap_min", "pymol" & "rosetta".
+        
+        Returns:
+            is_successful (bool): Flag indicating if the update is successful.
+            tag_string_pairs (dict): A dictionary with mutant tags as keys and the corresponding PDB file string as values.
+            message (str): The message describing the updating.
+        """
+        tag_string_pairs = dict()
+        is_successful, tag_structure_pairs, message = self.get_mutants_structure(engine)
+        if (is_successful):
+            sp = PDBParser()
+            for tag, structure in tag_structure_pairs.items():
+                pdb_string = sp.get_file_str(structure)
+                tag_string_pairs[tag] = pdb_string
+            message = "Getting Mutant PDB file string succeeded!"
+        return is_successful, tag_string_pairs, message
+
+    def get_mutants_string_list(self) -> Tuple[bool, str, str]:
         """Get a list of mutant string concerning the current experiment instance.
 
         Returns:
@@ -310,7 +361,7 @@ class Experiment(db.Model):
             message (str): The message describing the updating.
         """
         self.mutation_pattern = mutation_pattern
-        is_successful, mutant_string_list, message = self.get_mutant_string_list()
+        is_successful, mutant_string_list, message = self.get_mutants_string_list()
         if (is_successful):
             if (freeze):
                 self.mutation_pattern = ",".join(["{}{}{}".format("{", mutant.replace(" ", ","), "}") for mutant in mutant_string_list])

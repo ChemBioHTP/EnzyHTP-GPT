@@ -13,13 +13,13 @@ import os
 import re
 import prompts
 import pandas as pd
-from flask import Response, request, redirect, jsonify, send_file
+from flask import Response, request, send_file
 from flask_login import login_required, current_user
-from json import dumps, loads
+from json import dumps
 from typing import Any, List, Tuple
 from string import Template
-from datetime import datetime, timedelta
-from werkzeug.datastructures import FileStorage, ImmutableMultiDict
+from datetime import datetime
+from werkzeug.datastructures import ImmutableMultiDict
 
 # Here put local imports.
 from . import experiment as experiment_blueprint
@@ -27,7 +27,7 @@ from .models import Experiment
 from auth.models import User
 from auth.views import unauth_handler as unauth_handler_in_auth
 from context import db, login_manager
-from config import EXPERIMENT_FILE_DIRECTORY, ACCRE_SLURM_URL, TOKEN_EXPIRES_DELTA, WORKSHEET_MUTATION_COLUMN_NAME
+from config import TOKEN_EXPIRES_DELTA, WORKSHEET_MUTATION_COLUMN_NAME
 
 # Here put enzy_htp modules.
 from enzy_htp.workflow.config import StatusCode
@@ -94,17 +94,7 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 from services import OpenAIService
 
 # Here put enzy_htp modules.
-from enzy_htp.structure import PDBParser
-import enzy_htp.mutation.api as mapi
-from enzy_htp.mutation_class import get_mutant_name_str, get_mutant_name_tag
-import enzy_htp.mutation.mutation_pattern.api as pattern_api
-from enzy_htp.preparation.validity import is_structure_valid
-from enzy_htp.core import (
-    general as eg,
-    _LOGGER,
-    file_system as fs,
-    exception as core_exc
-)
+from enzy_htp.core import file_system as fs
 
 class ExperimentBehaviourResponseInfo():
     """Experiment Behaviour Response Information.
@@ -527,7 +517,7 @@ def get_mutation_space(experiment_id: str):
     if (experiment.user_id != user.id):
         return forbidden_response(user, experiment)
     
-    is_successful, mutant_string_list, message = experiment.get_mutant_string_list()
+    is_successful, mutant_string_list, message = experiment.get_mutants_string_list()
     
     response_info = ExperimentBehaviourResponseInfo(
         experiment=experiment,
@@ -535,6 +525,33 @@ def get_mutation_space(experiment_id: str):
         is_successful=is_successful,
         message=message,
         mutant_string_list=mutant_string_list,
+    )
+    return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+
+@experiment_blueprint.route("/<experiment_id>/mutations/pdb", methods=["GET"])
+@login_required
+def get_mutant_pdb(experiment_id: str):
+    """Return the current mutation space information of the experiment.
+        
+    Args:
+        experiment_id (str): The identifier of an experiment instance.
+    """
+    user: User = current_user
+    experiment = Experiment.get(experiment_id)
+
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
+    if (experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
+    
+    is_successful, tag_string_pairs, message = experiment.get_mutants_pdb_string()
+    
+    response_info = ExperimentBehaviourResponseInfo(
+        experiment=experiment,
+        user=user,
+        is_successful=is_successful,
+        message=message,
+        tag_string_pairs=tag_string_pairs,
     )
     return Response(response=response_info.serialize(), status=200, mimetype="application/json")
 
@@ -679,30 +696,6 @@ def generate_mutation_pattern(experiment_id: str):
         is_successful=is_successful, message=f"Received response from OpenAI. {message}",
         mutation_pattern=mutation_pattern, mutant_string_list=mutant_string_list)
     return Response(response_info.serialize(), status=200, mimetype="application/json")
-
-def generate_muts(file: FileStorage, pattern):
-    """Generate Mutants."""
-    sp = PDBParser()
-    stru = sp.get_structure(file.name)
-
-    # checks to make sure mutation is valid before continuing
-    try:
-        mutations = pattern_api.decode_mutation_pattern(stru, pattern)
-    except pattern_api.InvalidMutationPatternSyntax as e:
-        raise Exception(f'Invalid mutation: {str(e)}')
-
-    res = []
-    # mutates the PDB file with PyMOL
-    for mut in mutations:
-        try:
-            mutant_stru = mapi.mutate_stru(stru, mut, engine="pymol")
-            res_file = sp.get_file_str(mutant_stru)
-        except Exception as e:
-            raise Exception(f'API Error: {str(e)}')
-    name_tag = get_mutant_name_tag(mutations)
-    res.append((res_file, name_tag))
-
-    return res
 
 #region Slurm Jobs.
 
