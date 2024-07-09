@@ -96,7 +96,7 @@ Here, we use the account `maura.attaway@example.com` for instance to show its fu
     }
     ```
   - If failed (due to conflict),
-    - Status Code: `400 BAD REQUEST`.
+    - Status Code: `409 CONFLICT`.
     - Response Body:
     ```json
     {

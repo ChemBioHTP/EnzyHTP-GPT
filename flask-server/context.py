@@ -30,6 +30,9 @@ db = SQLAlchemy()
 from flask_login import LoginManager
 login_manager = LoginManager()
 
+from flask_jwt_extended import JWTManager
+jwt = JWTManager()
+
 from flask_mail import Mail
 mail = Mail()
 

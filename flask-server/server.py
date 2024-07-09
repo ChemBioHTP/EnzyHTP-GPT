@@ -6,7 +6,7 @@ app = Flask(__name__)
 import config
 app.config.from_object(config)
 
-from context import db, login_manager, mail, ssl_context
+from context import db, login_manager, jwt, mail, ssl_context
 login_manager.login_message_category = "info"
 
 # Import and define your routes and views
@@ -24,7 +24,10 @@ db.init_app(app=app)
 db.create_all()
 
 # Initialize LoginManager.
-login_manager.init_app(app)
+login_manager.init_app(app=app)
+
+# Initialize JWTManager
+jwt.init_app(app=app)
  
 @app.route("/api/index")
 def home():

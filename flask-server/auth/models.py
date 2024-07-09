@@ -14,7 +14,7 @@ from flask_login import UserMixin
 from flask_mail import Message
 from sqlalchemy import and_
 from typing import Tuple
-from datetime import datetime, timedelta
+from datetime import datetime
 from requests import post
 from random import choice
 from string import Template
@@ -27,6 +27,7 @@ from context import db, mail
 from config import (
     SECRET_KEY,
     MAIL_PASSWORD_RESET_HTML_TEMPLATE,
+    TOKEN_EXPIRES_DELTA,
 )
 
 from services import OpenAIService
@@ -187,11 +188,8 @@ class User(db.Model, UserMixin):
             status_code (int): The HTTP status code from the API response.
             response_content (str): The response message to describe the status.
         """
-        if (not self.openai_secret_key):
-            return False, 500, "OpenAI Secret Key does not exist."
-        else:
-            service = OpenAIService(self.openai_secret_key, max_tokens=30)
-            return service.ask_gpt("Please say an emotional welcome speech, no less than 8 words, to welcome me to ChatGPT, and add punctuation at the end.")
+        service = OpenAIService(self.openai_secret_key, max_tokens=30)
+        return service.ask_gpt("Please say an emotional welcome speech, no less than 8 words, to welcome me to ChatGPT, and add punctuation at the end.")
 
     def encode_auth_token(self, algorithm: str = "HS256"):
         """Encode Auth Token.
@@ -201,7 +199,7 @@ class User(db.Model, UserMixin):
                 There are 3 symmetric algorithms available which are HS256, HS384, HS512.
         """
         payload = {
-            "exp": datetime.now() + timedelta(days=20),
+            "exp": datetime.now() + TOKEN_EXPIRES_DELTA,
             "iat": datetime.now(),
             "sub": self.id
         }
