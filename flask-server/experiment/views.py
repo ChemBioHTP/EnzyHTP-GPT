@@ -466,23 +466,6 @@ def pdb_file_validation():
     response_info = ExperimentBehaviourResponseInfo(user=user, experiment=None, is_successful=is_valid, message=message)
     return Response(response=response_info.serialize(), status=200, mimetype="application/json")
 
-@experiment_blueprint.route("/validation/pdb_file", methods=["POST"])
-@login_required
-def pdb_file_validation():
-    """Validate the PDB File from the user."""
-    user: User = current_user
-
-    is_valid = False
-    message = str()
-    try:
-        file = request.files.get("file")
-        is_valid, message = Experiment.validate_pdb(file)
-    except Exception as e:
-        is_valid = False
-        message = str(e)
-    response_info = ExperimentBehaviourResponseInfo(user=user, experiment=None, is_successful=is_valid, message=message)
-    return Response(response=response_info.serialize(), status=200, mimetype="application/json")
-
 @experiment_blueprint.route("/<experiment_id>/pdb_file", methods=["POST"])
 @login_required
 def pdb_file_upload(experiment_id: str):
