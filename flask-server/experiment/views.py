@@ -15,6 +15,7 @@ import prompts
 import pandas as pd
 from flask import Response, request, send_file
 from flask_login import login_required, current_user
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from json import dumps
 from typing import Any, List, Tuple
 from string import Template
@@ -28,9 +29,13 @@ from auth.models import User
 from auth.views import unauth_handler as unauth_handler_in_auth
 from context import db, login_manager
 from config import TOKEN_EXPIRES_DELTA, WORKSHEET_MUTATION_COLUMN_NAME
+from services import OpenAIService
 
 # Here put enzy_htp modules.
 from enzy_htp.workflow.config import StatusCode
+from enzy_htp.core import file_system as fs
+
+#region Experiment Index
 
 class ExperimentIndexResponse():
     """Experiment Index Information Response Body."""
@@ -88,13 +93,6 @@ def index():
 #endregion
 
 #region Experiment Behaviour
-
-from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
-
-from services import OpenAIService
-
-# Here put enzy_htp modules.
-from enzy_htp.core import file_system as fs
 
 class ExperimentBehaviourResponseInfo():
     """Experiment Behaviour Response Information.
@@ -229,7 +227,7 @@ def create_experiment():
     """Create new experiment instance."""
     user: User = current_user
     
-    name = request.form.get("name", f"{user.username} experiment")
+    name = request.form.get("name", f"{user.username}'s experiment")
     experiment_type = int(request.form.get("type", -1))
     description = request.form.get("description")
 
@@ -450,6 +448,23 @@ def experiment_post_results(experiment_id: str):
         result_record[key] = value
         continue
     experiment.post_result(result_record=result_record)
+
+@experiment_blueprint.route("/validation/pdb_file", methods=["POST"])
+@login_required
+def pdb_file_validation():
+    """Validate the PDB File from the user."""
+    user: User = current_user
+
+    is_valid = False
+    message = str()
+    try:
+        file = request.files.get("file")
+        is_valid, message = Experiment.validate_pdb(file)
+    except Exception as e:
+        is_valid = False
+        message = str(e)
+    response_info = ExperimentBehaviourResponseInfo(user=user, experiment=None, is_successful=is_valid, message=message)
+    return Response(response=response_info.serialize(), status=200, mimetype="application/json")
 
 @experiment_blueprint.route("/validation/pdb_file", methods=["POST"])
 @login_required

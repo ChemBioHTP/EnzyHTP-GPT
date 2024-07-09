@@ -27,7 +27,10 @@ from auth.models import User
 
 # Here put enzy_htp modules.
 from enzy_htp.core.general import CaptureLogging, _LOGGER
-from enzy_htp.core import exception as core_exc
+from enzy_htp.core import (
+    exception as core_exc, 
+    file_system as fs
+)
 from enzy_htp.structure import PDBParser
 from enzy_htp.preparation.validity import is_structure_valid
 from enzy_htp.mutation.mutation_pattern import api as pattern_api
@@ -382,7 +385,8 @@ class Experiment(db.Model):
         self.results.append(result_record)
         return
 
-############### Slurm Jobs ###############
+#region Slurm Jobs
+
 from os.path import basename
 from requests import (
     get as req_get, 
@@ -603,3 +607,5 @@ class SlurmJobData:
         """Serialize the current instance to json string."""
         serialized_data = self.as_dict()
         return dumps(serialized_data)
+
+#endregion

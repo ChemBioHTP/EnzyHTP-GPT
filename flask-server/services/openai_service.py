@@ -54,6 +54,7 @@ class OpenAIService:
         """
         if (not self.client.api_key):
             return False, 500, "OpenAI Secret Key does not exist."
+
         try:
             response_content = str()
             if (self.conversation_mode):
