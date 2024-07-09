@@ -33,6 +33,7 @@ from enzy_htp.preparation.validity import is_structure_valid
 from enzy_htp.mutation.mutation_pattern import api as pattern_api
 from enzy_htp.mutation_class import get_mutant_name_str, get_mutant_name_tag
 from enzy_htp.mutation.api import mutate_stru
+from enzy_htp.workflow.config import StatusCode
 
 class Experiment(db.Model):
     """Experiment Model: Experiment information.
@@ -82,6 +83,7 @@ class Experiment(db.Model):
         self.updated_time = datetime.now()
         self.pdb_filepath = None
         self.user_id = user_id
+        self.results = list()
     
     @staticmethod
     def get(id: str) -> Experiment | None:
@@ -138,6 +140,8 @@ class Experiment(db.Model):
     
     @status.setter
     def status(self, value):
+        if (value == StatusCode.CANCELLED):
+            self.results.clear()
         self._status = value
         self.updated_time = datetime.now()
         return
@@ -368,7 +372,15 @@ class Experiment(db.Model):
             db.session.commit()
         message = message.replace("parsing", "update")
         return is_successful, mutant_string_list, message
+
+    def post_result(self, result_record: dict):
+        """Add new result record to the experiment.
         
+        Args:
+            result_record_dict (dict): A dict containing the result information of one mutant.
+        """
+        self.results.append(result_record)
+        return
 
 ############### Slurm Jobs ###############
 from os.path import basename

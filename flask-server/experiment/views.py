@@ -429,6 +429,28 @@ def experiment_update_progress(experiment_id: str):
             message=message)
         return Response(response=response_info.serialize(), status=400, mimetype='application/json')
 
+@experiment_blueprint.route("/<experiment_id>/results", methods=["POST"])
+@jwt_required()
+def experiment_post_results(experiment_id: str):
+    """Post the result of the experiment back to the database.
+    
+    Args:
+        experiment_id (str): The identifier of an experiment instance.
+    """
+    user: User = User.get(get_jwt_identity())
+    experiment = Experiment.get(experiment_id)
+
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
+    if (user is None or experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
+    
+    result_record = dict()
+    for key, value in request.form.items():
+        result_record[key] = value
+        continue
+    experiment.post_result(result_record=result_record)
+
 @experiment_blueprint.route("/validation/pdb_file", methods=["POST"])
 @login_required
 def pdb_file_validation():
@@ -543,6 +565,8 @@ def get_mutant_pdb(experiment_id: str):
         return notfound_response(user, experiment_id)
     if (experiment.user_id != user.id):
         return forbidden_response(user, experiment)
+    if (not os.path.isfile(experiment.pdb_filepath)):
+        return no_pdb_response(user, experiment)
     
     is_successful, tag_string_pairs, message = experiment.get_mutants_pdb_string()
     
@@ -555,6 +579,7 @@ def get_mutant_pdb(experiment_id: str):
     )
     return Response(response=response_info.serialize(), status=200, mimetype="application/json")
 
+@experiment_blueprint.route("/<experiment_id>/mutations", methods=["POST", "PUT"])
 @experiment_blueprint.route("/<experiment_id>/mutations/update", methods=["POST", "PUT"])
 @login_required
 def update_mutation_space(experiment_id: str):
@@ -621,7 +646,6 @@ def update_mutation_space(experiment_id: str):
                     is_authenticated=True,
                 )
                 return Response(response=response_info.serialize(), status=415, mimetype="application/json")
-
 
             # Try to read the column containing mutation info from the DataFrame.
             if column_name in df.columns:
