@@ -30,8 +30,8 @@ SQLALCHEMY_DATABASE_URI=f"sqlite:///{os.path.join(__basedir, 'instance', 'enzyht
 SQLALCHEMY_TRACK_MODIFICATIONS=False
 
 # MongoDB
-MONGODB_DATABASE_URI='mongodb://localhost:27017/enzyhtp_gpt'
-MONGODB_TRACK_MODIFICATIONS=False
+MONGO_URI='mongodb://localhost:27017/enzyhtp_gpt'
+MONGO_TRACK_MODIFICATIONS=False
 
 # File system
 FILE_SYSTEM_FOLDER = os.environ.get("FILE_SYSTEM_FOLDER", os.path.join(__basedir, "static"))
@@ -78,3 +78,6 @@ WORKSHEET_MUTATION_COLUMN_NAME = "clean_mut_wt"
 # JSON Web Token.
 JWT_SECRET_KEY = SECRET_KEY
 TOKEN_EXPIRES_DELTA = timedelta(days=5)
+
+# OpenAI Service
+DEFAULT_OPENAI_API_KEY = "5111321231135666"

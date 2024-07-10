@@ -25,7 +25,9 @@ from config import (
 )
 from . import auth
 from .models import User, OAuthUser, VerificationCode
-from context import db, login_manager
+from context import mongo, login_manager
+
+db = mongo.db
 
 @auth.route("/", methods=["GET", "POST", "PUT", "DELETE"])
 def index() -> Response:
@@ -120,8 +122,19 @@ def unauth_handler() -> Response:
 def register() -> Response:
     """New User Registration."""
     email = request.form.get('email').lower()
-    username = request.form.get('username', '')
-    user = User(email=email, password=request.form.get('password'), username=username)
+    username = request.form.get('username', str())
+    password_plaintext = request.form.get('password', str())
+    if (len(password_plaintext) < 4):
+        response_info = AuthResponseInfo(
+            id=None,
+            email=email,
+            username=username,
+            is_successful=False,
+            message=f'Password should be provided!',
+        )
+        return Response(response=response_info.serialize(), status=400, mimetype='application/json')
+
+    user = User(email=email, password_plaintext=password_plaintext, username=username)
 
     if (User.get_by_email(email=email)):
         response_info = AuthResponseInfo(
@@ -132,8 +145,9 @@ def register() -> Response:
             message=f'New user `{user.email}` conflicted with an existing account.')
         return Response(response=response_info.serialize(), status=409, mimetype='application/json')
     else:
-        db.session.add(user)
-        db.session.commit()
+        db.users.insert_one(user.as_dict())
+        # db.session.add(user)
+        # db.session.commit()
 
         response_info = AuthResponseInfo(
             id=user.id,
@@ -148,7 +162,7 @@ def register() -> Response:
 def unregister() -> Response:
     """Unregister a Current User. Only the user him/herself is permitted to do so."""
     
-    user = current_user
+    user: User = current_user
     email_to_match = request.form.get('email').lower()
     user_to_unregister = User.get_by_email(email=email_to_match)
     if (not user_to_unregister):    # Email doesn't exist.
@@ -167,8 +181,10 @@ def unregister() -> Response:
             message=f'User `{user_to_unregister.email}` is unregistered.',
             is_authenticated=False)
         logout_user()
-        db.session.delete(user_to_unregister)
-        db.session.commit()
+        db.oauth_users.delete_many({"user_id": user.id})
+        db.users.delete_one({"id": user.id})
+        # db.session.delete(user_to_unregister)
+        # db.session.commit()
         return Response(response=response_info.serialize(), status=200, mimetype='application/json')
     elif (user_to_unregister.id != user.id): # User.id doesn't match.
         response_info = AuthResponseInfo(
@@ -260,7 +276,8 @@ def profile_update() -> Response:
             if field_name in editable_profile_fields:
                 if (field_value):
                     setattr(user, field_name, field_value)
-                    db.session.commit()
+                    db.users.update_one({"id": user.id}, {"$set": {field_name: field_value}})
+                    # db.session.commit()
                     updated_profile_fields.append(field_name)
 
                 if (field_name == "openai_secret_key"):
@@ -322,7 +339,7 @@ def password_change() -> Response:
     """Change password."""
     old_password = request.form.get('old_password')
     new_password = request.form.get('new_password')
-    user = current_user
+    user: User = current_user
     if (user.verify_password(old_password)):
         user.set_password(new_password)
         response_info = AuthResponseInfo(
@@ -332,7 +349,8 @@ def password_change() -> Response:
             message=f'User `{user.username}` succeeded to change the password.',
             is_authenticated=True,
         )
-        db.session.commit()
+        db.users.update_one({"id": user.id}, {"$set": {"password": user.password}})
+        # db.session.commit()
         return Response(response=response_info.serialize(), status=200, mimetype='application/json')
     else:
         response_info = AuthResponseInfo(
@@ -350,7 +368,7 @@ def password_reset_generate() -> Response:
     """Generate and send verification code for password reset."""
     VerificationCode.clean_expired_records()    # Clean up expired records everytime before generating new one.
     code_length = 6
-    valid_mins = 10
+    valid_mins = 20
 
     email_to_match = request.form.get('email').lower()
     user = User.get_by_email(email=email_to_match)
@@ -363,8 +381,9 @@ def password_reset_generate() -> Response:
         )
         return Response(response=response_info.serialize(), status=404, mimetype='application/json')
     else:
-        verification_code_instance = VerificationCode(user=user, valid_minutes=valid_mins, length=code_length)
-        db.session.add(verification_code_instance)
+        verification_code_instance = VerificationCode(user_id=user.id, valid_minutes=valid_mins, length=code_length)
+        db.verification_codes.insert_one(verification_code_instance.as_dict())
+        # db.session.add(verification_code_instance)
         is_sent = verification_code_instance.send_email()
         if (is_sent):
             response_info = AuthResponseInfo(
@@ -372,7 +391,7 @@ def password_reset_generate() -> Response:
                 email=user.email,
                 message=f'Verification code has been successfully sent to `{user.email}`.',
             )
-            db.session.commit()
+            # db.session.commit()
             return Response(response=response_info.serialize(), status=200, mimetype='application/json')
         else:
             
@@ -427,7 +446,9 @@ def password_reset() -> Response:
                     message=f'User `{user.username}` succeeded to change the password.',
                 )
                 code_record.is_used = True
-                db.session.commit()
+                db.users.update_one({"id": user.id}, {"$set": {"password": user.password}})
+                db.verification_codes.update_one({"id": code_record.id}, {"$set": {"is_used": code_record.is_used}})
+                # db.session.commit()
                 return Response(response=response_info.serialize(), status=200, mimetype='application/json')
         else:
             response_info = AuthResponseInfo(
@@ -517,7 +538,7 @@ def __perform_oauth_login(
     oauth_vendor = OAuthUser.camel_case_oauth_vendor(oauth_vendor)
     oauth_user = OAuthUser.get_by_email_and_vendor(email=oauth_email, oauth_vendor=oauth_vendor)
     if (oauth_user and oauth_user.user_id): # If account exists, match.
-        user = oauth_user.user
+        user = User.get(oauth_user.user_id)
         login_user(user=user, remember=remember)
         oauth_response_info = OAuthResponseInfo(
             id=user.id,
@@ -534,8 +555,9 @@ def __perform_oauth_login(
             email=oauth_email,
             oauth_vendor=oauth_vendor,
             user_id=user.id)
-        db.session.add(oauth_user)
-        db.session.commit()
+        db.oauth_users.insert_one(oauth_user.as_dict())
+        # db.session.add(oauth_user)
+        # db.session.commit()
         login_user(user=user, remember=remember)
         oauth_response_info = OAuthResponseInfo(
             id=user.id,
@@ -548,11 +570,13 @@ def __perform_oauth_login(
             verify_openai_secret_key=True)
         return Response(response=oauth_response_info.serialize(), status=201, mimetype='application/json')
     else:       # If social login email doesn't exist in the `users` table, create new user.
-        user = User(email=oauth_email, password=str(uuid4())[:8], username=username)
-        db.session.add(user)
+        user = User(email=oauth_email, password_plaintext=str(uuid4())[:8], username=username)
+        # db.session.add(user)
+        db.users.insert_one(user.as_dict())
         oauth_user = OAuthUser(email=oauth_email, oauth_vendor=oauth_vendor, user_id=user.id)
-        db.session.add(oauth_user)
-        db.session.commit()
+        db.oauth_users.insert_one(oauth_user.as_dict())
+        # db.session.add(oauth_user)
+        # db.session.commit()
         login_user(user=user, remember=remember)
         oauth_response_info = OAuthResponseInfo(
             id=user.id,

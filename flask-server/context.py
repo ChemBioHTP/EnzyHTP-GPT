@@ -24,8 +24,11 @@ This warning will become an exception in Flask 2.3.
 import os
 __basedir = os.path.join(os.getcwd())
 
-from flask_sqlalchemy import SQLAlchemy
-db = SQLAlchemy()
+# from flask_sqlalchemy import SQLAlchemy
+# db = SQLAlchemy()
+
+from flask_pymongo import PyMongo
+mongo = PyMongo()
 
 from flask_login import LoginManager
 login_manager = LoginManager()

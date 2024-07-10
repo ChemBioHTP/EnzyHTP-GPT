@@ -1,6 +1,9 @@
 #! python3
 # -*- encoding: utf-8 -*-
 '''
+This script is only for development use when the database is SQLite.
+After the database is migrated to MongoDB on 2024-07-10, this script is deprecated.
+
 @File    :   init_db.py
 @Created :   2023/12/13 22:17
 @Author  :   Zhong, Yinjie
@@ -26,11 +29,11 @@ session = Session()
 
 # Add users.
 from auth.models import User
-user_zhang = User(email='san.zhang@example.com', password='123456')
+user_zhang = User(email='san.zhang@example.com', password_plaintext='123456')
 session.add(user_zhang)
-user_white = User(email='tom.white@example.com', password='123456')
+user_white = User(email='tom.white@example.com', password_plaintext='123456')
 session.add(user_white)
-session.add(User(email='lisa.green@example.com', password='123456'))
+session.add(User(email='lisa.green@example.com', password_plaintext='123456'))
 # session.commit()
 
 from experiment.models import Experiment

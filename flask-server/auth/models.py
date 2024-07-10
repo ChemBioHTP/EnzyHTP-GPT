@@ -14,7 +14,7 @@ from flask_login import UserMixin
 from flask_mail import Message
 from sqlalchemy import and_
 from typing import Tuple
-from datetime import datetime
+from datetime import datetime, timedelta
 from requests import post
 from random import choice
 from string import Template
@@ -23,16 +23,17 @@ from os import getcwd, path
 import uuid
 import jwt
 
-from context import db, mail
+# Here put local imports.
+from context import mongo, mail
 from config import (
-    SECRET_KEY,
     MAIL_PASSWORD_RESET_HTML_TEMPLATE,
-    TOKEN_EXPIRES_DELTA,
 )
-
 from services import OpenAIService
 
-class User(db.Model, UserMixin):
+db = mongo.db
+
+# class User(db.Model, UserMixin):
+class User(UserMixin):
     """User Model: User Information.
 
     Attributes:
@@ -45,14 +46,15 @@ class User(db.Model, UserMixin):
         admin (bool): The flag showing if the user is an admin.
     """
     __tablename__ = "users"
-    id = db.Column(db.String(36), primary_key=True, unique=True)
-    email = db.Column(db.String(255), nullable=False, unique=True)
-    password = db.Column(db.String(64), nullable=False)
-    username = db.Column(db.String(64), nullable=True)
-    openai_secret_key = db.Column(db.String(64), nullable=True)
-    registered_on = db.Column(db.DateTime, nullable=False)
-    admin = db.Column(db.Boolean, nullable=False, default=False)
-    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    __is_active: bool
+    # id = db.Column(db.String(36), primary_key=True, unique=True)
+    # email = db.Column(db.String(255), nullable=False, unique=True)
+    # password = db.Column(db.String(64), nullable=False)
+    # username = db.Column(db.String(64), nullable=True)
+    # openai_secret_key = db.Column(db.String(64), nullable=True)
+    # registered_on = db.Column(db.DateTime, nullable=False)
+    # admin = db.Column(db.Boolean, nullable=False, default=False)
+    # is_active = db.Column(db.Boolean, nullable=False, default=True)
 
     @staticmethod
     def check_username(username: str) -> bool:
@@ -91,7 +93,8 @@ class User(db.Model, UserMixin):
         Args:
             id: The `id` to identify a user.
         """
-        user = User.query.filter_by(id=id).first()
+        user = User.from_dict(db.users.find_one({"id": id}))
+        # user = User.query.filter_by(id=id).first()
         if (user):
             return user
         else:
@@ -107,32 +110,36 @@ class User(db.Model, UserMixin):
         Returns:
             `User` instance with matched email address.
         """
-        user = User.query.filter_by(email=email).first()
+        user = User.from_dict(db.users.find_one({"email": email}))
+        # user = User.query.filter_by(email=email).first()
         if (user):
             return user
         else:
             return None
     
-    def __init__(self, email: str, password: str, username: str = '', admin: bool = False) -> None:
+    def __init__(self, email: str, password_plaintext: str = '', username: str = '', admin: bool = False, **kwargs) -> None:
         """Initialize a new UserModel class.
 
         Args:
-            email: Email address of the user.
-            password: Password submitted from the user.
-            username: The username.
-            admin: If this user is an admin user (Default: False).
+            email (str): Email address of the user.
+            password_plaintext (str): Plaintext Password submitted from the user.
+            username (str): The username.
+            admin (bool): If this user is an admin user (Default: False).
+            kwargs: Other keyword arguments.
         """
-        self.id = str(uuid.uuid4())
         self.email = email
-        self.password = User.__generate_password_hash(password)
+        self.password = kwargs.get("password", User.__generate_password_hash(password_plaintext))
         if (self.set_username(username)):  # Do when a legal username is given.
             pass
         elif (email.count('@') > 0):    # Do when the user has no username but has a regular email address.
             self.username = email.split('@')[0]
         else:
             self.username = email       # Do when the user doesn't either provide a username or have a regular email address.
-        self.registered_on = datetime.utcnow()
         self.admin = admin
+        self.id = kwargs.get("id", str(uuid.uuid4()))
+        self.registered_on = kwargs.get("registered_on", datetime.now())
+        self.openai_secret_key = kwargs.get("openai_secret_key", None)
+        self.is_active = kwargs.get("is_active", True)
         return
     
     def set_password(self, password: str) -> None:
@@ -191,48 +198,13 @@ class User(db.Model, UserMixin):
         service = OpenAIService(self.openai_secret_key, max_tokens=30)
         return service.ask_gpt("Please say an emotional welcome speech, no less than 8 words, to welcome me to ChatGPT, and add punctuation at the end.")
 
-    def encode_auth_token(self, algorithm: str = "HS256"):
-        """Encode Auth Token.
-        
-        Args:
-            algorithm (str, optional): The symmetric algorithm to encode the token.
-                There are 3 symmetric algorithms available which are HS256, HS384, HS512.
-        """
-        payload = {
-            "exp": datetime.now() + TOKEN_EXPIRES_DELTA,
-            "iat": datetime.now(),
-            "sub": self.id
-        }
-        return jwt.encode(
-            payload=payload,
-            key=SECRET_KEY,
-            algorithm=algorithm,
-        )
-        
-    @staticmethod
-    def decode_auth_token(auth_token: str) -> Tuple[User | None, int, str]:
-        """Decode Auth Token.
-        
-        Args:
-            auth_token (str): The Auth Token to decode.
+    @property
+    def is_active(self):
+        return self.__is_active
 
-        Returns:
-            user (User): The User instance from the Auth Token.
-            status_code (int): The status code of the authentication.
-            message (str): The message describing the authentication.
-        """
-        try:
-            payload: dict = jwt.decode(auth_token, SECRET_KEY)
-            user_id = payload.get("sub")
-            user = __class__.get(user_id)
-            if (user is not None):
-                return user, 200, "Login successfully."
-            else:
-                return None, 404, "User not found."
-        except jwt.ExpiredSignatureError:
-            return None, 401, "ExpiredSignatureError: The auth token is with an expired signature."
-        except jwt.InvalidTokenError:
-            return None, 401, "InvalidTokenError: The auth token is invalid."
+    @is_active.setter
+    def is_active(self, value):
+        self.__is_active = value
 
     @property
     def has_openai_secret_key(self) -> bool:
@@ -241,8 +213,28 @@ class User(db.Model, UserMixin):
             return True
         else:
             return False
+    
+    def as_dict(self) -> dict:
+        """Serialize the current instance to a dictionary."""
+        dict_data = self.__dict__
+        return dict_data
+    
+    @staticmethod
+    def from_dict(user_dict: dict | None) -> User:
+        """Build an user instance from a dict.
+        
+        Args:
+            user_dict (dict): A dictionary containing data of the user.
+        """
+        if (user_dict is None):
+            return None
+        user = User(**user_dict)
+        return user
+        
+    def __repr__(self):
+        return f"User('{self.id}', '{self.username}', '{self.email}')"
 
-class OAuthUser(db.Model):
+class OAuthUser():
     """User from Social Login.
     
     Attributes:
@@ -254,12 +246,12 @@ class OAuthUser(db.Model):
 
     """
     __tablename__ = "oauth_users"
-    id = db.Column(db.String(36), primary_key=True, unique=True)
-    email = db.Column(db.String(255), nullable=False, unique=True)
-    oauth_vendor = db.Column(db.String(64), nullable=False)
-    registered_on = db.Column(db.DateTime, nullable=False)
-    user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
-    user: User = db.relationship('User', backref=db.backref('oauth_users'))
+    # id = db.Column(db.String(36), primary_key=True, unique=True)
+    # email = db.Column(db.String(255), nullable=False, unique=True)
+    # oauth_vendor = db.Column(db.String(64), nullable=False)
+    # registered_on = db.Column(db.DateTime, nullable=False)
+    # user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
+    # user: User = db.relationship('User', backref=db.backref('oauth_users'))
 
     @staticmethod
     def camel_case_oauth_vendor(oauth_vendor: str) -> str:
@@ -290,30 +282,47 @@ class OAuthUser(db.Model):
         """
         email = email.lower()
         oauth_vendor = OAuthUser.camel_case_oauth_vendor(oauth_vendor)
-
-        oauth_user = OAuthUser.query.filter(OAuthUser.email==email, OAuthUser.oauth_vendor==oauth_vendor).first()
+        oauth_user = OAuthUser.from_dict(db.oauth_users.find_one({"email": email, "oauth_vendor": oauth_vendor}))
+        # oauth_user = OAuthUser.query.filter(OAuthUser.email==email, OAuthUser.oauth_vendor==oauth_vendor).first()
         if (oauth_user):
             return oauth_user
         else:
             return None
 
-    def __init__(self, email: str, oauth_vendor: str, user_id: str = None) -> None:
+    def __init__(self, email: str, oauth_vendor: str, user_id: str = None, **kwargs) -> None:
         """Initialize a new UserModel class.
 
         Args:
             email: Email address of the oauth user.
             oauth_vendor: OAuth Vendor, e.g. Google, Microsoft, etc.
             user_id: The user ID (of `users` table) to which it is bound.
+            kwargs: Other keyword arguments.
         """
-        self.id = str(uuid.uuid4())
         self.email = email
         self.oauth_vendor = OAuthUser.camel_case_oauth_vendor(oauth_vendor)
-        self.registered_on = datetime.now()
         self.user_id = user_id
-        self.user = User.get(user_id)
+        self.id = kwargs.get("id", str(uuid.uuid4()))
+        self.registered_on = kwargs.get("registered_on", datetime.now())
         return
+    
+    def as_dict(self):
+        """Serialize the current instance to a dictionary."""
+        dict_data = self.__dict__
+        return dict_data
+    
+    @staticmethod
+    def from_dict(oauth_user_dict: dict | None) -> OAuthUser:
+        """Build an OAuthUser instance from a dict.
+        
+        Args:
+            oauth_user_dict (dict): A dictionary containing data of the OAuth User.
+        """
+        if (oauth_user_dict is None):
+            return None
+        oauth_user = OAuthUser(**oauth_user_dict)
+        return oauth_user
 
-class VerificationCode(db.Model):
+class VerificationCode():
     """Verification Code Model.
 
     Store verification code for resetting password.
@@ -326,31 +335,32 @@ class VerificationCode(db.Model):
         user_id: The user ID (of `users` table) to which it is bound.
     """
     __tablename__ = "verification_codes"
-    id = db.Column(db.String(36), primary_key=True, unique=True)
-    verification_code = db.Column(db.String(15), nullable=False)
-    creation_time = db.Column(db.DateTime, nullable=False)
-    expiration_time = db.Column(db.DateTime, nullable=False)
-    is_used = db.Column(db.Boolean, nullable=False, default=False)
-    user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
-    user = db.relationship('User', backref=db.backref('verification_codes'))
+    # id = db.Column(db.String(36), primary_key=True, unique=True)
+    # verification_code = db.Column(db.String(15), nullable=False)
+    # creation_time = db.Column(db.DateTime, nullable=False)
+    # expiration_time = db.Column(db.DateTime, nullable=False)
+    # is_used = db.Column(db.Boolean, nullable=False, default=False)
+    # user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
+    # user = db.relationship('User', backref=db.backref('verification_codes'))
 
     MAIL_SUBJECT = "Reset Your Password for EnzyHTP Web Application"
 
-    def __init__(self, user: User, valid_minutes: float, length: int = 6):
+    def __init__(self, user_id: str, valid_minutes: float = 20, length: int = 6, **kwargs):
         """Initialize a new VerificationCode instance.
         
         Args:
-            user (User): A User instance.
+            user_id: The user ID (of `users` table) to which it is bound.
             valid_minutes (float): The number of minutes the verification code will be valid for.
             length (int): The length of the verification code.
+            kwargs: Other keyword arguments.
         """
-        self.id = str(uuid.uuid4())
-        self.user = user
-        self.user_id = user.id
-        self.creation_time = datetime.now()
-        self.expiration_time = self.creation_time + timedelta(minutes=valid_minutes)
-        self.is_used = False
-        self.verification_code = self.__class__.generate_verification_code(length)
+        self.user_id = user_id
+        self.creation_time = kwargs.get("creation_time", datetime.now())
+        self.expiration_time = kwargs.get("expiration_time", self.creation_time + timedelta(minutes=valid_minutes))
+        self.is_used = kwargs.get("is_used", False)
+        self.verification_code = kwargs.get("verification_code", self.__class__.generate_verification_code(length))
+        self.id = kwargs.get("id", str(uuid.uuid4()))
+        return
 
     def send_email(self) -> bool:
         """Send email conveying verification code for password reset.
@@ -386,7 +396,8 @@ class VerificationCode(db.Model):
         Returns:
             `VerificationCode` instance with matched email address and verification_code.
         """
-        code_record: VerificationCode = VerificationCode.query.filter(and_(VerificationCode.user_id == user.id, VerificationCode.verification_code == verification_code)).first()
+        code_record = VerificationCode.from_dict(db.verification_codes.find_one({"user_id": user.id, "verification_code": verification_code}))
+        # code_record: VerificationCode = VerificationCode.query.filter(and_(VerificationCode.user_id == user.id, VerificationCode.verification_code == verification_code)).first()
         if (code_record):
             return code_record
         else:
@@ -397,8 +408,9 @@ class VerificationCode(db.Model):
         """Clean up verification code records that have existed for more than a day."""
         current_time = datetime.now()
         time_checkpoint = current_time - timedelta(days=1)
-        VerificationCode.query.filter(VerificationCode.creation_time < time_checkpoint).delete()
-        db.session.commit()
+        # VerificationCode.query.filter(VerificationCode.creation_time < time_checkpoint).delete()
+        db.verification_codes.delete_many({"creation_time": {"lte": time_checkpoint}})
+        # db.session.commit()
 
     @staticmethod
     def generate_verification_code(length: int = 6) -> str:
@@ -414,6 +426,23 @@ class VerificationCode(db.Model):
             random_char = choice(char_list)
             verification_code += random_char
             continue
+        return verification_code
+    
+    def as_dict(self):
+        """Serialize the current instance to a dictionary."""
+        dict_data = self.__dict__
+        return dict_data
+    
+    @staticmethod
+    def from_dict(verification_code_dict: dict | None) -> VerificationCode:
+        """Build an VerificationCode instance from a dict.
+        
+        Args:
+            verification_code (dict): A dictionary containing data of the Verification Code record.
+        """
+        if (verification_code_dict is None):
+            return None
+        verification_code = VerificationCode(**verification_code_dict)
         return verification_code
 
 # Reference: https://www.askpython.com/python-modules/flask/flask-user-authentication
