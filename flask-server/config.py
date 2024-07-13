@@ -10,14 +10,13 @@
 
 # Here put the import lib.
 import os
-from datetime import timedelta
-from pytz import timezone
+from datetime import timedelta, timezone
 
 __basedir = os.getcwd()
 
 # Configuration file.
 DEVELOPMENT = "development"
-TIME_ZONE = timezone(os.environ.get("TIME_ZONE", "US/Central"))
+# TIME_ZONE = timezone(os.environ.get("TIME_ZONE", "US/Central"))
 ENV = os.environ.get("FLASK_ENV", DEVELOPMENT)
 DEBUG = os.environ.get("DEBUG", True)
 APP_HOST = os.environ.get("APP_HOST", "localhost")

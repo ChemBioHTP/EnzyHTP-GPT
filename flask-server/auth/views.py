@@ -22,7 +22,6 @@ from config import (
     ENV,
     DEVELOPMENT,
     OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI,
-    TIME_ZONE,
 )
 from . import auth
 from .models import User, OAuthUser, VerificationCode
@@ -80,7 +79,7 @@ class AuthResponseInfo():
         self.message = message
         if (timestamp == datetime.__new__(datetime, 1970, 1, 1)):
             # Here we might as well assume that 1970-01-01 is a time that will not be triggered in actual business.
-            self.timestamp = str(datetime.now(TIME_ZONE))
+            self.timestamp = str(datetime.now())
         else:        
             self.timestamp = str(timestamp)
         self.is_authenticated = is_authenticated
@@ -423,7 +422,7 @@ def password_reset() -> Response:
         return Response(response=response_info.serialize(), status=404, mimetype='application/json')
     elif (verification_code): # (Not completed.) Check if the code is verified.
         if (code_record:=VerificationCode.get_by_user_and_code(user=user, verification_code=verification_code)):
-            if (code_record.expiration_time < datetime.now(TIME_ZONE)):
+            if (code_record.expiration_time < datetime.now()):
                 response_info = AuthResponseInfo(
                     id=user.id,
                     email=user.email,

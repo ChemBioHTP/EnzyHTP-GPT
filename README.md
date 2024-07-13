@@ -70,3 +70,13 @@ Note that
 
 1. `/path/to/ssl` is a folder which contains `server.crt` and `server.key` file for SSL.
 2. `/path/to/log` should grant write permission to all users by `chmod g+w /path/to/log` and `chmod o+w /path/to/log` commands.
+
+A practical example of use is as follows:
+
+```bash
+.../EnzyHTP-GPT$ docker pull nginx
+.../EnzyHTP-GPT$ docker run -d --name enzyhtp.web.nginx -p 80:80 -p 443:443 \
+-v /home/zhongy8/bin/EnzyHTP-GPT/nginx.conf:/etc/nginx/nginx.conf \
+-v /mutexa/raid5/data/enzyhtp_gpt/ssl:/etc/nginx/ssl \
+-v /mutexa/raid5/data/enzyhtp_gpt/nginx/log:/var/log/nginx nginx
+```

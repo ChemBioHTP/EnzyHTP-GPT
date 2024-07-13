@@ -22,7 +22,7 @@ import uuid
 
 # Here put local imports.
 from context import mongo
-from config import EXPERIMENT_FILE_DIRECTORY, SCRATCH_FOLDER, TIME_ZONE
+from config import EXPERIMENT_FILE_DIRECTORY, SCRATCH_FOLDER
 from auth.models import User
 
 # Here put enzy_htp modules.
@@ -85,8 +85,8 @@ class Experiment():
         self.user_id = user_id
         self.metrics = metrics
         self.id = kwargs.get("id", str(uuid.uuid4()))
-        self.created_time = kwargs.get("created_time", datetime.now(TIME_ZONE))
-        self.updated_time = kwargs.get("updated_time", datetime.now(TIME_ZONE))
+        self.created_time = kwargs.get("created_time", datetime.now())
+        self.updated_time = kwargs.get("updated_time", datetime.now())
         self.pdb_filepath = kwargs.get("pdb_filepath", None)
         self.results = kwargs.get("results", list())
         self.slurm_job_uuid = kwargs.get("slurm_job_uuid", None)
@@ -176,7 +176,7 @@ class Experiment():
         if (value == StatusCode.CANCELLED):
             self.results.clear()
         self._status = value
-        self.updated_time = datetime.now(TIME_ZONE)
+        self.updated_time = datetime.now()
         return
     
     @property
@@ -186,7 +186,7 @@ class Experiment():
     @progress.setter
     def progress(self, value):
         self._progress = value
-        self.updated_time = datetime.now(TIME_ZONE)
+        self.updated_time = datetime.now()
         return
     
     @property
@@ -530,7 +530,7 @@ class SlurmJobData:
             self.job_details = loads(job_details)
         self.job_state = job_state
         if (created_at is None):
-            self.created_at = datetime.now(TIME_ZONE)
+            self.created_at = datetime.now()
         else:
             self.created_at = created_at
         self.alternate_user = alternate_user
