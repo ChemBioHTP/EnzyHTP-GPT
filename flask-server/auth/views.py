@@ -22,6 +22,7 @@ from config import (
     ENV,
     DEVELOPMENT,
     OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI,
+    TIME_ZONE,
 )
 from . import auth
 from .models import User, OAuthUser, VerificationCode
@@ -79,7 +80,7 @@ class AuthResponseInfo():
         self.message = message
         if (timestamp == datetime.__new__(datetime, 1970, 1, 1)):
             # Here we might as well assume that 1970-01-01 is a time that will not be triggered in actual business.
-            self.timestamp = str(datetime.now())
+            self.timestamp = str(datetime.now(TIME_ZONE))
         else:        
             self.timestamp = str(timestamp)
         self.is_authenticated = is_authenticated
@@ -181,8 +182,8 @@ def unregister() -> Response:
             message=f'User `{user_to_unregister.email}` is unregistered.',
             is_authenticated=False)
         logout_user()
-        db.oauth_users.delete_many({"user_id": user.id})
-        db.users.delete_one({"id": user.id})
+        db.oauth_users.delete_many({"user_id": user_to_unregister.id})
+        db.users.delete_one({"id": user_to_unregister.id})
         # db.session.delete(user_to_unregister)
         # db.session.commit()
         return Response(response=response_info.serialize(), status=200, mimetype='application/json')
@@ -422,7 +423,7 @@ def password_reset() -> Response:
         return Response(response=response_info.serialize(), status=404, mimetype='application/json')
     elif (verification_code): # (Not completed.) Check if the code is verified.
         if (code_record:=VerificationCode.get_by_user_and_code(user=user, verification_code=verification_code)):
-            if (code_record.expiration_time < datetime.now()):
+            if (code_record.expiration_time < datetime.now(TIME_ZONE)):
                 response_info = AuthResponseInfo(
                     id=user.id,
                     email=user.email,

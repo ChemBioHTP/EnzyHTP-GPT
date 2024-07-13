@@ -27,6 +27,7 @@ import jwt
 from context import mongo, mail
 from config import (
     MAIL_PASSWORD_RESET_HTML_TEMPLATE,
+    TIME_ZONE,
 )
 from services import OpenAIService
 
@@ -137,7 +138,7 @@ class User(UserMixin):
             self.username = email       # Do when the user doesn't either provide a username or have a regular email address.
         self.admin = admin
         self.id = kwargs.get("id", str(uuid.uuid4()))
-        self.registered_on = kwargs.get("registered_on", datetime.now())
+        self.registered_on = kwargs.get("registered_on", datetime.now(TIME_ZONE))
         self.openai_secret_key = kwargs.get("openai_secret_key", None)
         self.is_active = kwargs.get("is_active", True)
         return
@@ -302,7 +303,7 @@ class OAuthUser():
         self.oauth_vendor = OAuthUser.camel_case_oauth_vendor(oauth_vendor)
         self.user_id = user_id
         self.id = kwargs.get("id", str(uuid.uuid4()))
-        self.registered_on = kwargs.get("registered_on", datetime.now())
+        self.registered_on = kwargs.get("registered_on", datetime.now(TIME_ZONE))
         return
     
     def as_dict(self):
@@ -355,7 +356,7 @@ class VerificationCode():
             kwargs: Other keyword arguments.
         """
         self.user_id = user_id
-        self.creation_time = kwargs.get("creation_time", datetime.now())
+        self.creation_time = kwargs.get("creation_time", datetime.now(TIME_ZONE))
         self.expiration_time = kwargs.get("expiration_time", self.creation_time + timedelta(minutes=valid_minutes))
         self.is_used = kwargs.get("is_used", False)
         self.verification_code = kwargs.get("verification_code", self.__class__.generate_verification_code(length))
@@ -406,7 +407,7 @@ class VerificationCode():
     @staticmethod
     def clean_expired_records() -> None:
         """Clean up verification code records that have existed for more than a day."""
-        current_time = datetime.now()
+        current_time = datetime.now(TIME_ZONE)
         time_checkpoint = current_time - timedelta(days=1)
         # VerificationCode.query.filter(VerificationCode.creation_time < time_checkpoint).delete()
         db.verification_codes.delete_many({"creation_time": {"lte": time_checkpoint}})

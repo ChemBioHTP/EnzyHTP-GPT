@@ -12,6 +12,7 @@
 source ~/bin/enzyhtp_env.sh
 source activate enzyhtp
 
+export app_host="${app_host}"
 export experiment_id="${experiment_id}"
 export file_dir=$(dirname "$0")
 export access_token="${access_token}"

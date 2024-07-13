@@ -22,7 +22,7 @@ import uuid
 
 # Here put local imports.
 from context import mongo
-from config import EXPERIMENT_FILE_DIRECTORY, SCRATCH_FOLDER
+from config import EXPERIMENT_FILE_DIRECTORY, SCRATCH_FOLDER, TIME_ZONE
 from auth.models import User
 
 # Here put enzy_htp modules.
@@ -85,8 +85,8 @@ class Experiment():
         self.user_id = user_id
         self.metrics = metrics
         self.id = kwargs.get("id", str(uuid.uuid4()))
-        self.created_time = kwargs.get("created_time", datetime.now())
-        self.updated_time = kwargs.get("updated_time", datetime.now())
+        self.created_time = kwargs.get("created_time", datetime.now(TIME_ZONE))
+        self.updated_time = kwargs.get("updated_time", datetime.now(TIME_ZONE))
         self.pdb_filepath = kwargs.get("pdb_filepath", None)
         self.results = kwargs.get("results", list())
         self.slurm_job_uuid = kwargs.get("slurm_job_uuid", None)
@@ -125,9 +125,16 @@ class Experiment():
         else:
             return []
 
-    def as_dict(self) -> str:
-        """Serialize the current instance to a dictionary."""
+    def as_dict(self, stringfy_time: bool = False) -> str:
+        """Serialize the current instance to a dictionary.
+        
+        Args:
+            stringfy_time (bool, optional): Flag indicating if to convert datetime fields to string value.
+        """
         dict_data = self.__dict__
+        if (stringfy_time):
+            dict_data["created_time"] = str(self.created_time)
+            dict_data["updated_time"] = str(self.updated_time)
         return dict_data
     
     @staticmethod
@@ -146,16 +153,16 @@ class Experiment():
         """Serialize the current instance to json string."""
         from json import dumps
 
-        serialized_data = self.as_dict()
-        del serialized_data["_sa_instance_state"]
-        serialized_data["created_time"] = str(self.created_time)
-        serialized_data["updated_time"] = str(self.updated_time)
-        serialized_data["status"] = str(self._status)
-        serialized_data["progress"] = str(self._progress)
-        serialized_data["status_text"] = StatusCode.status_text_mapper.get(self.status, self.status)
-        del serialized_data["_status"]
-        del serialized_data["_progress"]
-        return dumps(serialized_data)
+        dict_data = self.as_dict()
+        del dict_data["_sa_instance_state"]
+        dict_data["created_time"] = str(self.created_time)
+        dict_data["updated_time"] = str(self.updated_time)
+        dict_data["status"] = str(self._status)
+        dict_data["progress"] = str(self._progress)
+        dict_data["status_text"] = StatusCode.status_text_mapper.get(self.status, self.status)
+        del dict_data["_status"]
+        del dict_data["_progress"]
+        return dumps(dict_data)
     
     def __repr__(self):
         return f"Experiment('{self.id}', '{self.name}')"
@@ -169,7 +176,7 @@ class Experiment():
         if (value == StatusCode.CANCELLED):
             self.results.clear()
         self._status = value
-        self.updated_time = datetime.now()
+        self.updated_time = datetime.now(TIME_ZONE)
         return
     
     @property
@@ -179,7 +186,7 @@ class Experiment():
     @progress.setter
     def progress(self, value):
         self._progress = value
-        self.updated_time = datetime.now()
+        self.updated_time = datetime.now(TIME_ZONE)
         return
     
     @property
@@ -512,7 +519,7 @@ class SlurmJobData:
     def __init__(self, job_uuid: str = str(),
             job_name: str = str(), user: str = str(),
             job_details: Union[dict, str] = dict(), job_state: str = str(), 
-            created_at: datetime = datetime.now(), alternate_user: str = str(),
+            created_at: datetime = None, alternate_user: str = str(),
             remote_job_id: str = None, failure_reason: str = str(), **kwargs) -> None:
         self.job_uuid = job_uuid
         self.job_name = job_name
@@ -522,7 +529,10 @@ class SlurmJobData:
         else:
             self.job_details = loads(job_details)
         self.job_state = job_state
-        self.created_at = created_at
+        if (created_at is None):
+            self.created_at = datetime.now(TIME_ZONE)
+        else:
+            self.created_at = created_at
         self.alternate_user = alternate_user
         self.remote_job_id = remote_job_id
         self.failure_reason = failure_reason

@@ -11,27 +11,28 @@
 # Here put the import lib.
 import os
 from datetime import timedelta
+from pytz import timezone
 
 __basedir = os.getcwd()
 
 # Configuration file.
 DEVELOPMENT = "development"
+TIME_ZONE = timezone(os.environ.get("TIME_ZONE", "US/Central"))
 ENV = os.environ.get("FLASK_ENV", DEVELOPMENT)
 DEBUG = os.environ.get("DEBUG", True)
 APP_HOST = os.environ.get("APP_HOST", "localhost")
 SECRET_KEY = os.environ.get("SECRET_KEY", "91-310120-MA1H") # A custom value but mandatory.
 
 # Enable Non-ASCII Characters.
-JSON_AS_ASCII =False
+JSON_AS_ASCII = False
 JSONIFY_MIMETYPE = "application/json;charset=utf-8"
 
 # Database.
-SQLALCHEMY_DATABASE_URI=f"sqlite:///{os.path.join(__basedir, 'instance', 'enzyhtp_gpt.db')}"
-SQLALCHEMY_TRACK_MODIFICATIONS=False
+# SQLALCHEMY_DATABASE_URI=f"sqlite:///{os.path.join(__basedir, 'instance', 'enzyhtp_gpt.db')}"
+# SQLALCHEMY_TRACK_MODIFICATIONS=False
 
 # MongoDB
-MONGO_URI='mongodb://localhost:27017/enzyhtp_gpt'
-MONGO_TRACK_MODIFICATIONS=False
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/enzyhtp_gpt")
 
 # File system
 FILE_SYSTEM_FOLDER = os.environ.get("FILE_SYSTEM_FOLDER", os.path.join(__basedir, "static"))

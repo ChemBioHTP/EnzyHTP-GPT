@@ -3,11 +3,13 @@
 # Activate conda environment.
 source activate enzyhtp-gpt
 
+export TIME_ZONE="US/Central"
 export FLASK_ENV="production"
 export DEBUG=0
 export APP_HOST="enzyhtp.app.vanderbilt.edu"
 export SECRET_KEY=$(cat /proc/sys/kernel/random/uuid)
 
+export MONGO_URI="mongodb://localhost:27017/enzyhtp_gpt"
 export FILE_SYSTEM_FOLDER="/var/www/files"
 export OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI="/key"
 

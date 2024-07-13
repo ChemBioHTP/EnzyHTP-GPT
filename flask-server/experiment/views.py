@@ -28,7 +28,7 @@ from .models import Experiment
 from auth.models import User
 from auth.views import unauth_handler as unauth_handler_in_auth
 from context import mongo, login_manager
-from config import TOKEN_EXPIRES_DELTA, WORKSHEET_MUTATION_COLUMN_NAME
+from config import TOKEN_EXPIRES_DELTA, WORKSHEET_MUTATION_COLUMN_NAME, TIME_ZONE, APP_HOST
 from services import OpenAIService
 
 # Here put enzy_htp modules.
@@ -48,10 +48,10 @@ class ExperimentIndexResponse():
         self.user_id = user.id
         self.email = user.email
         self.username = user.username
-        self.timestamp = str(datetime.now())
+        self.timestamp = str(datetime.now(TIME_ZONE))
         self.experiments = list()
         for exp in experiments:
-            exp_dict = exp.as_dict()
+            exp_dict = exp.as_dict(stringfy_time=True)
             del exp_dict["user_id"]
             self.experiments.append(exp_dict)
             continue
@@ -143,7 +143,7 @@ class ExperimentBehaviourResponseInfo():
         self.is_authenticated = is_authenticated
         if (timestamp == datetime.__new__(datetime, 1970, 1, 1)):
             # Here we might as well assume that 1970-01-01 is a time that will not be triggered in actual business.
-            self.timestamp = str(datetime.now())
+            self.timestamp = str(datetime.now(TIME_ZONE))
         else:        
             self.timestamp = str(timestamp)
         
@@ -419,7 +419,7 @@ def experiment_update_progress(experiment_id: str):
             message='Nothing to be updated.')
         return Response(response=response_info.serialize(), status=200, mimetype='application/json')
     elif (updated_profile_fields):
-        # experiment.updated_time = datetime.now()
+        # experiment.updated_time = datetime.now(TIME_ZONE)
         # db.session.commit()
         response_info = ExperimentBehaviourResponseInfo(
             experiment, user,
@@ -853,6 +853,7 @@ def experiment_slurm_post(experiment_id: str):
             "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
             "experiment_id": experiment.id,
             "mutation_pattern": experiment.mutation_pattern,
+            "app_host": APP_HOST,
         }))
         entry_script_str_io.name = SLURM_JOB_ENTRY_SCRIPT_FILENAME
         entry_script_str_io.mode = "r"
