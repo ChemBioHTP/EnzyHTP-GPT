@@ -14,6 +14,9 @@ import openai
 
 from inspect import signature
 
+# Here put local imports.
+from config import DEFAULT_OPENAI_API_KEY
+
 class OpenAIService:
     """Handles interactions with OpenAI's API, particularly GPT models."""
 
@@ -32,7 +35,10 @@ class OpenAIService:
             **kwargs: Additional arguments to customize the API calls.
         """
         self.model = model
-        self.client = openai.OpenAI(api_key=openai_secret_key)
+        if (openai_secret_key):
+            self.client = openai.OpenAI(api_key=openai_secret_key)
+        else:
+            self.client = openai.OpenAI(api_key=DEFAULT_OPENAI_API_KEY)
         self.conversation_mode = conversation_mode
         self.messages = list() if self.conversation_mode else None
         
@@ -52,7 +58,7 @@ class OpenAIService:
             status_code (int): The HTTP status code from the API response.
             response_content (str): The actual response from GPT or an error message.
         """
-        if (not self.client.api_key):
+        if (self.client.api_key == DEFAULT_OPENAI_API_KEY):
             return False, 500, "OpenAI Secret Key does not exist."
 
         try:

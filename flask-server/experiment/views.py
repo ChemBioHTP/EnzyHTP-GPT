@@ -27,13 +27,15 @@ from . import experiment as experiment_blueprint
 from .models import Experiment
 from auth.models import User
 from auth.views import unauth_handler as unauth_handler_in_auth
-from context import db, login_manager
-from config import TOKEN_EXPIRES_DELTA, WORKSHEET_MUTATION_COLUMN_NAME
+from context import mongo, login_manager
+from config import TOKEN_EXPIRES_DELTA, WORKSHEET_MUTATION_COLUMN_NAME, APP_HOST
 from services import OpenAIService
 
 # Here put enzy_htp modules.
 from enzy_htp.workflow.config import StatusCode
 from enzy_htp.core import file_system as fs
+
+db = mongo.db
 
 #region Experiment Index
 
@@ -49,7 +51,7 @@ class ExperimentIndexResponse():
         self.timestamp = str(datetime.now())
         self.experiments = list()
         for exp in experiments:
-            exp_dict = exp.as_dict()
+            exp_dict = exp.as_dict(stringfy_time=True)
             del exp_dict["user_id"]
             self.experiments.append(exp_dict)
             continue
@@ -221,6 +223,7 @@ def no_pdb_response(user: User, experiment: Experiment) -> Response:
     )
     return Response(response=response_info.serialize(), status=404, mimetype="application/json")
 
+@experiment_blueprint.route("/create", methods=["POST"])
 @experiment_blueprint.route("/", methods=["POST"])
 @login_required
 def create_experiment():
@@ -232,8 +235,9 @@ def create_experiment():
     description = request.form.get("description")
 
     experiment = Experiment(user_id=user.id, name=name, type=experiment_type, description=description)
-    db.session.add(experiment)
-    db.session.commit()
+    db.experiments.insert_one(experiment.as_dict())
+    # db.session.add(experiment)
+    # db.session.commit()
     response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user)
 
     file = request.files.get("file", None)
@@ -278,8 +282,9 @@ def delete_experiment():
         return Response(response=response_info.serialize(), status=400, mimetype="application/json")
     else:   # TODO (Zhong): Handling running experiment is a must.
         experiment.clear_folder(remove_folder=True)
-        db.session.delete(experiment)
-        db.session.commit()
+        db.experiments.delete_one({"id": experiment.id})
+        # db.session.delete(experiment)
+        # db.session.commit()
         response_info = ExperimentBehaviourResponseInfo(experiment, user,
             is_successful=True, message=f"The experiment instance '{experiment.id}' is successfully deleted.")
         return Response(response=response_info.serialize(), status=200, mimetype="application/json")
@@ -302,7 +307,7 @@ def experiment_get(experiment_id: str):
     
     return Response(experiment.serialize(), status=200, mimetype='application/json')
 
-def update_attributes(instance: Any, mapper: ImmutableMultiDict, editable_attrs: list = list()) -> Tuple[list, list, list, str]:
+def update_attributes(instance: Experiment, mapper: ImmutableMultiDict, editable_attrs: list = list()) -> Tuple[list, list, list, str]:
     """Update the attribute of a specified instance.
     
     Args:
@@ -325,7 +330,8 @@ def update_attributes(instance: Any, mapper: ImmutableMultiDict, editable_attrs:
             if field_name in editable_attrs:
                 if (field_value != None):
                     setattr(instance, field_name, field_value)
-                    db.session.commit()
+                    db.experiments.update_one({"id": instance.id}, {"$set": {field_name: field_value}})
+                    # db.session.commit()
                     updated_attrs.append(field_name)
                 continue
             else:
@@ -765,7 +771,8 @@ def experiment_slurm_get(experiment_id: str):
     if (slurm_job_data):
         if (slurm_job_data.job_state == "FAILED"):
             experiment.status = StatusCode.EXIT_WITH_ERROR
-            db.session.commit()
+            db.experiments.update_one({"id": experiment.id}, {"$set": {"status": experiment.status}})
+            # db.session.commit()
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
             user=user,
@@ -846,6 +853,7 @@ def experiment_slurm_post(experiment_id: str):
             "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
             "experiment_id": experiment.id,
             "mutation_pattern": experiment.mutation_pattern,
+            "app_host": APP_HOST,
         }))
         entry_script_str_io.name = SLURM_JOB_ENTRY_SCRIPT_FILENAME
         entry_script_str_io.mode = "r"
@@ -867,7 +875,8 @@ def experiment_slurm_post(experiment_id: str):
         if (job_uuid):
             experiment.slurm_job_uuid = job_uuid
             experiment.status = StatusCode.PENDING
-        db.session.commit()
+        db.experiments.update_one({"id": experiment.id}, {"$set": {"status": experiment.status, "slurm_job_uuid": experiment.slurm_job_uuid}})
+        # db.session.commit()
 
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
@@ -907,7 +916,8 @@ def experiment_slurm_delete(experiment_id: str):
             )
             experiment.slurm_job_uuid = None
             experiment.status = StatusCode.CANCELLED
-            db.session.commit()
+            db.experiments.update_one({"id": experiment.id}, {"$set": {"status": experiment.status, "slurm_job_uuid": experiment.slurm_job_uuid}})
+            # db.session.commit()
         elif (status == 404):
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,
@@ -919,7 +929,8 @@ def experiment_slurm_delete(experiment_id: str):
             status = 200
             experiment.slurm_job_uuid = None
             experiment.status = StatusCode.CANCELLED
-            db.session.commit()
+            db.experiments.update_one({"id": experiment.id}, {"$set": {"status": experiment.status, "slurm_job_uuid": experiment.slurm_job_uuid}})
+            # db.session.commit()
         else:
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,

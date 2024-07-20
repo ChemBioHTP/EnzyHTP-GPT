@@ -27,19 +27,18 @@ enzyhtp_base_dir=/var/bin
 # Clone `enzyhtp` repository to local.
 mkdir -p $enzyhtp_base_dir
 cd $enzyhtp_base_dir
-echo Cloning EnzyHTP to local...
-git clone https://github.com/ChemBioHTP/EnzyHTP.git
+# echo Cloning EnzyHTP to local...
+# git clone https://github.com/ChemBioHTP/EnzyHTP.git
 
 # Configure `EnzyHTP` to environment.
 cd $initial_dir
 echo Configuring EnzyHTP to environment...
 
 # The execution of the following 2 command may take more than 10 minutes. (continue)
-cd "$enzyhtp_base_dir/EnzyHTP"
-bash dev-tools/conda-install --name enzyhtp-gpt
+# cd "$enzyhtp_base_dir/EnzyHTP"
+# bash dev-tools/conda-install --name enzyhtp-gpt
 
 # If you think it is too slow, you can comment them, and then enable the next line, before executing the `docker build`; (continue)
-# conda develop "$enzyhtp_base_dir/EnzyHTP"
 
 # but if there is any dependency package of `EnzyHTP` that have not been updated
 # to the `environment.yml of the current directory, errors may be raised when you run the docker container.
