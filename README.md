@@ -63,7 +63,8 @@ Fetch the docker image `nginx`, and then execute the command as follows.
 .../EnzyHTP-GPT$ docker run -d --name enzyhtp.web.nginx -p 80:80 -p 443:443 \
 -v /path/to/EnzyHTP-GPT/nginx.conf:/etc/nginx/nginx.conf \
 -v /path/to/ssl:/etc/nginx/ssl \
--v /path/to/log:/var/log/nginx nginx
+-v /path/to/log:/var/log/nginx \
+-v /path/to/EnzyHTP-GPT/alternative_pages:/usr/share/nginx/html nginx
 ```
 
 Note that
@@ -78,5 +79,6 @@ A practical example of use is as follows:
 .../EnzyHTP-GPT$ docker run -d --name enzyhtp.web.nginx -p 80:80 -p 443:443 \
 -v /home/zhongy8/bin/EnzyHTP-GPT/nginx.conf:/etc/nginx/nginx.conf \
 -v /mutexa/raid5/data/enzyhtp_gpt/ssl:/etc/nginx/ssl \
--v /mutexa/raid5/data/enzyhtp_gpt/nginx/log:/var/log/nginx nginx
+-v /mutexa/raid5/data/enzyhtp_gpt/nginx/log:/var/log/nginx \
+-v /home/zhongy8/bin/EnzyHTP-GPT/alternative_pages:/usr/share/nginx/html nginx
 ```
