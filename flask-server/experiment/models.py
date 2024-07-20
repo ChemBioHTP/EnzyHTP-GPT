@@ -52,6 +52,8 @@ class Experiment():
         description (str): A description of the experiment (default is None).
     """
 
+    DEFAULT_METRICS = ['spi', 'rmsd']
+
     __tablename__ = 'experiments'
     # id = db.Column(db.String(36), primary_key=True, unique=True)
     # type = db.Column(db.Integer, nullable=False, default=0)
@@ -68,7 +70,7 @@ class Experiment():
     # user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
     # user = db.relationship('User', backref=db.backref('experiments'))
 
-    def __init__(self, user_id: str, name: str, type: int = 0, metrics: List[str] = list(), description: str = None, **kwargs):
+    def __init__(self, user_id: str, name: str, type: int = 0, metrics: List[str] = DEFAULT_METRICS, description: str = None, **kwargs):
         """Initializes an instance of Experiment with the provided parameters.
 
         Args:
