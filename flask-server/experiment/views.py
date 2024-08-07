@@ -26,7 +26,10 @@ from werkzeug.datastructures import ImmutableMultiDict
 from . import experiment as experiment_blueprint
 from .models import Experiment
 from auth.models import User
-from auth.views import unauth_handler as unauth_handler_in_auth
+from auth.views import (
+    unauth_handler as unauth_handler_in_auth, 
+    notadmin_handler
+)
 from context import mongo, login_manager
 from config import TOKEN_EXPIRES_DELTA, WORKSHEET_MUTATION_COLUMN_NAME, APP_HOST
 from services import OpenAIService
@@ -949,6 +952,65 @@ def experiment_slurm_delete(experiment_id: str):
             is_successful=False,
         )
         return Response(response=response_info.serialize(), status=404, mimetype="application/json")
+
+@experiment_blueprint.route("/slurm/token", methods=["GET"])
+@login_required
+def experiment_slurm_get_token():
+    """Get the current `token` and `refresh_token` for Vanderbilt ACCRE Slurm API."""
+    user: User = current_user
+    if (not user.admin):
+        return notadmin_handler(user=user)
+
+    if_exist, token, refresh_token = SlurmJobRequest.get_slurm_token()
+    response_info = ExperimentBehaviourResponseInfo(
+        experiment=None,
+        user=user,
+        message="The token and refresh_token is as follows.",
+        is_authenticated=True,
+        is_successful=True,
+        if_exist=if_exist,
+        token=token,
+        refresh_token=refresh_token,
+    )
+    return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+
+@experiment_blueprint.route("/slurm/token", methods=["POST", "PUT"])
+@login_required
+def experiment_slurm_update_token():
+    """Update the `token` and/or `refresh_token` for Vanderbilt ACCRE Slurm API."""
+    user: User = current_user
+    if (not user.admin):
+        return notadmin_handler(user=user)
+
+    token = request.form.get("token", "")
+    refresh_token = request.form.get("refresh_token", "")
+    is_updated, message = SlurmJobRequest.update_slurm_tokens(token=token, refresh_token=refresh_token)
+    response_info = ExperimentBehaviourResponseInfo(
+        experiment=None,
+        user=user,
+        message=message,
+        is_authenticated=True,
+        is_successful=is_updated,
+    )
+    return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+
+@experiment_blueprint.route("/slurm/token/refresh", methods=["POST", "PUT"])
+@login_required
+def experiment_slurm_refresh_token():
+    """Refresh the `token` and/or `refresh_token` for Vanderbilt ACCRE Slurm API."""
+    user: User = current_user
+    if (not user.admin):
+        return notadmin_handler(user=user)
+
+    is_updated, status_code, message = SlurmJobRequest.refresh_slurm_token()
+    response_info = ExperimentBehaviourResponseInfo(
+        experiment=None,
+        user=user,
+        message=message,
+        is_authenticated=True,
+        is_successful=is_updated,
+    )
+    return Response(response=response_info.serialize(), status=status_code, mimetype="application/json")
 
 @experiment_blueprint.route("/<experiment_id>/deploy", methods=["GET"])
 @login_required
