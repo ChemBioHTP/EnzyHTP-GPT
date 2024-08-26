@@ -459,7 +459,7 @@ class SlurmJobRequest:
     def __init__(self, account: str = SLURM_ACCOUNT, 
             partition: str = SLURM_PARTITION, 
             job_name: str = "EnzyHTP-Web", 
-            nodes: int = 1, mem: str = "6G", 
+            nodes: int = 1, mem: int = 6144, 
             time: timedelta = timedelta(days=10), 
             tasks_per_node: int = 1, ntasks: int = 1, 
             cpus_per_task: int = 1, nodelist: List[str] = list(),
@@ -474,7 +474,7 @@ class SlurmJobRequest:
             partition (str): Partition requested.
             job_name (str): Name of Job. Default "EnzyHTP Workflow".
             nodes (int): Number of Nodes on which to run (N = min[-max]).
-            mem (str): Minimum amount of real Memory. Default "6G".
+            mem (int): Minimum amount of real Memory in Megabytes (MB). Default 6144MB (6GB).
             time (timedelta): Time limit. Default 10 days.
             tasks_per_node (int): Number of Tasks to invoke on each Node. Default 1.
             ntasks (int): Number of Tasks to run. Default 1.
@@ -514,7 +514,7 @@ class SlurmJobRequest:
         for key, value in self.__dict__.items():
             if value:
                 dict_to_serialize[key] = value
-        dict_to_serialize["time"] = self.time.seconds // 60
+        dict_to_serialize["time"] = self.time.days * 1440 + self.time.seconds // 60
         # dict_to_serialize["time"] = f"{self.time.days}-{self.time.seconds//3600}:{(self.time.seconds % 3600) // 60}:{self.time.seconds%60}"
         return dumps(dict_to_serialize)
     
