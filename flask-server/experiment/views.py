@@ -28,8 +28,8 @@ from .models import Experiment
 from auth.models import User
 from auth.views import unauth_handler as unauth_handler_in_auth
 from context import mongo, login_manager
-from config import TOKEN_EXPIRES_DELTA, WORKSHEET_MUTATION_COLUMN_NAME, APP_HOST
-from services import OpenAIService
+from config import BASEDIR, TOKEN_EXPIRES_DELTA, WORKSHEET_MUTATION_COLUMN_NAME, APP_HOST
+from services import OpenAIChat, OpenAIAssistant
 
 # Here put enzy_htp modules.
 from enzy_htp.workflow.config import StatusCode
@@ -706,13 +706,21 @@ def generate_mutation_pattern(experiment_id: str):
 
     mutation_request = request.form.get("mutation_request")
 
-    prompt = Template(prompts.prompt_skeleton).safe_substitute({
-        "question": mutation_request
-    })
+    # prompt = Template(prompts.prompt_skeleton).safe_substitute({
+    #     "question": mutation_request
+    # })
+    # service = OpenAIChat(user.openai_secret_key, model="gpt-4-turbo", max_tokens=4096, frequency_penalty=0, temperature=0.01, top_p=0.3)
+    # is_openai_key_valid, status_code, response_content = service.ask_gpt(prompt=prompt)
+
+    instructions = open(os.path.join(BASEDIR, "prompts", "mutant_planner-v1.txt")).read()
+    service = OpenAIAssistant(user.openai_secret_key, 
+        assistant_name="Mutant Planner", 
+        instructions=instructions, 
+        model="gpt-4o", 
+        conversation_mode=False
+    )
+    is_openai_key_valid, status_code, response_content = service.ask_gpt(prompt=mutation_request)
     
-    # TODO: how to improve prompt in prompts.py?
-    service = OpenAIService(user.openai_secret_key, model="gpt-4-turbo", max_tokens=4096, frequency_penalty=0, temperature=0.01, top_p=0.3)
-    is_openai_key_valid, status_code, response_content = service.ask_gpt(prompt=prompt)
     if (status_code != 200):
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False, message=response_content)
         return Response(response_info.serialize(), status=status_code, mimetype="application/json")

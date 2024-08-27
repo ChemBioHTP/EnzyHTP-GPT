@@ -9,4 +9,4 @@
 '''
 
 # Here put the import lib.
-from .openai_service import OpenAIService
+from .openai_service import OpenAIChat, OpenAIAssistant

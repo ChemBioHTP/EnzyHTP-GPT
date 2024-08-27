@@ -12,7 +12,7 @@
 import os
 from datetime import timedelta, timezone
 
-__basedir = os.getcwd()
+BASEDIR = os.getcwd()
 
 # Configuration file.
 DEVELOPMENT = "development"
@@ -34,7 +34,7 @@ JSONIFY_MIMETYPE = "application/json;charset=utf-8"
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/enzyhtp_gpt")
 
 # File system
-FILE_SYSTEM_FOLDER = os.environ.get("FILE_SYSTEM_FOLDER", os.path.join(__basedir, "static"))
+FILE_SYSTEM_FOLDER = os.environ.get("FILE_SYSTEM_FOLDER", os.path.join(BASEDIR, "static"))
 EXPERIMENT_FILE_DIRECTORY = os.path.join(FILE_SYSTEM_FOLDER, "experiments")
 SCRATCH_FOLDER = os.path.join(FILE_SYSTEM_FOLDER, "scratch")
 
@@ -55,7 +55,7 @@ MAIL_DEFAULT_SENDER = ("EnzyHTP Web Application", "website.enzyhtp@gmail.com")
 MAIL_PASSWORD = "ymyiwgzhxxpnlqcg"
 # https://mailtrap.io/blog/python-send-email-gmail/
 
-MAIL_PASSWORD_RESET_HTML_TEMPLATE = open(os.path.join(__basedir, "templates", "password_reset_email.html")).read()
+MAIL_PASSWORD_RESET_HTML_TEMPLATE = open(os.path.join(BASEDIR, "templates", "password_reset_email.html")).read()
 
 # Vanderbilt ACCRE Slurm
 ACCRE_SLURM_URL = "https://gateway-dev.mltf.k8s.accre.vanderbilt.edu/api/slurm"
@@ -64,13 +64,13 @@ SLURM_ACCOUNT = "yang_lab"
 SLURM_PARTITION = "production"
 SLURM_JOB_ENTRY_SCRIPT_FILENAME = "entry_script.sh"
 SLURM_JOB_MAIN_SCRIPT_FILENAME = "main_script.py"
-SLURM_JOB_ENTRY_SCRIPT = open(os.path.join(__basedir, "templates", "slurm_run", SLURM_JOB_ENTRY_SCRIPT_FILENAME)).read()
-SLURM_JOB_MAIN_SCRIPT_FILEPATH = os.path.join(__basedir, "templates", "slurm_run", SLURM_JOB_MAIN_SCRIPT_FILENAME)
+SLURM_JOB_ENTRY_SCRIPT = open(os.path.join(BASEDIR, "templates", "slurm_run", SLURM_JOB_ENTRY_SCRIPT_FILENAME)).read()
+SLURM_JOB_MAIN_SCRIPT_FILEPATH = os.path.join(BASEDIR, "templates", "slurm_run", SLURM_JOB_MAIN_SCRIPT_FILENAME)
 MAX_MUTANT_COUNT = 6
 
 # Run MD by Yourself.
 SLURM_DEPLOY_SCRIPT_FILENAME = "perform_md_sim.sh"
-SLURM_DEPLOY_SCRIPT = open(os.path.join(__basedir, "templates", "slurm_deploy", SLURM_DEPLOY_SCRIPT_FILENAME)).read()
+SLURM_DEPLOY_SCRIPT = open(os.path.join(BASEDIR, "templates", "slurm_deploy", SLURM_DEPLOY_SCRIPT_FILENAME)).read()
 
 # Mutation Column Name.
 WORKSHEET_MUTATION_COLUMN_NAME = "clean_mut_wt"
