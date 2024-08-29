@@ -148,6 +148,9 @@ class OpenAIAssistant(OpenAIChat):
         )
         self.thread = self.client.beta.threads.create() if conversation_mode else None
 
+    def load_thread(self, thread):
+        self.thread = thread
+
     def clear_thread(self) -> bool:
         """Clear the current thread and create a new one. 
         If `conversation_mode` is False, nothing will happen.
@@ -175,7 +178,7 @@ class OpenAIAssistant(OpenAIChat):
             status_code (int): The HTTP status code from the API response.
             response_content (str): The actual response from GPT or an error message.
         """
-        timeout_limit = 30  # Set timeout (seconds).
+        timeout_limit = 180  # Set timeout (seconds).
         refresh_sep = 2     # Set refresh interval (seconds).
         
         if (self.client.api_key == DEFAULT_OPENAI_API_KEY):

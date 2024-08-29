@@ -720,6 +720,8 @@ def generate_mutation_pattern(experiment_id: str):
         conversation_mode=False
     )
     is_openai_key_valid, status_code, response_content = service.ask_gpt(prompt=mutation_request)
+
+    response_content = response_content.replace("Output: ", "").strip('"')
     
     if (status_code != 200):
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False, message=response_content)

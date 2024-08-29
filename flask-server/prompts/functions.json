@@ -1,0 +1,43 @@
+[
+  {
+    "name": "find_residue_around",
+    "description": "Find the residues around a specific residue",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "pdb_path": {
+          "type": "string",
+          "description": "the target pdb path"
+        },
+        "target_residue": {
+          "type": "string",
+          "description": "the chain id and residue index of the target residue. Example: A.100"
+        },
+        "distance": {
+          "type": "string",
+          "description": "the distance cutoff for finding the surrounding residues"
+        }
+      },
+      "required": ["pdb_path", "target_residue", "distance"]
+    }
+  },
+
+  {
+    "name": "find_residue_by_name",
+    "description": "Find the key of a residue by its name.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "pdb_path": {
+          "type": "string",
+          "description": "the target pdb path"
+        },
+        "name": {
+          "type": "string",
+          "description": "the 3-letter PDB name of the residue"
+        }
+      },
+      "required": ["pdb_path", "name"]
+    }
+  }
+]
