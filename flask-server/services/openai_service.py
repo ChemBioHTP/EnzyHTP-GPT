@@ -11,6 +11,7 @@
 # Here put the import lib.
 from typing import Tuple
 from openai.types.beta.threads.run import Run
+from openai.types.beta import Assistant, Thread
 import openai
 
 from inspect import signature
@@ -24,6 +25,7 @@ class OpenAIChat:
     """Handles interactions with OpenAI's Chat API, particularly GPT models."""
 
     client: openai.OpenAI
+    conversation_mode: bool
 
     def __init__(self, openai_secret_key: str, model: str = "gpt-3.5-turbo", conversation_mode: bool = False, **kwargs) -> None:
         """
@@ -121,7 +123,10 @@ class OpenAIAssistant(OpenAIChat):
     TERMINAL_STATUS_LIST = ["cancelled", "failed", "completed", "expired", "incomplete"]
     COMPLETED_STATUS = "completed"
 
-    def __init__(self, openai_secret_key: str, assistant_name: str = str(), instructions: str = str(), model: str = "gpt-3.5-turbo", conversation_mode: bool = False, **kwargs) -> None:
+    assistant: Assistant
+    __thread: Thread
+
+    def __init__(self, openai_secret_key: str, assistant_name: str = str(), instructions: str = str(), model: str = "gpt-3.5-turbo", tools: list = list(), thread_id: str = str(), conversation_mode: bool = False, **kwargs) -> None:
         """
         Initializes the service with the OpenAI API key and configuration for using specific GPT models.
 
@@ -132,7 +137,10 @@ class OpenAIAssistant(OpenAIChat):
             model (str, optional): ID of the GPT model to use.
                 See the [model endpoint compatibility](https://platform.openai.com/docs/models/model-endpoint-compatibility)
                 table for details on which models work with the Chat API. Default "gpt-3.5-turbo".
-            conversation_mode (bool): If True, retains the conversation context. Default is False.
+            tools (list, optional) : A list of tool enabled on the assistant. There can be a maximum of 128 tools per assistant.
+                Tools can be of types code_interpreter, file_search, or function.
+            thread_id (str, optional): The identifier of a context thread, which can be referenced in OpenAI API endpoints.
+            conversation_mode (bool): If True, retains the conversation context. If `thread_id` is provided, this value is set to True. Default is False.
             **kwargs: Additional arguments to customize the API calls.
         """
         super().__init__(openai_secret_key=openai_secret_key, model=model, conversation_mode=conversation_mode, kwargs=kwargs)
@@ -144,14 +152,34 @@ class OpenAIAssistant(OpenAIChat):
             name=assistant_name,
             instructions=instructions,
             model=model,
+            tools=tools,
             **kwargs,
         )
-        self.thread = self.client.beta.threads.create() if conversation_mode else None
+        if (thread_id):
+            conversation_mode = True
+            self.conversation_mode = True
+            self.__thread = self.client.beta.threads.retrieve(thread_id=thread_id)
+        elif (conversation_mode):
+            self.__thread = self.client.beta.threads.create()
+        else:
+            self.__thread = None
 
-    def load_thread(self, thread):
-        self.thread = thread
+    @property
+    def thread(self) -> Thread:
+        """Return the current mounted thread."""
+        if (self.conversation_mode):
+            return self.__thread
+        else:
+            return None
+    
+    @thread.setter
+    def thread(self, value):
+        if (self.conversation_mode):
+            self.__thread = value
+        else:
+            raise RuntimeWarning("The assistant with `conversation_mode=False` does not have thread instance. Nothing happened.")
 
-    def clear_thread(self) -> bool:
+    def refresh_thread(self) -> bool:
         """Clear the current thread and create a new one. 
         If `conversation_mode` is False, nothing will happen.
         
@@ -160,7 +188,8 @@ class OpenAIAssistant(OpenAIChat):
         """
         try:
             if (self.conversation_mode):
-                self.thread = self.client.beta.threads.create()
+                _ = self.client.beta.threads.delete(self.__thread.id)
+                self.__thread = self.client.beta.threads.create()
                 return True
             else:
                 return False
@@ -187,17 +216,17 @@ class OpenAIAssistant(OpenAIChat):
         try:
             response_content = str()
             if (self.conversation_mode):
-                message = {
+                user_message = {
                     "role": "user",
                     "content": prompt,
                 }
                 out_message = self.client.beta.threads.messages.create(
-                    thread_id=self.thread.id,
+                    thread_id=self.__thread.id,
                     role="user",
                     content=prompt
                 )
                 run = self.client.beta.threads.runs.create_and_poll(
-                    thread_id=self.thread.id,
+                    thread_id=self.__thread.id,
                     assistant_id=self.assistant.id,
                 )
                 for i in range(0, timeout_limit, refresh_sep):
@@ -211,15 +240,15 @@ class OpenAIAssistant(OpenAIChat):
 
                 # Update the messages of the service after the prompt is successfully processed and parsed.
                 retrived_messages = self.client.beta.threads.messages.list(
-                    thread_id=self.thread.id
+                    thread_id=self.__thread.id
                 )
                 response_content = retrived_messages.data[0].content[0].text.value                
                 if (run.status == __class__.COMPLETED_STATUS):
-                    self.messages.append(message)
+                    self.messages.append(user_message)
                     self.messages.append({
                         "role": "assistant",
                         "content": response_content,
-                    })                
+                    })
             else:
                 thread = self.client.beta.threads.create()
                 out_message = self.client.beta.threads.messages.create(
@@ -243,6 +272,7 @@ class OpenAIAssistant(OpenAIChat):
                     thread_id=thread.id
                 )
                 response_content = retrived_messages.data[0].content[0].text.value
+                _ = self.client.beta.threads.delete(thread.id)
             
             # Successfully received a response from OpenAI.
             return (True, 200, response_content)
@@ -258,3 +288,6 @@ class OpenAIAssistant(OpenAIChat):
             return (False, 500, "API Error: " + str(e))
         except Exception as e:
             return (False, 500, "An unexpected error occurred: " + str(e))
+
+    def __del__(self):
+        _ = self.client.beta.assistants.delete(self.assistant.id)

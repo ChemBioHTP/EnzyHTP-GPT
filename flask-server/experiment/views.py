@@ -30,6 +30,7 @@ from auth.views import unauth_handler as unauth_handler_in_auth
 from context import mongo, login_manager
 from config import BASEDIR, TOKEN_EXPIRES_DELTA, WORKSHEET_MUTATION_COLUMN_NAME, APP_HOST
 from services import OpenAIChat, OpenAIAssistant
+from .agents import QuestionAnalyzerAssistant, MetricsPlannerAssistant, MutantPlannerAssistant, AGENT_MAPPER
 
 # Here put enzy_htp modules.
 from enzy_htp.workflow.config import StatusCode
@@ -432,6 +433,55 @@ def experiment_update_progress(experiment_id: str):
             is_successful=False,
             message=message)
         return Response(response=response_info.serialize(), status=400, mimetype='application/json')
+
+@experiment_blueprint.route("/<experiment_id>/assistants", methods=["POST"])
+@login_required
+def experiment_assistants(experiment_id: str):
+    """Call the virtual assistants to analyze questions and plan the experiment.
+    
+    Args:
+        experiment_id (str): The identifier of an experiment instance.
+    """
+    editable_attributes = ["current_assistant_type", "current_thread_id"]
+    user: User = current_user
+    experiment = Experiment.get(experiment_id)
+
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
+    if (user is None or experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
+    
+    user_prompt = request.form.get("prompt", str())
+    current_assistant: OpenAIAssistant = AGENT_MAPPER[experiment.current_assistant_type](
+        openai_secret_key=user.openai_secret_key, 
+        thread_id=experiment.current_thread_id, 
+        conversation_mode=True
+    )
+    
+    is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=user_prompt)
+    
+    if (status_code != 200):
+        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False, message=response_content)
+        return Response(response_info.serialize(), status=status_code, mimetype="application/json")
+
+    response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
+        is_successful=is_openai_key_valid, 
+        message=f"Received response from OpenAI.",
+        # mutation_pattern=mutation_pattern,
+        # mutant_string_list=mutant_string_list
+        response_content=response_content,
+    )
+
+    # Update the current_assistant_type and current_thread_id to database.
+    _ = update_attributes(
+        experiment,
+        mapper={
+            "current_assistant_type": experiment.current_assistant_type,
+            "current_thread_id": current_assistant.thread.id,
+        },
+        editable_attrs=editable_attributes,
+    )
+    return Response(response_info.serialize(), status=200, mimetype="application/json")
 
 @experiment_blueprint.route("/<experiment_id>/results", methods=["POST"])
 @jwt_required()
