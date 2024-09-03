@@ -54,11 +54,11 @@ class QuestionAnalyzerAssistant(OpenAIAssistant):
         )
 
 class MetricsPlannerAssistant(OpenAIAssistant):
-    """The agent acting as a Question Analyzer."""
+    """The agent acting as a Metrics Planner."""
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False) -> None:
         """
-        Initializes the QuestionAnalyzerAssistant agent with the OpenAI API key.
+        Initializes the MetricsPlannerAssistant agent with the OpenAI API key.
 
         Args:
             openai_secret_key (str): API key for accessing OpenAI services.
@@ -67,7 +67,7 @@ class MetricsPlannerAssistant(OpenAIAssistant):
         """
         instructions = open(path.join(PROMPTS_DIRECTORY, "metrics_planner-v2.txt")).read()
         super().__init__(openai_secret_key, 
-            assistant_name="Question Analyzer", 
+            assistant_name="Metrics Planner", 
             instructions=instructions, 
             model=MODEL_VERSION,
             thread_id=thread_id,
@@ -120,7 +120,7 @@ class TimezoneConsultantAssistant(OpenAIAssistant):
 
 
 AGENT_MAPPER = {
-    -1: TimezoneConsultantAssistant,
+    # -1: TimezoneConsultantAssistant,
     0: QuestionAnalyzerAssistant,
     1: MetricsPlannerAssistant,
     2: MutantPlannerAssistant,

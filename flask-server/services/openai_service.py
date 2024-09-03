@@ -289,5 +289,26 @@ class OpenAIAssistant(OpenAIChat):
         except Exception as e:
             return (False, 500, "An unexpected error occurred: " + str(e))
 
+    @staticmethod
+    def delete_thread(openai_secret_key: str, thread_id: str):
+        """Initializes the service with the OpenAI API key and configuration for using specific GPT models.
+
+        Args:
+            openai_secret_key (str): API key for accessing OpenAI services.
+            thread_id (str): The ID of the thread to delete.
+
+        """
+        chat = OpenAIChat(openai_secret_key=openai_secret_key)
+        try:
+            response = chat.client.beta.threads.delete(thread_id=thread_id)
+            response_dict = response.to_dict()
+            is_successful = response_dict.get("deleted", False)
+            return is_successful
+        except (openai.NotFoundError):
+            return True
+        except (Exception):
+            return False
+    
     def __del__(self):
         _ = self.client.beta.assistants.delete(self.assistant.id)
+        pass

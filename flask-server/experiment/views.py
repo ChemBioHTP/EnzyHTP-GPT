@@ -308,50 +308,6 @@ def experiment_get(experiment_id: str):
     
     return Response(experiment.serialize(), status=200, mimetype='application/json')
 
-def update_attributes(instance: Experiment, mapper: ImmutableMultiDict, editable_attrs: list = list()) -> Tuple[list, list, list, str]:
-    """Update the attribute of a specified instance.
-    
-    Args:
-        instance: The instance of a class who has attributes to be updated.
-        mapper (ImmutableMultiDict): A dict-like mapper which contains the fields and values.
-        editable_attrs (list): A list of editable attributes of the instance.
-
-    Returns:
-        updated_attrs (list): A list of updated attributes.
-        blocked_attrs (list): A list of blocked attributes (Fields that are not editable).
-        nonexistent_attrs (list): A list of nonexistent attributes (Fields that the instance does not have).
-        message (str): A string value describing the updating.
-    """
-    updated_attrs = list()
-    nonexistent_attrs = list()
-    blocked_attrs = list()
-
-    for field_name, field_value in mapper.items():
-        if (hasattr(instance, field_name)):
-            if field_name in editable_attrs:
-                if (field_value != None):
-                    setattr(instance, field_name, field_value)
-                    db.experiments.update_one({"id": instance.id}, {"$set": {field_name: field_value}})
-                    # db.session.commit()
-                    updated_attrs.append(field_name)
-                continue
-            else:
-                blocked_attrs.append(field_name)
-                continue
-        else:
-            nonexistent_attrs.append(field_name)
-            continue
-
-    message = str()
-    if (updated_attrs):
-        message += f"Updated attribute(s): {', '.join(updated_attrs)}. "
-    if (blocked_attrs):
-        message += f"Uneditable attribute(s): {', '.join(blocked_attrs)}. "
-    if (nonexistent_attrs):
-        message += f"Nonexistent attribute(s): {', '.join(nonexistent_attrs)}. "
-
-    return updated_attrs, blocked_attrs, nonexistent_attrs, message
-
 @experiment_blueprint.route("/<experiment_id>", methods=["POST", "PUT"])
 @login_required
 def experiment_update_profile(experiment_id: str):
@@ -370,8 +326,9 @@ def experiment_update_profile(experiment_id: str):
     
     editable_profile_fields = ['name', 'description'] # Only fields in the list are editable.
     
-    updated_profile_fields, blocked_profile_fields, nonexistent_profile_fields, message = update_attributes(
-        experiment, mapper=request.form, editable_attrs=editable_profile_fields)
+    updated_profile_fields, blocked_profile_fields, nonexistent_profile_fields, message = experiment.update_attributes(
+        mapper=request.form, editable_attrs=editable_profile_fields
+    )
 
     if (not (updated_profile_fields or blocked_profile_fields or nonexistent_profile_fields)):
         response_info = ExperimentBehaviourResponseInfo(
@@ -410,8 +367,9 @@ def experiment_update_progress(experiment_id: str):
     
     editable_profile_fields = ['status', 'progress'] # Only fields in the list are editable.
     
-    updated_profile_fields, blocked_profile_fields, nonexistent_profile_fields, message = update_attributes(
-        experiment, mapper=request.form, editable_attrs=editable_profile_fields)
+    updated_profile_fields, blocked_profile_fields, nonexistent_profile_fields, message = experiment.update_attributes(
+        experiment, mapper=request.form, editable_attrs=editable_profile_fields
+    )
 
     if (not (updated_profile_fields or blocked_profile_fields or nonexistent_profile_fields)):
         response_info = ExperimentBehaviourResponseInfo(
@@ -442,7 +400,7 @@ def experiment_assistants(experiment_id: str):
     Args:
         experiment_id (str): The identifier of an experiment instance.
     """
-    editable_attributes = ["current_assistant_type", "current_thread_id"]
+    # editable_attributes = ["current_assistant_type", "current_thread_id"]
     user: User = current_user
     experiment = Experiment.get(experiment_id)
 
@@ -452,11 +410,14 @@ def experiment_assistants(experiment_id: str):
         return forbidden_response(user, experiment)
     
     user_prompt = request.form.get("prompt", str())
-    current_assistant: OpenAIAssistant = AGENT_MAPPER[experiment.current_assistant_type](
+    current_assistant_class = AGENT_MAPPER[experiment.current_assistant_type % len(AGENT_MAPPER)]
+    # print([current_assistant_class])
+    current_assistant: OpenAIAssistant = current_assistant_class(
         openai_secret_key=user.openai_secret_key, 
         thread_id=experiment.current_thread_id, 
-        conversation_mode=True
+        conversation_mode=True,
     )
+    # print(f"Current Assistant: {current_assistant.assistant.name}")
     
     is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=user_prompt)
     
@@ -473,15 +434,92 @@ def experiment_assistants(experiment_id: str):
     )
 
     # Update the current_assistant_type and current_thread_id to database.
-    _ = update_attributes(
-        experiment,
+    _ = experiment.update_attributes(
         mapper={
             "current_assistant_type": experiment.current_assistant_type,
             "current_thread_id": current_assistant.thread.id,
         },
-        editable_attrs=editable_attributes,
+        # editable_attrs=editable_attributes,
     )
     return Response(response_info.serialize(), status=200, mimetype="application/json")
+
+@experiment_blueprint.route("/<experiment_id>/assistants", methods=["PUT"])
+def experiment_assistants_toggle(experiment_id: str):
+    """Toggle to the next the virtual assistants when the job of one assistant is completed.
+    
+    Args:
+        experiment_id (str): The identifier of an experiment instance.
+    """
+    user: User = current_user
+    experiment = Experiment.get(experiment_id)
+
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
+    if (user is None or experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
+    
+    experiment.current_assistant_type += 1
+    updated_profile_fields, blocked_profile_fields, nonexistent_profile_fields, message = experiment.update_attributes(
+        mapper={
+            "current_assistant_type": experiment.current_assistant_type,
+        },
+        # editable_attrs=editable_attributes,
+    )
+    if (updated_profile_fields):
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment, user,
+            is_successful=True,
+            message=message)
+        return Response(response=response_info.serialize(), status=200, mimetype='application/json')
+    else:
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment, user,
+            is_successful=False,
+            message=message)
+        return Response(response=response_info.serialize(), status=400, mimetype='application/json')
+
+@experiment_blueprint.route("/<experiment_id>/assistants", methods=["DELETE"])
+def experiment_assistants_clear(experiment_id: str):
+    """Toggle to the next the virtual assistants when the job of one assistant is completed.
+    
+    Args:
+        experiment_id (str): The identifier of an experiment instance.
+    """
+    user: User = current_user
+    experiment = Experiment.get(experiment_id)
+
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
+    if (user is None or experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
+    
+    is_successful = False
+    if (experiment.current_thread_id):
+        is_successful = OpenAIAssistant.delete_thread(
+            openai_secret_key=user.openai_secret_key, 
+            thread_id=experiment.current_thread_id
+        )
+    else:
+        is_successful = True
+    
+    if (is_successful):
+        experiment.update_attributes(
+            mapper={
+                "current_assistant_type": 0,
+                "current_thread_id": "",
+            }
+        )
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment, user,
+            is_successful=is_successful,
+            message="Your conversation is successfully cleared.")
+        return Response(response=response_info.serialize(), status=200, mimetype='application/json')
+    else:
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment, user,
+            is_successful=is_successful,
+            message="Your conversation is unable to be cleared at present.")
+        return Response(response=response_info.serialize(), status=403, mimetype='application/json')
 
 @experiment_blueprint.route("/<experiment_id>/results", methods=["POST"])
 @jwt_required()
