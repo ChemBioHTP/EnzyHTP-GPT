@@ -444,6 +444,7 @@ def experiment_assistants(experiment_id: str):
     return Response(response_info.serialize(), status=200, mimetype="application/json")
 
 @experiment_blueprint.route("/<experiment_id>/assistants", methods=["PUT"])
+@login_required
 def experiment_assistants_toggle(experiment_id: str):
     """Toggle to the next the virtual assistants when the job of one assistant is completed.
     
@@ -479,6 +480,7 @@ def experiment_assistants_toggle(experiment_id: str):
         return Response(response=response_info.serialize(), status=400, mimetype='application/json')
 
 @experiment_blueprint.route("/<experiment_id>/assistants", methods=["DELETE"])
+@login_required
 def experiment_assistants_clear(experiment_id: str):
     """Toggle to the next the virtual assistants when the job of one assistant is completed.
     

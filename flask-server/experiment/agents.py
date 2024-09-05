@@ -66,10 +66,18 @@ class MetricsPlannerAssistant(OpenAIAssistant):
             conversation_mode (bool): If True, retains the conversation context. Default is False.
         """
         instructions = open(path.join(PROMPTS_DIRECTORY, "metrics_planner-v2.txt")).read()
+        tool_functions: List[dict] = load(open(path.join(PROMPTS_DIRECTORY, "metrics_planner_functions.json")))
+        tools = [
+            {
+                "type": "function",
+                "function": tool_function
+            } for tool_function in tool_functions
+        ]
         super().__init__(openai_secret_key, 
             assistant_name="Metrics Planner", 
             instructions=instructions, 
             model=MODEL_VERSION,
+            tools=tools,
             thread_id=thread_id,
             conversation_mode=conversation_mode,
         )
