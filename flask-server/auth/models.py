@@ -28,7 +28,7 @@ from context import mongo, mail
 from config import (
     MAIL_PASSWORD_RESET_HTML_TEMPLATE,
 )
-from services import OpenAIService
+from services import OpenAIChat
 
 db = mongo.db
 
@@ -195,7 +195,7 @@ class User(UserMixin):
             status_code (int): The HTTP status code from the API response.
             response_content (str): The response message to describe the status.
         """
-        service = OpenAIService(self.openai_secret_key, max_tokens=30)
+        service = OpenAIChat(self.openai_secret_key, max_tokens=30)
         return service.ask_gpt("Please say an emotional welcome speech, no less than 8 words, to welcome me to ChatGPT, and add punctuation at the end.")
 
     @property

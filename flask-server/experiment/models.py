@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 from typing import List, Union, Tuple
 from json import loads, dumps
 from plum import dispatch
-from werkzeug.datastructures import FileStorage
+from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 import os
 import uuid
 
@@ -95,6 +95,8 @@ class Experiment():
         self._status = kwargs.get("status", StatusCode.CREATED)
         self._progress = kwargs.get("progress", 0.0)
         self.mutation_pattern = kwargs.get("mutation_pattern", "WT")
+        self.current_assistant_type = kwargs.get("current_assistant_type", 0)  # 0: Question Analyzer; 1: Metrics Planner; 2: Mutant Planner.
+        self.current_thread_id = kwargs.get("current_thread_id", str())
     
     @staticmethod
     def get(id: str) -> Experiment | None:
@@ -126,6 +128,51 @@ class Experiment():
             return experiments
         else:
             return []
+
+    def update_attributes(self, mapper: ImmutableMultiDict, editable_attrs: list = list()) -> Tuple[list, list, list, str]:
+        """Update the attribute of a specified instance.
+        
+        Args:
+            instance: The instance of a class who has attributes to be updated.
+            mapper (ImmutableMultiDict): A dict-like mapper which contains the fields/attributes and values.
+            editable_attrs (list): A list of editable attributes of the instance.
+
+        Returns:
+            updated_attrs (list): A list of updated attributes.
+            blocked_attrs (list): A list of blocked attributes (Fields that are not editable).
+            nonexistent_attrs (list): A list of nonexistent attributes (Fields that the instance does not have).
+            message (str): A string value describing the updating.
+        """
+        updated_attrs = list()
+        nonexistent_attrs = list()
+        blocked_attrs = list()
+
+        for field_name, field_value in mapper.items():
+            if (hasattr(self, field_name)):
+                if (not editable_attrs) or (field_name in editable_attrs):
+                    if (field_value != None):
+                        setattr(self, field_name, field_value)
+                        db.experiments.update_one({"id": self.id}, {"$set": {field_name: field_value}})
+                        # db.session.commit()
+                        updated_attrs.append(field_name)
+                    continue
+                else:
+                    blocked_attrs.append(field_name)
+                    continue
+            else:
+                nonexistent_attrs.append(field_name)
+                continue
+
+        message = str()
+        if (updated_attrs):
+            message += f"Updated attribute(s): {', '.join(updated_attrs)}. "
+        if (blocked_attrs):
+            message += f"Uneditable attribute(s): {', '.join(blocked_attrs)}. "
+        if (nonexistent_attrs):
+            message += f"Nonexistent attribute(s): {', '.join(nonexistent_attrs)}. "
+
+        return updated_attrs, blocked_attrs, nonexistent_attrs, message
+
 
     def as_dict(self, stringfy_time: bool = False) -> str:
         """Serialize the current instance to a dictionary.

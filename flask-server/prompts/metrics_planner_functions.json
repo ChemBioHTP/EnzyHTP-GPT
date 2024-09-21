@@ -1,0 +1,36 @@
+[
+  {
+    "name": "find_target_protein_path",
+    "description": "Determine the path of the target protein",
+    "strict": false,
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "desc": {
+          "type": "string",
+          "description": "the natural language description of the target protein"
+        }
+      },
+      "required": ["desc"]
+    }
+  },
+  {
+    "name": "find_residue_by_name",
+    "description": "Find the key of a residue by its name.",
+    "strict": false,
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "pdb_path": {
+          "type": "string",
+          "description": "the target pdb path"
+        },
+        "name": {
+          "type": "string",
+          "description": "the 3-letter PDB name of the residue"
+        }
+      },
+      "required": ["pdb_path", "name"]
+    }
+  }
+]
