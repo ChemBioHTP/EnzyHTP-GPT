@@ -282,6 +282,10 @@ def delete_experiment():
             message=f"The experiment instance '{experiment_id}' is {StatusCode.status_text_mapper[experiment.status]}, which is unable to be deleted.")
         return Response(response=response_info.serialize(), status=400, mimetype="application/json")
     else:   # TODO (Zhong): Handling running experiment is a must.
+        OpenAIAssistant.delete_thread(
+            openai_secret_key=user.openai_secret_key, 
+            thread_id=experiment.current_thread_id
+        )
         experiment.clear_folder(remove_folder=True)
         db.experiments.delete_one({"id": experiment.id})
         # db.session.delete(experiment)

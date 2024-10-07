@@ -184,6 +184,22 @@ class OpenAIAssistant(OpenAIChat):
         If `conversation_mode` is False, nothing will happen.
         
         Returns:
+            is_successful (bool): Indidate if the thread is refreshed.
+        """
+        try:
+            if (self.clear_thread()):
+                self.__thread = self.client.beta.threads.create()
+                return True
+            else:
+                return False
+        except:
+            return False
+        
+    def clear_thread(self):
+        """Clear the current thread. 
+        If `conversation_mode` is False, nothing will happen.
+        
+        Returns:
             is_successful (bool): Indidate if the thread is cleared.
         """
         try:
