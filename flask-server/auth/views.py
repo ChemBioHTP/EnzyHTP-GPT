@@ -116,6 +116,25 @@ def unauth_handler() -> Response:
     )
     return Response(response=response_info.serialize(), status=401, mimetype='application/json')
 
+def notadmin_handler(user: User) -> Response:
+    """Handle unauthorized requests towards a method requiring an admin user.
+    
+    Args:
+        user (User): current user.
+
+    Returns:
+        A response instance with 403 FORBIDDEN.
+    """
+    response_info = AuthResponseInfo(
+        id=user.id,
+        email=user.email,
+        username=user.username,
+        is_authenticated=True,
+        is_successful=False,
+        message='Only admin users can access this endpoint.',
+    )
+    return Response(response=response_info.serialize(), status=403, mimetype='application/json')
+
 #region 3.1 Register and Unregister
 
 @auth.route('/register', methods=['POST'])

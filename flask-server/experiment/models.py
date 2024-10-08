@@ -475,7 +475,9 @@ from requests import (
     delete as req_delete,
 )
 
-from config import ACCRE_SLURM_URL, ACCRE_SLURM_AUTHORIZATION, SLURM_ACCOUNT, SLURM_PARTITION, SLURM_JOB_ENTRY_SCRIPT_FILENAME
+from config import ACCRE_SLURM_API_URL, ACCRE_SLURM_HOST, SLURM_ACCOUNT, SLURM_PARTITION, SLURM_JOB_ENTRY_SCRIPT_FILENAME
+
+import jwt
 
 class SlurmJobRequest:
     """The configuration information to start a slurm job on Vanderbilt ACCRE.
@@ -499,11 +501,12 @@ class SlurmJobRequest:
         constraint (str): Specify a list of Constraints.
         gres (str): Flags related to GRES management.
     """
+    SLURM_TOKEN_NAME = "slurm_token"
 
     def __init__(self, account: str = SLURM_ACCOUNT, 
             partition: str = SLURM_PARTITION, 
             job_name: str = "EnzyHTP-Web", 
-            nodes: int = 1, mem: str = "6G", 
+            nodes: int = 1, mem: int = 6144, 
             time: timedelta = timedelta(days=10), 
             tasks_per_node: int = 1, ntasks: int = 1, 
             cpus_per_task: int = 1, nodelist: List[str] = list(),
@@ -518,7 +521,7 @@ class SlurmJobRequest:
             partition (str): Partition requested.
             job_name (str): Name of Job. Default "EnzyHTP Workflow".
             nodes (int): Number of Nodes on which to run (N = min[-max]).
-            mem (str): Minimum amount of real Memory. Default "6G".
+            mem (int): Minimum amount of real Memory in Megabytes (MB). Default 6144MB (6GB).
             time (timedelta): Time limit. Default 10 days.
             tasks_per_node (int): Number of Tasks to invoke on each Node. Default 1.
             ntasks (int): Number of Tasks to run. Default 1.
@@ -558,9 +561,149 @@ class SlurmJobRequest:
         for key, value in self.__dict__.items():
             if value:
                 dict_to_serialize[key] = value
-        
-        dict_to_serialize["time"] = f"{self.time.days}-{self.time.seconds//3600}:{(self.time.seconds % 3600) // 60}:{self.time.seconds%60}"
+        dict_to_serialize["time"] = self.time.days * 1440 + self.time.seconds // 60
+        # dict_to_serialize["time"] = f"{self.time.days}-{self.time.seconds//3600}:{(self.time.seconds % 3600) // 60}:{self.time.seconds%60}"
         return dumps(dict_to_serialize)
+    
+    @staticmethod
+    def get_slurm_token() -> Tuple[bool, str, str]:
+        """Get the slurm token dict from database.
+        
+        Returns:
+            if_exist (bool): A flag indicating the existence of the record in the database.
+            token (str): The token string.
+            refresh_token (str): The refresh_token string.
+        """
+        token_dict = db.tokens.find_one({"name": __class__.SLURM_TOKEN_NAME})
+        if (token_dict is not None):
+            token = token_dict.get("token", "")
+            refresh_token = token_dict.get("refresh_token", "")
+            return True, token, refresh_token
+        else:
+            return False, "", ""
+
+    @staticmethod
+    def is_token_newer(new_token: str, old_token: str = str()) -> bool:
+        """Compare the issue time between the new token and the old token (JWT).
+        
+        Args:
+            new_token (str): The new jwt.
+            old_token (str, optional): The old jwt.
+
+        Returns:
+            A bool value indicating if the new_token is newer than the old_token.
+        """
+        jwt_decode_options = {"verify_signature": False}
+        if (not old_token):
+            try:
+                payload_new = jwt.decode(jwt=new_token, options=jwt_decode_options)
+                return True
+            except Exception as exc:
+                # print(exc)
+                return False
+        try:
+            payload_old = jwt.decode(jwt=old_token, options=jwt_decode_options)
+            payload_new = jwt.decode(jwt=new_token, options=jwt_decode_options)
+
+            # Get the issue date of the token.
+            iat_old = int(payload_old["iat"])
+            iat_new = int(payload_new["iat"])
+
+            if (iat_new > iat_old):
+                return True
+            else:
+                return False
+        except Exception as exc:
+            print(exc)
+            return False
+        
+    @staticmethod
+    def newer_token(new_token: str, old_token: str = str()) -> Tuple[str, bool]:
+        """Return the newer token between the 2 tokens.
+        
+        Args:
+            new_token (str): The new jwt.
+            old_token (str, optional): The old jwt.
+
+        Returns:
+            token (str): The newerly-issued token.
+            is_updated (bool): A flag indicating if the token is updated.
+        """
+        if (__class__.is_token_newer(new_token, old_token)):
+            # Keep the newer token.
+            return new_token, True
+        else:
+            return old_token, False
+
+    @staticmethod
+    def update_slurm_tokens(token: str = str(), refresh_token: str = str()) -> Tuple[bool, ]:
+        """Update the token and refresh_token of Vanderbilt ACCRE Slurm API.
+
+        Args:
+            token (str, optional): The new token string.
+            refresh_token (str, optional): The new refresh_token string.
+
+        Returns:
+            is_updated (bool): Flag indicating if any updates take place.
+            message (str): Message describing the result.
+        """
+        if_exist, old_token, old_refresh_token = __class__.get_slurm_token()
+        token_dict = {"name": __class__.SLURM_TOKEN_NAME}
+        is_token_updated = False    # Indicate if `token` is updated.
+        is_refresh_updated = False  # Indicate if `refresh_token` is updated.
+        if (if_exist):  # If record exists, update it.
+            token_dict["token"], is_token_updated = __class__.newer_token(token, old_token)
+            token_dict["refresh_token"], is_refresh_updated = __class__.newer_token(refresh_token, old_refresh_token)
+            db.tokens.update_one({"name": __class__.SLURM_TOKEN_NAME}, {"$set": token_dict})
+        else:       # If no record, insert a new one.
+            if (token):
+                token_dict["token"], is_token_updated = __class__.newer_token(token)
+            if (refresh_token):
+                token_dict["refresh_token"], is_refresh_updated = __class__.newer_token(refresh_token)
+            db.tokens.insert_one(token_dict)
+        if (not is_token_updated and not is_refresh_updated):
+            return False, "Neither token nor refresh_token is updated."
+        elif (is_token_updated and not is_refresh_updated):
+            return True, "Token is updated."
+        elif (not is_token_updated and is_refresh_updated):
+            return True, "Refresh_token is updated."
+        elif (is_token_updated and is_refresh_updated):
+            return True, "Both token and refresh_token are updated."
+
+    @staticmethod
+    def refresh_slurm_token() -> Tuple[bool, int, str]:
+        """Refresh the SLURM token with refresh_token.
+        
+        Returns:
+            is_updated (bool): Flag indicating if any updates take place.
+            status_code (int): Status code from the Slurm API.
+            message (str): Message describing the result.
+        """
+        refresh_token_url = f"{ACCRE_SLURM_HOST}/auth/token/refresh"
+        _, old_token, old_refresh_token = __class__.get_slurm_token()
+        if (not old_token or not old_refresh_token):
+            return False, 403, "Empty token or refresh_token."
+        headers = {
+            "Authorization": f"Bearer {old_token}"
+        }
+        payload = {"refresh_token": old_refresh_token}
+        response = req_post(refresh_token_url, headers=headers, data=payload, timeout=30)
+        if (response.ok):
+            response_dict: dict = loads(response.text)
+            if (response_dict.get("success", False) == True):
+                refresh_token_data_dict = response_dict.get("data", dict())
+                new_refresh_token = refresh_token_data_dict.get("refresh_token", "")
+                new_token = refresh_token_data_dict.get("token", "")
+                is_updated, message = __class__.update_slurm_tokens(token=new_token, refresh_token=new_refresh_token)
+                return is_updated, response.status_code, message
+            else:
+                return False, 200, response_dict.get("message")
+        elif (response.status_code == 403):
+            response_dict: dict = loads(response.text)
+            message = response_dict.get("detail", "")
+            return False, response.status_code, message
+        else:
+            return False, response.status_code, "Unable to refresh the token."
 
 class SlurmJobData:
     """The information from the slurm job."""
@@ -598,10 +741,11 @@ class SlurmJobData:
             status (int): The status from the response.
             job_data (SlurmJobData): The Slurm Job Data instance.
         """
+        _, token, _ = SlurmJobRequest.get_slurm_token()
         headers = {
-            "Authorization": ACCRE_SLURM_AUTHORIZATION
+            "Authorization": f"Bearer {token}"
         }
-        response = req_get(f"{ACCRE_SLURM_URL}/{id}", headers=headers)
+        response = req_get(f"{ACCRE_SLURM_API_URL}/{id}", headers=headers)
         if (response.ok):
             response_dict: dict = loads(response.text)
             slurm_job_data_dict = response_dict.get("data", dict())
@@ -623,8 +767,9 @@ class SlurmJobData:
             message (str): The Slurm Job Data instance.        
             job_uuid (str): The UUID of the Slurm Job.
         """
+        _, token, _ = SlurmJobRequest.get_slurm_token()
         headers = {
-            "Authorization": ACCRE_SLURM_AUTHORIZATION
+            "Authorization": f"Bearer {token}"
         }
         payload = {
             'slurm_request': slurm_request.serialize(),
@@ -632,7 +777,7 @@ class SlurmJobData:
         }
         files = [("files", (basename(fobj.name), fobj, "application/octet-stream")) for fobj in files]
 
-        response = req_post(f"{ACCRE_SLURM_URL}", headers=headers, data=payload, files=files)
+        response = req_post(f"{ACCRE_SLURM_API_URL}", headers=headers, data=payload, files=files)
         if (response.ok):
             response_dict: dict = loads(response.text)
             message = response_dict.get("message", str())
@@ -662,15 +807,16 @@ class SlurmJobData:
             status (int): The status code from the response.
             message (str): The message to describe the consequence.
         """
+        _, token, _ = SlurmJobRequest.get_slurm_token()
         headers = {
-            "Authorization": ACCRE_SLURM_AUTHORIZATION
+            "Authorization": f"Bearer {token}"
         }
         status, job_data = __class__.get(id)
         if (status != 200):
             return status, "Unable to delete the Slurm Job. The target job doesn't exist."
 
-        cancel_response = req_post(f"{ACCRE_SLURM_URL}/{id}/cancel", headers=headers)
-        delete_response = req_delete(f"{ACCRE_SLURM_URL}/{id}", headers=headers)
+        cancel_response = req_post(f"{ACCRE_SLURM_API_URL}/{id}/cancel", headers=headers)
+        delete_response = req_delete(f"{ACCRE_SLURM_API_URL}/{id}", headers=headers)
         if (delete_response.status_code == 200):
             return 200, "The Slurm Job has successfully be deleted."
         else:
