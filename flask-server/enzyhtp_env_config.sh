@@ -60,4 +60,4 @@ done
 # ========== Don't change anything below this line. ==========
 
 cd $enzyhtp_installation_path
-bash dev-tools/conda-install --name $target_env_name
+source dev-tools/conda-install --name $target_env_name

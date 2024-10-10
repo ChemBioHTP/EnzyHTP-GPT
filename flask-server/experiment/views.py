@@ -838,7 +838,7 @@ from io import StringIO, BytesIO
 from os.path import basename
 from zipfile import ZipFile, ZIP_DEFLATED
 
-from .models import SlurmJobRequest, SlurmJobData
+from services import SlurmJobRequest, SlurmJobData
 from config import (
     SLURM_JOB_ENTRY_SCRIPT_FILENAME, 
     SLURM_JOB_ENTRY_SCRIPT, 

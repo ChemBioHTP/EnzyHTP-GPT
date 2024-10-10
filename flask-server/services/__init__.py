@@ -10,3 +10,5 @@
 
 # Here put the import lib.
 from .openai_service import OpenAIChat, OpenAIAssistant
+
+from .accre_slurm_service import SlurmJobData, SlurmJobRequest

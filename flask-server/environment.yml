@@ -204,7 +204,7 @@ dependencies:
   - mkl_fft=1.3.1=py39h051f8f4_4
   - mkl_random=1.2.2=py39h8b66066_1
   - mmcif_pdbx=2.0.0=pyh44b312d_0
-  - modeller=10.4=py39h9bf148f_0
+  # - modeller=10.4=py39h9bf148f_0
   - mpc=1.1.0=h10f8cd9_1
   - mpfr=4.0.2=hb69a4c5_1
   - mpg123=1.32.3=h59595ed_0
