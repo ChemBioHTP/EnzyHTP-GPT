@@ -1,10 +1,11 @@
 #! python3
 # -*- encoding: utf-8 -*-
 '''
+OpenAI (ChatGPT) correspondence.
+
 @File    :   openai_service.py
 @Created :   2024/06/23 20:25
 @Author  :   Zhong, Yinjie
-@Version :   1.0
 @Contact :   yinjie.zhong@vanderbilt.edu
 '''
 

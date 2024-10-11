@@ -1,6 +1,8 @@
 #! python3
 # -*- encoding: utf-8 -*-
 '''
+Vanderbilt University ACCRE Slurm correspondence.
+
 @File    :   accre_slurm_service.py
 @Created :   2024/10/10 14:38
 @Author  :   Zhong, Yinjie
