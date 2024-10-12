@@ -50,18 +50,20 @@ Those instances can only be declared in an individual file and imported into the
 
 #### 2.2.3 NoSQL Database (on Ubuntu WSL)
 
-Install the MongoDB database by `sudo apt-get install -y mongodb-org`, and start it by `sudo service mongod start`.
+Follow the tutorial on [MongoDB official website](https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/) to install its community edition. 
 
-If you are faced with `mongod: unrecognized service` error when initializing or starting MongoDB, then try following commands. (This error is likely to happen when running MongoDB on Ubuntu WSL.)
+Start the MongoDB database by `sudo service mongod start`. If you are faced with `mongod: unrecognized service` error when initializing or starting MongoDB, then try following commands. (This error is likely to happen when running MongoDB on Ubuntu WSL.)
 
 ```bash
 sudo /usr/bin/mongod --fork --logpath /var/log/mongodb/mongodb.log --config /etc/mongod.conf
 ```
 
 Reference:
-https://deepinout.com/mongodb/mongodb-questions/109_mongodb_mongod_is_not_a_service_ubuntu_wsl_error_mongod_unrecognized_service.html
 
-##### Containerized Deployment
+- https://deepinout.com/mongodb/mongodb-questions/109_mongodb_mongod_is_not_a_service_ubuntu_wsl_error_mongod_unrecognized_service.html
+- https://stackoverflow.com/questions/62495999/installing-mongodb-in-wsl
+
+##### Alternative Method: Containerized Deployment
 
 As Vanderbilt CSB IT team hasn't completed the migration of MongoDB and Docker storage by July 13th, 2024, the author has to adopt containerized deployment for the database. It is not a good way to do so, but we have no better choices.
 
