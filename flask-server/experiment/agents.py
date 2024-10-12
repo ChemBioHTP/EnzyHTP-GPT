@@ -36,7 +36,9 @@ class QuestionAnalyzerAssistant(OpenAIAssistant):
             thread_id (str, optional): The identifier of a context thread, which can be referenced in OpenAI API endpoints.
             conversation_mode (bool): If True, retains the conversation context. Default is False.
         """
-        instructions = open(path.join(PROMPTS_DIRECTORY, "question_analyzer-v3.txt")).read()
+        instructions = str()
+        with open(path.join(PROMPTS_DIRECTORY, "question_analyzer-v3.txt")) as fobj:
+            instructions = fobj.read()
         tool_functions: List[dict] = load(open(path.join(PROMPTS_DIRECTORY, "question_analyzer_functions.json")))
         tools = [
             {
@@ -65,7 +67,9 @@ class MetricsPlannerAssistant(OpenAIAssistant):
             thread_id (str, optional): The identifier of a context thread, which can be referenced in OpenAI API endpoints.
             conversation_mode (bool): If True, retains the conversation context. Default is False.
         """
-        instructions = open(path.join(PROMPTS_DIRECTORY, "metrics_planner-v2.txt")).read()
+        instructions = str()
+        with open(path.join(PROMPTS_DIRECTORY, "metrics_planner-v2.txt")) as fobj:
+            instructions = fobj.read()
         tool_functions: List[dict] = load(open(path.join(PROMPTS_DIRECTORY, "metrics_planner_functions.json")))
         tools = [
             {
@@ -94,7 +98,9 @@ class MutantPlannerAssistant(OpenAIAssistant):
             thread_id (str, optional): The identifier of a context thread, which can be referenced in OpenAI API endpoints.
             conversation_mode (bool): If True, retains the conversation context. Default is False.
         """
-        instructions = open(path.join(PROMPTS_DIRECTORY, "mutant_planner-v1.txt")).read()
+        instructions = str()
+        with open(path.join(PROMPTS_DIRECTORY, "mutant_planner-v1.txt")) as fobj:
+            instructions = fobj.read()
         super().__init__(openai_secret_key, 
             assistant_name="Mutant Planner", 
             instructions=instructions, 
@@ -117,7 +123,9 @@ class TimezoneConsultantAssistant(OpenAIAssistant):
             thread_id (str, optional): The identifier of a context thread, which can be referenced in OpenAI API endpoints.
             conversation_mode (bool): If True, retains the conversation context. Default is False.
         """
-        instructions = open(path.join(PROMPTS_DIRECTORY, "timezone_consultant.txt")).read()
+        instructions = str()
+        with open(path.join(PROMPTS_DIRECTORY, "timezone_consultant.txt")) as fobj:
+            instructions = fobj.read()
         super().__init__(openai_secret_key, 
             assistant_name="Time Zone Consultant", 
             instructions=instructions, 

@@ -36,7 +36,7 @@ echo Configuring EnzyHTP to environment...
 
 # The execution of the following 2 command may take more than 10 minutes. (continue)
 # cd "$enzyhtp_base_dir/EnzyHTP"
-# bash dev-tools/conda-install --name enzyhtp-gpt
+# source dev-tools/conda-install --name enzyhtp-gpt
 
 # If you think it is too slow, you can comment them, and then enable the next line, before executing the `docker build`; (continue)
 
