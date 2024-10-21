@@ -11,8 +11,6 @@ OpenAI (ChatGPT) correspondence.
 
 # Here put the import lib.
 from typing import Tuple
-from openai.types.beta.threads.run import Run
-from openai.types.beta import Assistant, Thread
 import openai
 
 from inspect import signature
@@ -21,6 +19,9 @@ from time import sleep
 # Here put local imports.
 # from config import DEFAULT_OPENAI_API_KEY
 DEFAULT_OPENAI_API_KEY = "5511667"
+DEFAULT_TIMEOUT_LIMIT = 60      # The timeout waiting for response. Unit: Seconds.
+
+#region OpenAI Chatbot
 
 class OpenAIChat:
     """Handles interactions with OpenAI's Chat API, particularly GPT models."""
@@ -79,6 +80,7 @@ class OpenAIChat:
                 response = self.client.chat.completions.create(
                     messages=messages,
                     model=self.model,
+                    timeout=DEFAULT_TIMEOUT_LIMIT,
                     **self.openai_args_dict
                 )
                 response_msg = response.choices[0].message
@@ -118,11 +120,22 @@ class OpenAIChat:
         except Exception as e:
             return (False, 500, "An unexpected error occurred: " + str(e))
 
+#endregion
+
+#region OpenAI Assistant
+from openai.types.beta.threads import Run
+from openai.types.beta import Assistant, Thread
+
+DEFAULT_REFRESH_INTERVAL = 2    # The interval to refresh the response status. Unit: Seconds.
+
+TERMINAL_STATUS_LIST = ["cancelled", "failed", "completed", "expired", "incomplete"]
+COMPLETED_STATUS = "completed"
+
+PENDING_STATUS_LIST = ["queued", "in_progress", "requires_action", "cancelling"]
+ACTION_REQUIRED_STATUS = "requires_action"
+
 class OpenAIAssistant(OpenAIChat):
     """Handles interactions with OpenAI's Assistant API, particularly GPT models."""
-
-    TERMINAL_STATUS_LIST = ["cancelled", "failed", "completed", "expired", "incomplete"]
-    COMPLETED_STATUS = "completed"
 
     assistant: Assistant
     __thread: Thread
@@ -175,7 +188,7 @@ class OpenAIAssistant(OpenAIChat):
     
     @thread.setter
     def thread(self, value):
-        if (self.conversation_mode):
+        if (self.conversation_mode or value == None):
             self.__thread = value
         else:
             raise RuntimeWarning("The assistant with `conversation_mode=False` does not have thread instance. Nothing happened.")
@@ -205,13 +218,92 @@ class OpenAIAssistant(OpenAIChat):
         """
         try:
             if (self.conversation_mode):
-                _ = self.client.beta.threads.delete(self.__thread.id)
-                self.__thread = self.client.beta.threads.create()
-                return True
-            else:
-                return False
+                is_successful = __class__.delete_thread(openai_secret_key=self.client.api_key, thread_id=self.__thread.id)
+                self.thread = None
+                return is_successful
         except:
             return False
+
+    @staticmethod
+    def delete_thread(openai_secret_key: str, thread_id: str):
+        """Initializes the service with the OpenAI API key and configuration for using specific GPT models.
+
+        Args:
+            openai_secret_key (str): API key for accessing OpenAI services.
+            thread_id (str): The ID of the thread to delete.
+        
+        Returns:
+            is_successful (bool): Indidate if the thread is refreshed.
+        """
+        chat = OpenAIChat(openai_secret_key=openai_secret_key)
+        try:
+            response = chat.client.beta.threads.delete(thread_id=thread_id)
+            response_dict = response.to_dict()
+            is_successful = response_dict.get("deleted", False)
+            return is_successful
+        except (openai.NotFoundError):
+            return True
+        except (Exception):
+            return False
+    
+    def __run_thread(self, prompt: str, thread: Thread = None) -> Run:
+        """Sends a prompt to GPT assistant and retrieves the response.
+
+        Args:
+            prompt (str): The prompt or question to send to GPT.
+            thread (Thread, optional): The thread instance where the conversation to be held. Default None.
+                                    If the assistant is not in conversation_mode, the thread instance should be provided.
+
+        Returns:
+            run (openai.types.beta.threads.Run): The created threads.Run instance.
+        """
+        if (thread == None and self.conversation_mode):
+            thread = self.thread
+        elif (thread == None and not self.conversation_mode):
+            raise Exception("The Thread instance should be provided if the assistant is not in conversation_mode.")
+
+        out_message = self.client.beta.threads.messages.create(
+            thread_id=thread.id,
+            role="user",
+            content=prompt
+        )
+        run = self.client.beta.threads.runs.create_and_poll(
+            thread_id=thread.id,
+            assistant_id=self.assistant.id,
+        )
+        return run
+
+    def __retrieve_response_content(self, run: Run, thread: Thread = None):
+        """Wait for the completion of the Run instance and retrieve its response content.
+        
+        Args:
+            run (openai.types.beta.threads.Run): An in_progress threads.Run instance.
+            thread (Thread, optional): The thread instance where the conversation to be held. Default None.
+                                    If the assistant is not in conversation_mode, the thread instance should be provided.
+
+        Returns:
+            response_content (str): The response content from GPT.
+        """
+        if (thread == None and self.conversation_mode):
+            thread = self.thread
+        elif (thread == None and not self.conversation_mode):
+            raise Exception("The Thread instance should be provided if the assistant is not in conversation_mode.")
+
+        for i in range(0, DEFAULT_TIMEOUT_LIMIT, DEFAULT_REFRESH_INTERVAL):
+            if (run.status not in TERMINAL_STATUS_LIST):
+                sleep(DEFAULT_REFRESH_INTERVAL)
+                if i == DEFAULT_TIMEOUT_LIMIT - DEFAULT_REFRESH_INTERVAL:
+                    raise TimeoutError("Waiting for response timeout.")
+                continue
+            else:
+                break
+
+        # Update the messages of the service after the prompt is successfully processed and parsed.
+        retrived_messages = self.client.beta.threads.messages.list(
+            thread_id=thread.id
+        )
+        response_content = retrived_messages.data[0].content[0].text.value
+        return response_content
 
     def ask_gpt(self, prompt: str) -> Tuple[bool, int, str]:
         """Sends a prompt to GPT assistant and retrieves the response.
@@ -224,9 +316,6 @@ class OpenAIAssistant(OpenAIChat):
             status_code (int): The HTTP status code from the API response.
             response_content (str): The actual response from GPT or an error message.
         """
-        timeout_limit = 180  # Set timeout (seconds).
-        refresh_sep = 2     # Set refresh interval (seconds).
-        
         if (self.client.api_key == DEFAULT_OPENAI_API_KEY):
             return False, 500, "OpenAI Secret Key does not exist."
 
@@ -237,30 +326,10 @@ class OpenAIAssistant(OpenAIChat):
                     "role": "user",
                     "content": prompt,
                 }
-                out_message = self.client.beta.threads.messages.create(
-                    thread_id=self.__thread.id,
-                    role="user",
-                    content=prompt
-                )
-                run = self.client.beta.threads.runs.create_and_poll(
-                    thread_id=self.__thread.id,
-                    assistant_id=self.assistant.id,
-                )
-                for i in range(0, timeout_limit, refresh_sep):
-                    if (run.status not in __class__.TERMINAL_STATUS_LIST):
-                        sleep(refresh_sep)
-                        if i == timeout_limit - refresh_sep:
-                            raise TimeoutError("Waiting for response too long.")
-                        continue
-                    else:
-                        break
+                run = self.__run_thread(prompt=prompt)
 
-                # Update the messages of the service after the prompt is successfully processed and parsed.
-                retrived_messages = self.client.beta.threads.messages.list(
-                    thread_id=self.__thread.id
-                )
-                response_content = retrived_messages.data[0].content[0].text.value                
-                if (run.status == __class__.COMPLETED_STATUS):
+                response_content = self.__retrieve_response_content(run=run)
+                if (run.status == COMPLETED_STATUS):
                     self.messages.append(user_message)
                     self.messages.append({
                         "role": "assistant",
@@ -268,28 +337,9 @@ class OpenAIAssistant(OpenAIChat):
                     })
             else:
                 thread = self.client.beta.threads.create()
-                out_message = self.client.beta.threads.messages.create(
-                    thread_id=thread.id,
-                    role="user",
-                    content=prompt
-                )
-                run = self.client.beta.threads.runs.create_and_poll(
-                    thread_id=thread.id,
-                    assistant_id=self.assistant.id,
-                )
-                for i in range(0, timeout_limit, refresh_sep):
-                    if (run.status not in __class__.TERMINAL_STATUS_LIST):
-                        sleep(refresh_sep)
-                        if i == timeout_limit - refresh_sep:
-                            raise TimeoutError("Waiting for response too long.")
-                        continue
-                    else:
-                        break
-                retrived_messages = self.client.beta.threads.messages.list(
-                    thread_id=thread.id
-                )
-                response_content = retrived_messages.data[0].content[0].text.value
-                _ = self.client.beta.threads.delete(thread.id)
+                run = self.__run_thread(prompt=prompt, thread=thread)
+                response_content = self.__retrieve_response_content(run=run, thread=thread)
+                _ = __class__.delete_thread(openai_secret_key=self.client.api_key, thread_id=thread.id)
             
             # Successfully received a response from OpenAI.
             return (True, 200, response_content)
@@ -305,27 +355,9 @@ class OpenAIAssistant(OpenAIChat):
             return (False, 500, "API Error: " + str(e))
         except Exception as e:
             return (False, 500, "An unexpected error occurred: " + str(e))
-
-    @staticmethod
-    def delete_thread(openai_secret_key: str, thread_id: str):
-        """Initializes the service with the OpenAI API key and configuration for using specific GPT models.
-
-        Args:
-            openai_secret_key (str): API key for accessing OpenAI services.
-            thread_id (str): The ID of the thread to delete.
-
-        """
-        chat = OpenAIChat(openai_secret_key=openai_secret_key)
-        try:
-            response = chat.client.beta.threads.delete(thread_id=thread_id)
-            response_dict = response.to_dict()
-            is_successful = response_dict.get("deleted", False)
-            return is_successful
-        except (openai.NotFoundError):
-            return True
-        except (Exception):
-            return False
     
     def __del__(self):
         _ = self.client.beta.assistants.delete(self.assistant.id)
         pass
+
+#endregion
