@@ -10,7 +10,8 @@ OpenAI (ChatGPT) correspondence.
 '''
 
 # Here put the import lib.
-from typing import Tuple
+from __future__ import annotations
+from typing import Tuple, Dict, List
 import openai
 
 from inspect import signature
@@ -140,7 +141,64 @@ class OpenAIAssistant(OpenAIChat):
     assistant: Assistant
     __thread: Thread
 
-    def __init__(self, openai_secret_key: str, assistant_name: str = str(), instructions: str = str(), model: str = "gpt-3.5-turbo", tools: list = list(), thread_id: str = str(), conversation_mode: bool = False, **kwargs) -> None:
+    class AssistantFunction():
+        """OpenAI Assistant Function Tool."""
+        
+        class FunctionParameter():
+            """Function Tool Parameter."""
+
+            key: str
+            param_type: str
+            description: str
+            required: bool
+
+            def __init__(self, key: str, param_type: str, description: str, required: bool):
+                self.key = key
+                self.param_type = param_type
+                self.description = description
+                self.required = required
+
+            @property
+            def name(self):
+                """The name of the parameter."""
+                return self.key
+
+            @classmethod
+            def parse_function_parameters(cls, parameters_dict: dict) -> list:
+                """Read the parameters information from the 'parameters' field of the function dictionary.
+                
+                Args:
+                    parameters_dict (dict): The 'parameters' inner dictionary of the function dictionary.
+
+                Returns:
+                    parameters (List[FunctionParameter]): A list of FunctionParameter instances.
+                """
+                properties: Dict[str, dict] = parameters_dict.get("properties", dict())
+                required_params: list = parameters_dict.get("required", list())
+                
+                parameters = list()
+                for key, value in properties.items():
+                    param_type = value.get("type", "string")
+                    description = value.get("description", "")
+                    required = (key in required_params)
+                    parameters.append(cls(key=key, param_type=param_type, description=description, required=required))
+                    continue
+
+                return parameters
+
+        name: str
+        description: str
+        parameters: List[FunctionParameter]
+
+        def __init__(self, function_definition_dict: dict):
+            """Initialize OpenAI Assistant Function tool with definition dictionary."""
+            self.name = function_definition_dict.get("name", str())
+            self.description = function_definition_dict.get("description", str())
+            self.parameters = self.FunctionParameter.parse_function_parameters(parameters_dict=function_definition_dict.get("parameters", dict()))
+
+    functions: List[AssistantFunction]
+
+    def __init__(self, openai_secret_key: str, assistant_name: str = str(), instructions: str = str(), model: str = "gpt-3.5-turbo", tools: List[dict] = list(), thread_id: str = str(), conversation_mode: bool = False, **kwargs) -> None:
         """
         Initializes the service with the OpenAI API key and configuration for using specific GPT models.
 
@@ -169,6 +227,10 @@ class OpenAIAssistant(OpenAIChat):
             tools=tools,
             **kwargs,
         )
+
+        function_tools = filter(lambda tool: tool.get("type")=="function", tools)
+        self.functions = [self.AssistantFunction(function_definition_dict=function) for function in function_tools]
+
         if (thread_id):
             conversation_mode = True
             self.conversation_mode = True
@@ -219,7 +281,8 @@ class OpenAIAssistant(OpenAIChat):
         try:
             if (self.conversation_mode):
                 is_successful = __class__.delete_thread(openai_secret_key=self.client.api_key, thread_id=self.__thread.id)
-                self.thread = None
+                if (is_successful):
+                    self.thread = None
                 return is_successful
         except:
             return False
