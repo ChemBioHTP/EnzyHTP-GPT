@@ -11,7 +11,7 @@ OpenAI (ChatGPT) correspondence.
 
 # Here put the import lib.
 from __future__ import annotations
-from typing import Tuple, Dict, List
+from typing import Callable, Tuple, Dict, List
 import openai
 
 from inspect import signature
@@ -189,12 +189,18 @@ class OpenAIAssistant(OpenAIChat):
         name: str
         description: str
         parameters: List[FunctionParameter]
+        mapped_callable: Callable
 
         def __init__(self, function_definition_dict: dict):
-            """Initialize OpenAI Assistant Function tool with definition dictionary."""
+            """Initialize OpenAI Assistant Function Tool with definition dictionary.
+            
+            Args:
+                function_definition_dict (dict): The definition dictionary of OpenAI Assistant Function Tool.
+            """
             self.name = function_definition_dict.get("name", str())
             self.description = function_definition_dict.get("description", str())
             self.parameters = self.FunctionParameter.parse_function_parameters(parameters_dict=function_definition_dict.get("parameters", dict()))
+            self.mapped_callable = function_definition_dict.get("mapped_callable", None)
 
     functions: List[AssistantFunction]
 
