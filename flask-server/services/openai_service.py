@@ -134,6 +134,68 @@ COMPLETED_STATUS = "completed"
 
 PENDING_STATUS_LIST = ["queued", "in_progress", "requires_action", "cancelling"]
 ACTION_REQUIRED_STATUS = "requires_action"
+        
+class FunctionParameter():
+    """Function Tool Parameter."""
+
+    key: str
+    param_type: str
+    description: str
+    required: bool
+
+    def __init__(self, key: str, param_type: str, description: str, required: bool):
+        self.key = key
+        self.param_type = param_type
+        self.description = description
+        self.required = required
+
+    @property
+    def name(self):
+        """The name of the parameter."""
+        return self.key
+
+    @staticmethod
+    def parse_function_parameters(parameters_dict: dict) -> List[FunctionParameter]:
+        """Read the parameters information from the 'parameters' field of the function dictionary.
+        
+        Args:
+            parameters_dict (dict): The 'parameters' inner dictionary of the function dictionary.
+
+        Returns:
+            parameters (List[FunctionParameter]): A list of FunctionParameter instances.
+        """
+        properties: Dict[str, dict] = parameters_dict.get("properties", dict())
+        required_params: list = parameters_dict.get("required", list())
+        
+        parameters = list()
+        for key, value in properties.items():
+            param_type = value.get("type", "string")
+            description = value.get("description", "")
+            required = (key in required_params)
+            parameters.append(FunctionParameter(key=key, param_type=param_type, description=description, required=required))
+            continue
+
+        return parameters
+
+class AssistantFunction():
+    """OpenAI Assistant Function Tool."""
+
+    name: str
+    description: str
+    parameters: List[FunctionParameter]
+    mapped_callable: Callable
+
+    def __init__(self, function_definition_dict: dict, tool_function_mapper: Dict[str, Callable] = dict()):
+        """Initialize OpenAI Assistant Function Tool with definition dictionary.
+        
+        Args:
+            function_definition_dict (dict): The definition dictionary of OpenAI Assistant Function Tool.
+            tool_function_mapper (Dict[str, Callable]): A mapper to associate a `tool_function` defined in the Assistant with a python function produces the output value.
+        """
+        self.name = function_definition_dict.get("name", str())
+        self.description = function_definition_dict.get("description", str())
+        self.parameters = FunctionParameter.parse_function_parameters(parameters_dict=function_definition_dict.get("parameters", dict()))
+        self.mapped_callable = tool_function_mapper.get(self.name)
 
 class OpenAIAssistant(OpenAIChat):
     """Handles interactions with OpenAI's Assistant API, particularly GPT models."""
@@ -141,70 +203,9 @@ class OpenAIAssistant(OpenAIChat):
     assistant: Assistant
     __thread: Thread
 
-    class AssistantFunction():
-        """OpenAI Assistant Function Tool."""
-        
-        class FunctionParameter():
-            """Function Tool Parameter."""
-
-            key: str
-            param_type: str
-            description: str
-            required: bool
-
-            def __init__(self, key: str, param_type: str, description: str, required: bool):
-                self.key = key
-                self.param_type = param_type
-                self.description = description
-                self.required = required
-
-            @property
-            def name(self):
-                """The name of the parameter."""
-                return self.key
-
-            @classmethod
-            def parse_function_parameters(cls, parameters_dict: dict) -> list:
-                """Read the parameters information from the 'parameters' field of the function dictionary.
-                
-                Args:
-                    parameters_dict (dict): The 'parameters' inner dictionary of the function dictionary.
-
-                Returns:
-                    parameters (List[FunctionParameter]): A list of FunctionParameter instances.
-                """
-                properties: Dict[str, dict] = parameters_dict.get("properties", dict())
-                required_params: list = parameters_dict.get("required", list())
-                
-                parameters = list()
-                for key, value in properties.items():
-                    param_type = value.get("type", "string")
-                    description = value.get("description", "")
-                    required = (key in required_params)
-                    parameters.append(cls(key=key, param_type=param_type, description=description, required=required))
-                    continue
-
-                return parameters
-
-        name: str
-        description: str
-        parameters: List[FunctionParameter]
-        mapped_callable: Callable
-
-        def __init__(self, function_definition_dict: dict):
-            """Initialize OpenAI Assistant Function Tool with definition dictionary.
-            
-            Args:
-                function_definition_dict (dict): The definition dictionary of OpenAI Assistant Function Tool.
-            """
-            self.name = function_definition_dict.get("name", str())
-            self.description = function_definition_dict.get("description", str())
-            self.parameters = self.FunctionParameter.parse_function_parameters(parameters_dict=function_definition_dict.get("parameters", dict()))
-            self.mapped_callable = function_definition_dict.get("mapped_callable", None)
-
     functions: List[AssistantFunction]
 
-    def __init__(self, openai_secret_key: str, assistant_name: str = str(), instructions: str = str(), model: str = "gpt-3.5-turbo", tools: List[dict] = list(), thread_id: str = str(), conversation_mode: bool = False, **kwargs) -> None:
+    def __init__(self, openai_secret_key: str, assistant_name: str = str(), instructions: str = str(), model: str = "gpt-3.5-turbo", tools: List[dict] = list(), tool_function_mapper: Dict[str, Callable] = dict(), thread_id: str = str(), conversation_mode: bool = False, **kwargs) -> None:
         """
         Initializes the service with the OpenAI API key and configuration for using specific GPT models.
 
@@ -217,6 +218,7 @@ class OpenAIAssistant(OpenAIChat):
                 table for details on which models work with the Chat API. Default "gpt-3.5-turbo".
             tools (list, optional) : A list of tool enabled on the assistant. There can be a maximum of 128 tools per assistant.
                 Tools can be of types code_interpreter, file_search, or function.
+            tool_function_mapper (Dict[str, Callable]): A mapper to associate a `tool_function` defined in the Assistant with a python function produces the output value.
             thread_id (str, optional): The identifier of a context thread, which can be referenced in OpenAI API endpoints.
             conversation_mode (bool): If True, retains the conversation context. If `thread_id` is provided, this value is set to True. Default is False.
             **kwargs: Additional arguments to customize the API calls.
@@ -235,7 +237,10 @@ class OpenAIAssistant(OpenAIChat):
         )
 
         function_tools = filter(lambda tool: tool.get("type")=="function", tools)
-        self.functions = [self.AssistantFunction(function_definition_dict=function) for function in function_tools]
+        self.functions = [
+            AssistantFunction(function_definition_dict=function, tool_function_mapper=tool_function_mapper)
+            for function in function_tools
+        ]
 
         if (thread_id):
             conversation_mode = True

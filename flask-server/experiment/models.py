@@ -1,6 +1,8 @@
 #! python3
 # -*- encoding: utf-8 -*-
 '''
+The entities for the Experiment module.
+
 @File    :   models.py
 @Created :   2024/01/07 17:00
 @Author  :   Zhong, Yinjie

@@ -489,7 +489,7 @@ def experiment_assistants_toggle(experiment_id: str):
 @experiment_blueprint.route("/<experiment_id>/assistants", methods=["DELETE"])
 @login_required
 def experiment_assistants_clear(experiment_id: str):
-    """Toggle to the next the virtual assistants when the job of one assistant is completed.
+    """Clear all the thread context associated with the experiment.
     
     Args:
         experiment_id (str): The identifier of an experiment instance.
