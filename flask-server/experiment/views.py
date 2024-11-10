@@ -94,7 +94,7 @@ def index():
 
     experiments = Experiment.get_user_experiments(user=user)
     response_body = ExperimentIndexResponse(experiments)
-    return Response(response=response_body.serialize(), status=200, mimetype='application/json')
+    return Response(response=response_body.serialize(), status=200, mimetype="application/json")
 
 #endregion
 
@@ -313,7 +313,7 @@ def experiment_get(experiment_id: str):
     if (experiment.user_id != user.id):
         return forbidden_response(user, experiment)
     
-    return Response(experiment.serialize(), status=200, mimetype='application/json')
+    return Response(experiment.serialize(), status=200, mimetype="application/json")
 
 @experiment_blueprint.route("/<experiment_id>", methods=["POST", "PUT"])
 @login_required
@@ -342,19 +342,19 @@ def experiment_update_profile(experiment_id: str):
             experiment, user,
             is_successful=True,
             message='Nothing to be updated.')
-        return Response(response=response_info.serialize(), status=200, mimetype='application/json')
+        return Response(response=response_info.serialize(), status=200, mimetype="application/json")
     elif (updated_profile_fields):
         response_info = ExperimentBehaviourResponseInfo(
             experiment, user,
             is_successful=True,
             message=message)
-        return Response(response=response_info.serialize(), status=200, mimetype='application/json')
+        return Response(response=response_info.serialize(), status=200, mimetype="application/json")
     else:
         response_info = ExperimentBehaviourResponseInfo(
             experiment, user,
             is_successful=False,
             message=message)
-        return Response(response=response_info.serialize(), status=400, mimetype='application/json')
+        return Response(response=response_info.serialize(), status=400, mimetype="application/json")
 
 @experiment_blueprint.route("/<experiment_id>", methods=["PATCH"])
 @jwt_required()
@@ -383,7 +383,7 @@ def experiment_update_progress(experiment_id: str):
             experiment, user,
             is_successful=True,
             message='Nothing to be updated.')
-        return Response(response=response_info.serialize(), status=200, mimetype='application/json')
+        return Response(response=response_info.serialize(), status=200, mimetype="application/json")
     elif (updated_profile_fields):
         # experiment.updated_time = datetime.now()
         # db.session.commit()
@@ -391,13 +391,13 @@ def experiment_update_progress(experiment_id: str):
             experiment, user,
             is_successful=True,
             message=message)
-        return Response(response=response_info.serialize(), status=200, mimetype='application/json')
+        return Response(response=response_info.serialize(), status=200, mimetype="application/json")
     else:
         response_info = ExperimentBehaviourResponseInfo(
             experiment, user,
             is_successful=False,
             message=message)
-        return Response(response=response_info.serialize(), status=400, mimetype='application/json')
+        return Response(response=response_info.serialize(), status=400, mimetype="application/json")
 
 @experiment_blueprint.route("/<experiment_id>/assistants", methods=["POST"])
 @login_required
@@ -478,13 +478,13 @@ def experiment_assistants_toggle(experiment_id: str):
             experiment, user,
             is_successful=True,
             message=message)
-        return Response(response=response_info.serialize(), status=200, mimetype='application/json')
+        return Response(response=response_info.serialize(), status=200, mimetype="application/json")
     else:
         response_info = ExperimentBehaviourResponseInfo(
             experiment, user,
             is_successful=False,
             message=message)
-        return Response(response=response_info.serialize(), status=400, mimetype='application/json')
+        return Response(response=response_info.serialize(), status=400, mimetype="application/json")
 
 @experiment_blueprint.route("/<experiment_id>/assistants", methods=["DELETE"])
 @login_required
@@ -522,13 +522,13 @@ def experiment_assistants_clear(experiment_id: str):
             experiment, user,
             is_successful=is_successful,
             message="Your conversation is successfully cleared.")
-        return Response(response=response_info.serialize(), status=200, mimetype='application/json')
+        return Response(response=response_info.serialize(), status=200, mimetype="application/json")
     else:
         response_info = ExperimentBehaviourResponseInfo(
             experiment, user,
             is_successful=is_successful,
             message="Your conversation is unable to be cleared at present.")
-        return Response(response=response_info.serialize(), status=403, mimetype='application/json')
+        return Response(response=response_info.serialize(), status=403, mimetype="application/json")
 
 @experiment_blueprint.route("/<experiment_id>/results", methods=["POST"])
 @jwt_required()

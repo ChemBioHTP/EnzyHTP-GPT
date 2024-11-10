@@ -11,7 +11,8 @@ OpenAI (ChatGPT) correspondence.
 
 # Here put the import lib.
 from __future__ import annotations
-from typing import Callable, Tuple, Dict, List
+from typing import Any, Callable, Tuple, Dict, List
+from typing_extensions import override
 import openai
 
 from inspect import signature
@@ -124,8 +125,20 @@ class OpenAIChat:
 #endregion
 
 #region OpenAI Assistant
-from openai.types.beta.threads import Run
+from openai import AssistantEventHandler
+from openai.types.beta.threads import (
+    Run,
+    Text,
+    Message,
+    ImageFile,
+    TextDelta,
+    MessageDelta,
+    MessageContent,
+    MessageContentDelta,
+)
+from openai.types.beta.threads.runs import RunStep, RunStepDelta, ToolCall, ToolCallDelta
 from openai.types.beta import Assistant, Thread
+from openai.types.beta.assistant_stream_event import ThreadRunRequiresAction, AssistantStreamEvent
 
 DEFAULT_REFRESH_INTERVAL = 2    # The interval to refresh the response status. Unit: Seconds.
 
@@ -134,7 +147,7 @@ COMPLETED_STATUS = "completed"
 
 PENDING_STATUS_LIST = ["queued", "in_progress", "requires_action", "cancelling"]
 ACTION_REQUIRED_STATUS = "requires_action"
-        
+
 class FunctionParameter():
     """Function Tool Parameter."""
 
@@ -142,6 +155,7 @@ class FunctionParameter():
     param_type: str
     description: str
     required: bool
+    value: Any
 
     def __init__(self, key: str, param_type: str, description: str, required: bool):
         self.key = key
@@ -153,6 +167,11 @@ class FunctionParameter():
     def name(self):
         """The name of the parameter."""
         return self.key
+    
+    @name.setter
+    def name(self, value):
+        """Set the name of the parameter."""
+        self.key = value
 
     @staticmethod
     def parse_function_parameters(parameters_dict: dict) -> List[FunctionParameter]:
@@ -197,8 +216,113 @@ class AssistantFunction():
         self.parameters = FunctionParameter.parse_function_parameters(parameters_dict=function_definition_dict.get("parameters", dict()))
         self.mapped_callable = tool_function_mapper.get(self.name)
 
+    def keyword_arguments(self) -> Dict[str, Any]:
+        """Export a dictionary containing keyword arguments associated with the function."""
+        kwargs_dict = dict()
+        for param in self.parameters:
+            kwargs_dict[param.key] = param.value
+            continue
+        return kwargs_dict
+
+class EventHandler(AssistantEventHandler):
+    client: openai.OpenAI
+    functions: List[AssistantFunction]
+
+    def __init__(self, client: openai.OpenAI, functions: List[AssistantFunction] = list()):
+        super().__init__()
+        self.client = client
+        self.functions = functions
+        return
+
+    @override
+    def on_event(self, event: AssistantStreamEvent):
+        """Callback that is fired for every Server-Sent-Event"""
+        # Retrieve events that are denoted with 'requires_action'
+        # since these will have our tool_calls
+        if event.event == ThreadRunRequiresAction.event:
+            run_id = event.data.id  # Retrieve the run ID from the event data
+            self.handle_requires_action(event.data, run_id)
+        pass
+    
+    @override
+    def on_text_created(self, text: Text) -> None:
+        """Callback that is fired when a run step is created"""
+        # print(f"\nassistant > ", end="", flush=True)
+        pass
+    
+    @override
+    def on_text_delta(self, delta: TextDelta, snapshot: Text):
+        """Callback that is fired whenever a run step delta is returned from the API
+
+        The first argument is just the delta as sent by the API and the second argument
+        is the accumulated snapshot of the run step. For example, a tool calls event may
+        look like this:
+
+        # delta
+        tool_calls=[
+            RunStepDeltaToolCallsCodeInterpreter(
+                index=0,
+                type='code_interpreter',
+                id=None,
+                code_interpreter=CodeInterpreter(input=' sympy', outputs=None)
+            )
+        ]
+        # snapshot
+        tool_calls=[
+            CodeToolCall(
+                id='call_wKayJlcYV12NiadiZuJXxcfx',
+                code_interpreter=CodeInterpreter(input='from sympy', outputs=[]),
+                type='code_interpreter',
+                index=0
+            )
+        ],
+        """
+        # print(delta.value, end="", flush=True)
+        pass
+        
+    def on_tool_call_created(self, tool_call: ToolCall):
+        """Callback that is fired when a tool call is created."""
+        # print(f"\nassistant > {tool_call.type}\n", flush=True)
+        pass
+    
+    def on_tool_call_delta(self, delta: ToolCallDelta, snapshot: ToolCall):
+        """Callback that is fired when a tool call delta is encountered"""
+        if delta.type == 'code_interpreter':
+            if delta.code_interpreter.input:
+                print(delta.code_interpreter.input, end="", flush=True)
+            if delta.code_interpreter.outputs:
+                print(f"\n\noutput >", flush=True)
+                for output in delta.code_interpreter.outputs:
+                    if output.type == "logs":
+                        print(f"\n{output.logs}", flush=True)
+ 
+    def handle_requires_action(self, data: Run, run_id: str):
+        tool_outputs = []
+        for tool in data.required_action.submit_tool_outputs.tool_calls:
+            filtered_functions = list(filter(lambda func: func.name==tool.function.name, self.functions))
+            if (len(filtered_functions) > 0):
+                called_function = filtered_functions[0]
+                tool_outputs.append({"tool_call_id": tool.id, "output": called_function.mapped_callable()}) # TODO (Zhong): Integrate mapped callables.
+            continue
+        # Submit all tool_outputs at the same time
+        self.submit_tool_outputs(tool_outputs, run_id)
+ 
+    def submit_tool_outputs(self, tool_outputs: list, run_id: str):
+        # Use the submit_tool_outputs_stream helper
+        with self.client.beta.threads.runs.submit_tool_outputs_stream(
+            thread_id=self.current_run.thread_id,
+            run_id=self.current_run.id,
+            tool_outputs=tool_outputs,
+            event_handler=EventHandler(self.client, self.functions),
+        ) as stream:
+            for text in stream.text_deltas:
+                print(text, end="", flush=True)
+                print()
+
 class OpenAIAssistant(OpenAIChat):
     """Handles interactions with OpenAI's Assistant API, particularly GPT models."""
+
+    # TODO (Zhong): Handle possible errors caused by invalid openai_secret_key.
 
     assistant: Assistant
     __thread: Thread
@@ -345,6 +469,14 @@ class OpenAIAssistant(OpenAIChat):
             thread_id=thread.id,
             assistant_id=self.assistant.id,
         )
+
+        # TODO (Zhong): Implement the streaming runs.
+        # with self.client.beta.threads.runs.stream(
+        #     assistant_id=self.assistant.id,
+        #     thread_id=thread.id,
+        #     event_handler=EventHandler(self.client)
+        # ) as stream:
+        #     stream.until_done()
         return run
 
     def __retrieve_response_content(self, run: Run, thread: Thread = None):
@@ -431,7 +563,9 @@ class OpenAIAssistant(OpenAIChat):
             return (False, 500, "An unexpected error occurred: " + str(e))
     
     def __del__(self):
-        _ = self.client.beta.assistants.delete(self.assistant.id)
-        pass
+        try:
+            _ = self.client.beta.assistants.delete(self.assistant.id)
+        except:
+            pass
 
 #endregion

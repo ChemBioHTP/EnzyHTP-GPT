@@ -176,7 +176,7 @@ class Experiment():
         return updated_attrs, blocked_attrs, nonexistent_attrs, message
 
 
-    def as_dict(self, stringfy_time: bool = False) -> str:
+    def as_dict(self, stringfy_time: bool = False) -> dict:
         """Serialize the current instance to a dictionary.
         
         Args:
@@ -202,17 +202,19 @@ class Experiment():
 
     def serialize(self) -> str:
         """Serialize the current instance to json string."""
-        from json import dumps
 
         dict_data = self.as_dict()
-        del dict_data["_sa_instance_state"]
+        fields_to_delete = ["_sa_instance_state", "_status", "_progress"]
+
         dict_data["created_time"] = str(self.created_time)
         dict_data["updated_time"] = str(self.updated_time)
         dict_data["status"] = str(self._status)
         dict_data["progress"] = str(self._progress)
         dict_data["status_text"] = StatusCode.status_text_mapper.get(self.status, self.status)
-        del dict_data["_status"]
-        del dict_data["_progress"]
+
+        for field_key in fields_to_delete:
+            if (field_key in dict_data.keys()):
+                del dict_data[field_key]
         return dumps(dict_data)
     
     def __repr__(self):
