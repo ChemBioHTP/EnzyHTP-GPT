@@ -399,9 +399,36 @@ def experiment_update_progress(experiment_id: str):
             message=message)
         return Response(response=response_info.serialize(), status=400, mimetype="application/json")
 
+@experiment_blueprint.route("/<experiment_id>/assistants", methods=["GET"])
+@login_required
+def experiment_assistants_get_messages(experiment_id: str):
+    """Get the messages of the OpenAI Thread instance associated with the specific experiment instance.
+    
+    Args:
+        experiment_id (str): The identifier of an experiment instance.
+    """
+    user: User = current_user
+    experiment = Experiment.get(experiment_id)
+
+    if (experiment is None):
+        return notfound_response(user, experiment_id)
+    if (user is None or experiment.user_id != user.id):
+        return forbidden_response(user, experiment)
+    
+    is_successful, assistant_messages = OpenAIAssistant.get_thread_messages(
+        openai_secret_key=user.openai_secret_key,
+        thread_id=experiment.current_thread_id,
+        limit=50
+    )
+    response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
+        is_successful=is_successful, 
+        assistant_messages=assistant_messages,        
+    )
+    return Response(response_info.serialize(), status=200, mimetype="application/json")
+
 @experiment_blueprint.route("/<experiment_id>/assistants", methods=["POST"])
 @login_required
-def experiment_assistants(experiment_id: str):
+def experiment_assistants_post(experiment_id: str):
     """Call the virtual assistants to analyze questions and plan the experiment.
     
     Args:

@@ -13,10 +13,29 @@ OpenAI (ChatGPT) correspondence.
 from __future__ import annotations
 from typing import Any, Callable, Tuple, Dict, List
 from typing_extensions import override
-import openai
 
 from inspect import signature
 from time import sleep
+
+from openai import (
+    OpenAI,
+
+    # Separator. All the followings are exceptions.
+    APIError,
+    OpenAIError,
+    ConflictError,
+    NotFoundError,
+    APIStatusError,
+    RateLimitError,
+    APITimeoutError,
+    BadRequestError,
+    APIConnectionError,
+    AuthenticationError,
+    InternalServerError,
+    PermissionDeniedError,
+    UnprocessableEntityError,
+    APIResponseValidationError,
+)
 
 # Here put local imports.
 # from config import DEFAULT_OPENAI_API_KEY
@@ -28,7 +47,7 @@ DEFAULT_TIMEOUT_LIMIT = 60      # The timeout waiting for response. Unit: Second
 class OpenAIChat:
     """Handles interactions with OpenAI's Chat API, particularly GPT models."""
 
-    client: openai.OpenAI
+    client: OpenAI
     conversation_mode: bool
 
     def __init__(self, openai_secret_key: str, model: str = "gpt-3.5-turbo", conversation_mode: bool = False, **kwargs) -> None:
@@ -45,9 +64,9 @@ class OpenAIChat:
         """
         self.model = model
         if (openai_secret_key):
-            self.client = openai.OpenAI(api_key=openai_secret_key)
+            self.client = OpenAI(api_key=openai_secret_key)
         else:
-            self.client = openai.OpenAI(api_key=DEFAULT_OPENAI_API_KEY)
+            self.client = OpenAI(api_key=DEFAULT_OPENAI_API_KEY)
         self.conversation_mode = conversation_mode
         self.messages = list() if self.conversation_mode else None
         
@@ -109,15 +128,15 @@ class OpenAIChat:
             
             # Successfully received a response from OpenAI.
             return (True, 200, response_content)
-        except openai.RateLimitError as e:
+        except RateLimitError as e:
             return (True, 429, "Rate Limit Error: You exceeded your current OpenAI API quota or Rate Limit, please check your plan and billing details.")
-        except openai.BadRequestError as e:
+        except BadRequestError as e:
             return (True, 400, "Bad Request: Your OpenAI Secret Key is valid, but you sent a bad request.")
-        except openai.AuthenticationError as e:
+        except AuthenticationError as e:
             return (False, 401, "Authentication Failed: Invalid OpenAI Secret Key.")
-        except openai.InternalServerError as e:
+        except InternalServerError as e:
             return (False, 500, "OpenAI Internal Server Error. Unable to verify.")
-        except openai.APIError as e:
+        except APIError as e:
             return (False, 500, "API Error: " + str(e))
         except Exception as e:
             return (False, 500, "An unexpected error occurred: " + str(e))
@@ -225,10 +244,10 @@ class AssistantFunction():
         return kwargs_dict
 
 class EventHandler(AssistantEventHandler):
-    client: openai.OpenAI
+    client: OpenAI
     functions: List[AssistantFunction]
 
-    def __init__(self, client: openai.OpenAI, functions: List[AssistantFunction] = list()):
+    def __init__(self, client: OpenAI, functions: List[AssistantFunction] = list()):
         super().__init__()
         self.client = client
         self.functions = functions
@@ -423,23 +442,53 @@ class OpenAIAssistant(OpenAIChat):
             return False
 
     @staticmethod
+    def get_thread_messages(openai_secret_key: str, thread_id: str, limit: int = 20):
+        """Get the messages of a thread with the given ID.
+
+        Args:
+            openai_secret_key (str): API key for accessing OpenAI services.
+            thread_id (str): The ID of the thread the messages belong to.
+            limit (str): A limit on the number of messages to be returned. Limit can range between 1 and 100, and the default is 20.
+        
+        Returns:
+            is_successful (bool): Indidate if the messages are successfully retrieved.
+            messages (list): A list of simplified messages retrieved from the OpenAI server.
+        """
+        try:
+            client = OpenAI(api_key=openai_secret_key)
+            thread_messages = client.beta.threads.messages.list(thread_id=thread_id, limit=limit).data
+            
+            simplified_messages = list()
+            for thread_message in thread_messages:
+                message = {
+                    "role": thread_message.role,
+                    "text_value": thread_message.content[0].text.value,
+                }
+                simplified_messages.append(message)
+                continue
+
+            return True, simplified_messages[::-1]
+        except:
+            return False, list()
+
+    @staticmethod
     def delete_thread(openai_secret_key: str, thread_id: str):
-        """Initializes the service with the OpenAI API key and configuration for using specific GPT models.
+        """Delete a thread with the given ID.
 
         Args:
             openai_secret_key (str): API key for accessing OpenAI services.
             thread_id (str): The ID of the thread to delete.
         
         Returns:
-            is_successful (bool): Indidate if the thread is refreshed.
+            is_successful (bool): Indidate if the thread is deleted.
         """
-        chat = OpenAIChat(openai_secret_key=openai_secret_key)
+        client = OpenAI(api_key=openai_secret_key)
         try:
-            response = chat.client.beta.threads.delete(thread_id=thread_id)
+            response = client.beta.threads.delete(thread_id=thread_id)
             response_dict = response.to_dict()
             is_successful = response_dict.get("deleted", False)
             return is_successful
-        except (openai.NotFoundError):
+        except (NotFoundError):
             return True
         except (Exception):
             return False
@@ -549,15 +598,15 @@ class OpenAIAssistant(OpenAIChat):
             
             # Successfully received a response from OpenAI.
             return (True, 200, response_content)
-        except openai.RateLimitError as e:
+        except RateLimitError as e:
             return (True, 429, "Rate Limit Error: You exceeded your current OpenAI API quota or Rate Limit, please check your plan and billing details.")
-        except openai.BadRequestError as e:
+        except BadRequestError as e:
             return (True, 400, "Bad Request: Your OpenAI Secret Key is valid, but you sent a bad request.")
-        except openai.AuthenticationError as e:
+        except AuthenticationError as e:
             return (False, 401, "Authentication Failed: Invalid OpenAI Secret Key.")
-        except openai.InternalServerError as e:
+        except InternalServerError as e:
             return (False, 500, "OpenAI Internal Server Error. Unable to verify.")
-        except openai.APIError as e:
+        except APIError as e:
             return (False, 500, "API Error: " + str(e))
         except Exception as e:
             return (False, 500, "An unexpected error occurred: " + str(e))
