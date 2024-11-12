@@ -18,7 +18,7 @@ from enzy_htp.structure import Residue
 
 from .models import Experiment
 
-def find_target_protein_path(experiment: Experiment) -> str:
+def find_target_protein_path(experiment: Experiment, **kwargs) -> str:
     """Return the PDB filepath of the protein.
     
     Returns:
@@ -26,7 +26,7 @@ def find_target_protein_path(experiment: Experiment) -> str:
     """
     return experiment.pdb_filepath
 
-def find_residue_around(experiment: Experiment, target_residue: str, distance: Union[int, str]) -> str:
+def find_residue_around(experiment: Experiment, target_residue: str, distance: Union[int, str], **kwargs) -> str:
     """Find the residues around a specific residue.
     
     Args:
@@ -54,7 +54,7 @@ def find_residue_around(experiment: Experiment, target_residue: str, distance: U
         _LOGGER.error(e)
         return str()
 
-def find_residue_by_name(experiment: Experiment, name: str) -> str:
+def find_residue_by_name(experiment: Experiment, name: str, **kwargs) -> str:
     """Find the key of a residue by its name.
     
     Args:

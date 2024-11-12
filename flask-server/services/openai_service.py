@@ -16,6 +16,7 @@ from typing_extensions import override
 
 from inspect import signature
 from time import sleep
+from json import loads
 
 from openai import (
     OpenAI,
@@ -222,18 +223,22 @@ class AssistantFunction():
     description: str
     parameters: List[FunctionParameter]
     mapped_callable: Callable
+    tool_function_callable_kwargs: Dict[str, Any]
 
-    def __init__(self, function_definition_dict: dict, tool_function_mapper: Dict[str, Callable] = dict()):
+    def __init__(self, function_definition_dict: dict, tool_function_mapper: Dict[str, Callable] = dict(), tool_function_callable_kwargs: Dict[str, Any] = dict()):
         """Initialize OpenAI Assistant Function Tool with definition dictionary.
         
         Args:
             function_definition_dict (dict): The definition dictionary of OpenAI Assistant Function Tool.
             tool_function_mapper (Dict[str, Callable]): A mapper to associate a `tool_function` defined in the Assistant with a python function produces the output value.
+            tool_function_callable_kwargs (Dict[str, Callable]): A dict of additional keyword arguments to be passed to the tool function callables.
         """
         self.name = function_definition_dict.get("name", str())
         self.description = function_definition_dict.get("description", str())
         self.parameters = FunctionParameter.parse_function_parameters(parameters_dict=function_definition_dict.get("parameters", dict()))
         self.mapped_callable = tool_function_mapper.get(self.name)
+        self.tool_function_callable_kwargs = tool_function_callable_kwargs
+        return
 
     def keyword_arguments(self) -> Dict[str, Any]:
         """Export a dictionary containing keyword arguments associated with the function."""
@@ -318,10 +323,16 @@ class EventHandler(AssistantEventHandler):
     def handle_requires_action(self, data: Run, run_id: str):
         tool_outputs = []
         for tool in data.required_action.submit_tool_outputs.tool_calls:
+            tool_arguments = dict()
+            try:
+                tool_arguments = loads(tool.function.arguments)
+            except:
+                pass
             filtered_functions = list(filter(lambda func: func.name==tool.function.name, self.functions))
             if (len(filtered_functions) > 0):
                 called_function = filtered_functions[0]
-                tool_outputs.append({"tool_call_id": tool.id, "output": called_function.mapped_callable()}) # TODO (Zhong): Integrate mapped callables.
+                tool_arguments.update(called_function.tool_function_callable_kwargs)
+                tool_outputs.append({"tool_call_id": tool.id, "output": called_function.mapped_callable(**tool_arguments)}) # TODO (Zhong): Integrate mapped callables.
             continue
         # Submit all tool_outputs at the same time
         self.submit_tool_outputs(tool_outputs, run_id)
@@ -348,7 +359,7 @@ class OpenAIAssistant(OpenAIChat):
 
     functions: List[AssistantFunction]
 
-    def __init__(self, openai_secret_key: str, assistant_name: str = str(), instructions: str = str(), model: str = "gpt-3.5-turbo", tools: List[dict] = list(), tool_function_mapper: Dict[str, Callable] = dict(), thread_id: str = str(), conversation_mode: bool = False, **kwargs) -> None:
+    def __init__(self, openai_secret_key: str, assistant_name: str = str(), instructions: str = str(), model: str = "gpt-3.5-turbo", tools: List[dict] = list(), tool_function_mapper: Dict[str, Callable] = dict(), tool_function_callable_kwargs: Dict[str, Any] = dict(), thread_id: str = str(), conversation_mode: bool = False, **kwargs) -> None:
         """
         Initializes the service with the OpenAI API key and configuration for using specific GPT models.
 
@@ -362,6 +373,7 @@ class OpenAIAssistant(OpenAIChat):
             tools (list, optional) : A list of tool enabled on the assistant. There can be a maximum of 128 tools per assistant.
                 Tools can be of types code_interpreter, file_search, or function.
             tool_function_mapper (Dict[str, Callable]): A mapper to associate a `tool_function` defined in the Assistant with a python function produces the output value.
+            tool_function_callable_kwargs (Dict[str, Callable]): A dict of additional keyword arguments to be passed to the tool function callables.
             thread_id (str, optional): The identifier of a context thread, which can be referenced in OpenAI API endpoints.
             conversation_mode (bool): If True, retains the conversation context. If `thread_id` is provided, this value is set to True. Default is False.
             **kwargs: Additional arguments to customize the API calls.
@@ -454,6 +466,7 @@ class OpenAIAssistant(OpenAIChat):
             is_successful (bool): Indidate if the messages are successfully retrieved.
             messages (list): A list of simplified messages retrieved from the OpenAI server.
         """
+        # TODO (Zhong): Apply a unified exception handler?
         try:
             client = OpenAI(api_key=openai_secret_key)
             thread_messages = client.beta.threads.messages.list(thread_id=thread_id, limit=limit).data

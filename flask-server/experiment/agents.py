@@ -69,6 +69,9 @@ class QuestionAnalyzerAssistant(OpenAIAssistant):
             tool_function_mapper=TOOL_FUNCTION_MAPPER,
             thread_id=thread_id,
             conversation_mode=conversation_mode,
+            tool_function_callable_kwargs={
+                "experiment": experiment
+            },
         )
 
 class MetricsPlannerAssistant(OpenAIAssistant):
@@ -108,6 +111,9 @@ class MetricsPlannerAssistant(OpenAIAssistant):
             tool_function_mapper=TOOL_FUNCTION_MAPPER,
             thread_id=thread_id,
             conversation_mode=conversation_mode,
+            tool_function_callable_kwargs={
+                "experiment": experiment
+            },
         )
 
 class MutantPlannerAssistant(OpenAIAssistant):
@@ -135,6 +141,9 @@ class MutantPlannerAssistant(OpenAIAssistant):
             model=MODEL_VERSION,
             thread_id=thread_id,
             conversation_mode=conversation_mode,
+            tool_function_callable_kwargs={
+                "experiment": experiment
+            },
         )
 
 class TimezoneConsultantAssistant(OpenAIAssistant):
