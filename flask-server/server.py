@@ -49,5 +49,5 @@ if __name__ == "__main__":
     app.run(host=config.APP_HOST,
         port=5000,
         debug=True,
-        # ssl_context=ssl_context,
+        ssl_context=ssl_context,
     )

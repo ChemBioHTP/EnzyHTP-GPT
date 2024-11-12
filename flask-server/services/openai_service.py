@@ -247,6 +247,9 @@ class AssistantFunction():
             kwargs_dict[param.key] = param.value
             continue
         return kwargs_dict
+    
+    def __str__(self):
+        return f"AssistantFunction({self.name})"
 
 class EventHandler(AssistantEventHandler):
     client: OpenAI
@@ -263,7 +266,8 @@ class EventHandler(AssistantEventHandler):
         """Callback that is fired for every Server-Sent-Event"""
         # Retrieve events that are denoted with 'requires_action'
         # since these will have our tool_calls
-        if event.event == ThreadRunRequiresAction.event:
+        if event.event == "thread.run.requires_action":
+            # print("Require action!")
             run_id = event.data.id  # Retrieve the run ID from the event data
             self.handle_requires_action(event.data, run_id)
         pass
@@ -313,16 +317,20 @@ class EventHandler(AssistantEventHandler):
         """Callback that is fired when a tool call delta is encountered"""
         if delta.type == 'code_interpreter':
             if delta.code_interpreter.input:
-                print(delta.code_interpreter.input, end="", flush=True)
+                # print(delta.code_interpreter.input, end="", flush=True)
+                pass
             if delta.code_interpreter.outputs:
-                print(f"\n\noutput >", flush=True)
+                # print(f"\n\noutput >", flush=True)
+                pass
                 for output in delta.code_interpreter.outputs:
                     if output.type == "logs":
-                        print(f"\n{output.logs}", flush=True)
+                        # print(f"\n{output.logs}", flush=True)
+                        pass
  
     def handle_requires_action(self, data: Run, run_id: str):
         tool_outputs = []
         for tool in data.required_action.submit_tool_outputs.tool_calls:
+            # print(tool)
             tool_arguments = dict()
             try:
                 tool_arguments = loads(tool.function.arguments)
@@ -331,10 +339,13 @@ class EventHandler(AssistantEventHandler):
             filtered_functions = list(filter(lambda func: func.name==tool.function.name, self.functions))
             if (len(filtered_functions) > 0):
                 called_function = filtered_functions[0]
+                # print(f"Mapped functions: {called_function}")
+                # print(f"Arguments: {called_function.tool_function_callable_kwargs}")
                 tool_arguments.update(called_function.tool_function_callable_kwargs)
-                tool_outputs.append({"tool_call_id": tool.id, "output": called_function.mapped_callable(**tool_arguments)}) # TODO (Zhong): Integrate mapped callables.
+                tool_outputs.append({"tool_call_id": tool.id, "output": called_function.mapped_callable(**tool_arguments)})
             continue
         # Submit all tool_outputs at the same time
+        # print(f"Tool outputs: {tool_outputs}")
         self.submit_tool_outputs(tool_outputs, run_id)
  
     def submit_tool_outputs(self, tool_outputs: list, run_id: str):
@@ -345,9 +356,10 @@ class EventHandler(AssistantEventHandler):
             tool_outputs=tool_outputs,
             event_handler=EventHandler(self.client, self.functions),
         ) as stream:
-            for text in stream.text_deltas:
-                print(text, end="", flush=True)
-                print()
+            # for text in stream.text_deltas:
+            #     print(text, end="", flush=True)
+            #     print()
+            stream.until_done()
 
 class OpenAIAssistant(OpenAIChat):
     """Handles interactions with OpenAI's Assistant API, particularly GPT models."""
@@ -393,7 +405,8 @@ class OpenAIAssistant(OpenAIChat):
 
         function_tools = filter(lambda tool: tool.get("type")=="function", tools)
         self.functions = [
-            AssistantFunction(function_definition_dict=function, tool_function_mapper=tool_function_mapper)
+            AssistantFunction(function_definition_dict=function["function"], tool_function_mapper=tool_function_mapper,
+                tool_function_callable_kwargs=tool_function_callable_kwargs)
             for function in function_tools
         ]
 
@@ -506,7 +519,7 @@ class OpenAIAssistant(OpenAIChat):
         except (Exception):
             return False
     
-    def __run_thread(self, prompt: str, thread: Thread = None) -> Run:
+    def __run_thread(self, prompt: str, thread: Thread = None) -> None:
         """Sends a prompt to GPT assistant and retrieves the response.
 
         Args:
@@ -514,38 +527,36 @@ class OpenAIAssistant(OpenAIChat):
             thread (Thread, optional): The thread instance where the conversation to be held. Default None.
                                     If the assistant is not in conversation_mode, the thread instance should be provided.
 
-        Returns:
-            run (openai.types.beta.threads.Run): The created threads.Run instance.
+        # Returns:
+        #     run (openai.types.beta.threads.Run): The created threads.Run instance.
         """
         if (thread == None and self.conversation_mode):
             thread = self.thread
         elif (thread == None and not self.conversation_mode):
             raise Exception("The Thread instance should be provided if the assistant is not in conversation_mode.")
+        
+        runs: List[Run] = self.client.beta.threads.runs.list(thread_id=thread.id).data
+        latest_run = runs[0]
+        if (latest_run.status in PENDING_STATUS_LIST): # If the latest Run instance is in progress, cancel it.
+            _ = self.client.beta.threads.runs.cancel(run_id=latest_run.id, thread_id=thread.id)
 
         out_message = self.client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
             content=prompt
         )
-        run = self.client.beta.threads.runs.create_and_poll(
-            thread_id=thread.id,
+        with self.client.beta.threads.runs.stream(
             assistant_id=self.assistant.id,
-        )
+            thread_id=thread.id,
+            event_handler=EventHandler(self.client, self.functions)
+        ) as stream:
+            stream.until_done()
+        return
 
-        # TODO (Zhong): Implement the streaming runs.
-        # with self.client.beta.threads.runs.stream(
-        #     assistant_id=self.assistant.id,
-        #     thread_id=thread.id,
-        #     event_handler=EventHandler(self.client)
-        # ) as stream:
-        #     stream.until_done()
-        return run
-
-    def __retrieve_response_content(self, run: Run, thread: Thread = None):
+    def __retrieve_response_content(self, thread: Thread = None):
         """Wait for the completion of the Run instance and retrieve its response content.
         
         Args:
-            run (openai.types.beta.threads.Run): An in_progress threads.Run instance.
             thread (Thread, optional): The thread instance where the conversation to be held. Default None.
                                     If the assistant is not in conversation_mode, the thread instance should be provided.
 
@@ -556,15 +567,6 @@ class OpenAIAssistant(OpenAIChat):
             thread = self.thread
         elif (thread == None and not self.conversation_mode):
             raise Exception("The Thread instance should be provided if the assistant is not in conversation_mode.")
-
-        for i in range(0, DEFAULT_TIMEOUT_LIMIT, DEFAULT_REFRESH_INTERVAL):
-            if (run.status not in TERMINAL_STATUS_LIST):
-                sleep(DEFAULT_REFRESH_INTERVAL)
-                if i == DEFAULT_TIMEOUT_LIMIT - DEFAULT_REFRESH_INTERVAL:
-                    raise TimeoutError("Waiting for response timeout.")
-                continue
-            else:
-                break
 
         # Update the messages of the service after the prompt is successfully processed and parsed.
         retrived_messages = self.client.beta.threads.messages.list(
@@ -594,19 +596,18 @@ class OpenAIAssistant(OpenAIChat):
                     "role": "user",
                     "content": prompt,
                 }
-                run = self.__run_thread(prompt=prompt)
+                self.__run_thread(prompt=prompt)
 
-                response_content = self.__retrieve_response_content(run=run)
-                if (run.status == COMPLETED_STATUS):
-                    self.messages.append(user_message)
-                    self.messages.append({
-                        "role": "assistant",
-                        "content": response_content,
-                    })
+                response_content = self.__retrieve_response_content()
+                self.messages.append(user_message)
+                self.messages.append({
+                    "role": "assistant",
+                    "content": response_content,
+                })
             else:
                 thread = self.client.beta.threads.create()
-                run = self.__run_thread(prompt=prompt, thread=thread)
-                response_content = self.__retrieve_response_content(run=run, thread=thread)
+                self.__run_thread(prompt=prompt, thread=thread)
+                response_content = self.__retrieve_response_content(thread=thread)
                 _ = __class__.delete_thread(openai_secret_key=self.client.api_key, thread_id=thread.id)
             
             # Successfully received a response from OpenAI.
@@ -615,6 +616,7 @@ class OpenAIAssistant(OpenAIChat):
             return (True, 429, "Rate Limit Error: You exceeded your current OpenAI API quota or Rate Limit, please check your plan and billing details.")
         except BadRequestError as e:
             return (True, 400, "Bad Request: Your OpenAI Secret Key is valid, but you sent a bad request.")
+            # raise e
         except AuthenticationError as e:
             return (False, 401, "Authentication Failed: Invalid OpenAI Secret Key.")
         except InternalServerError as e:

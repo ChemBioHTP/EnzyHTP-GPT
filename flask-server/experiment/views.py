@@ -450,6 +450,7 @@ def experiment_assistants_post(experiment_id: str):
         openai_secret_key=user.openai_secret_key, 
         thread_id=experiment.current_thread_id, 
         conversation_mode=True,
+        experiment=experiment,
     )
     # print(f"Current Assistant: {current_assistant.assistant.name}")
     
