@@ -33,7 +33,7 @@ from auth.views import (
 from context import mongo, login_manager
 from config import BASEDIR, TOKEN_EXPIRES_DELTA, WORKSHEET_MUTATION_COLUMN_NAME, APP_HOST
 from services import OpenAIChat, OpenAIAssistant
-from .agents import QuestionAnalyzerAssistant, MetricsPlannerAssistant, MutantPlannerAssistant, AGENT_MAPPER
+from .agents import AGENT_MAPPER, DefinedAgent
 
 # Here put enzy_htp modules.
 from enzy_htp.workflow.config import StatusCode
@@ -57,6 +57,7 @@ class ExperimentIndexResponse():
         for exp in experiments:
             exp_dict = exp.as_dict(stringfy_time=True)
             del exp_dict["user_id"]
+            exp_dict["status_text"] = StatusCode.status_text_mapper[exp.status]
             self.experiments.append(exp_dict)
             continue
         return
@@ -399,6 +400,8 @@ def experiment_update_progress(experiment_id: str):
             message=message)
         return Response(response=response_info.serialize(), status=400, mimetype="application/json")
 
+#region OpenAI Assistants
+
 @experiment_blueprint.route("/<experiment_id>/assistants", methods=["GET"])
 @login_required
 def experiment_assistants_get_messages(experiment_id: str):
@@ -446,7 +449,7 @@ def experiment_assistants_post(experiment_id: str):
     user_prompt = request.form.get("prompt", str())
     current_assistant_class = AGENT_MAPPER[experiment.current_assistant_type % len(AGENT_MAPPER)]
     # print([current_assistant_class])
-    current_assistant: OpenAIAssistant = current_assistant_class(
+    current_assistant: DefinedAgent = current_assistant_class(
         openai_secret_key=user.openai_secret_key, 
         thread_id=experiment.current_thread_id, 
         conversation_mode=True,
@@ -463,9 +466,8 @@ def experiment_assistants_post(experiment_id: str):
     response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
         is_successful=is_openai_key_valid, 
         message=f"Received response from OpenAI.",
-        # mutation_pattern=mutation_pattern,
-        # mutant_string_list=mutant_string_list
         response_content=response_content,
+        tool_call_result=current_assistant.latest_tool_call_result,
     )
 
     # Update the current_assistant_type and current_thread_id to database.
@@ -557,6 +559,8 @@ def experiment_assistants_clear(experiment_id: str):
             is_successful=is_successful,
             message="Your conversation is unable to be cleared at present.")
         return Response(response=response_info.serialize(), status=403, mimetype="application/json")
+
+#endregion
 
 @experiment_blueprint.route("/<experiment_id>/results", methods=["POST"])
 @jwt_required()

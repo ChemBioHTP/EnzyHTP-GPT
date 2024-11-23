@@ -16,6 +16,7 @@ Three OpenAI Assistant Agents:
 from os import path
 from json import load
 from typing import List, Union
+from typing_extensions import Annotated
 
 from config import BASEDIR
 from services import OpenAIAssistant
@@ -178,3 +179,11 @@ AGENT_MAPPER = {
     1: MetricsPlannerAssistant,
     2: MutantPlannerAssistant,
 }
+
+DefinedAgent = Annotated[
+    Union[
+        QuestionAnalyzerAssistant,
+        MetricsPlannerAssistant,
+        MutantPlannerAssistant,
+    ]
+] # type: ignore

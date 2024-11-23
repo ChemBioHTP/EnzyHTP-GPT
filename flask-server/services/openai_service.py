@@ -52,8 +52,7 @@ class OpenAIChat:
     conversation_mode: bool
 
     def __init__(self, openai_secret_key: str, model: str = "gpt-3.5-turbo", conversation_mode: bool = False, **kwargs) -> None:
-        """
-        Initializes the service with the OpenAI API key and configuration for using specific GPT models.
+        """Initializes the service with the OpenAI API key and configuration for using specific GPT models.
 
         Args:
             openai_secret_key (str): API key for accessing OpenAI services.
@@ -252,13 +251,12 @@ class AssistantFunction():
         return f"AssistantFunction({self.name})"
 
 class EventHandler(AssistantEventHandler):
-    client: OpenAI
     functions: List[AssistantFunction]
+    assistant_service: OpenAIAssistant
 
-    def __init__(self, client: OpenAI, functions: List[AssistantFunction] = list()):
+    def __init__(self, assistant_service: OpenAIAssistant):
         super().__init__()
-        self.client = client
-        self.functions = functions
+        self.assistant_service = assistant_service
         return
 
     @override
@@ -336,13 +334,15 @@ class EventHandler(AssistantEventHandler):
                 tool_arguments = loads(tool.function.arguments)
             except:
                 pass
-            filtered_functions = list(filter(lambda func: func.name==tool.function.name, self.functions))
+            filtered_functions = list(filter(lambda func: func.name==tool.function.name, self.assistant_service.functions))
             if (len(filtered_functions) > 0):
                 called_function = filtered_functions[0]
                 # print(f"Mapped functions: {called_function}")
                 # print(f"Arguments: {called_function.tool_function_callable_kwargs}")
                 tool_arguments.update(called_function.tool_function_callable_kwargs)
-                tool_outputs.append({"tool_call_id": tool.id, "output": called_function.mapped_callable(**tool_arguments)})
+                is_successful, function_output = called_function.mapped_callable(**tool_arguments)
+                tool_outputs.append({"tool_call_id": tool.id, "output": function_output})
+                self.assistant_service.latest_tool_call_result[tool.function.name] = is_successful
             continue
         # Submit all tool_outputs at the same time
         # print(f"Tool outputs: {tool_outputs}")
@@ -350,11 +350,11 @@ class EventHandler(AssistantEventHandler):
  
     def submit_tool_outputs(self, tool_outputs: list, run_id: str):
         # Use the submit_tool_outputs_stream helper
-        with self.client.beta.threads.runs.submit_tool_outputs_stream(
+        with self.assistant_service.client.beta.threads.runs.submit_tool_outputs_stream(
             thread_id=self.current_run.thread_id,
             run_id=self.current_run.id,
             tool_outputs=tool_outputs,
-            event_handler=EventHandler(self.client, self.functions),
+            event_handler=EventHandler(self.assistant_service),
         ) as stream:
             # for text in stream.text_deltas:
             #     print(text, end="", flush=True)
@@ -370,6 +370,7 @@ class OpenAIAssistant(OpenAIChat):
     __thread: Thread
 
     functions: List[AssistantFunction]
+    latest_tool_call_result: Dict[str, bool]
 
     def __init__(self, openai_secret_key: str, assistant_name: str = str(), instructions: str = str(), model: str = "gpt-3.5-turbo", tools: List[dict] = list(), tool_function_mapper: Dict[str, Callable] = dict(), tool_function_callable_kwargs: Dict[str, Any] = dict(), thread_id: str = str(), conversation_mode: bool = False, **kwargs) -> None:
         """
@@ -409,6 +410,7 @@ class OpenAIAssistant(OpenAIChat):
                 tool_function_callable_kwargs=tool_function_callable_kwargs)
             for function in function_tools
         ]
+        self.latest_tool_call_result = dict()
 
         if (thread_id):
             conversation_mode = True
@@ -591,6 +593,7 @@ class OpenAIAssistant(OpenAIChat):
 
         try:
             response_content = str()
+            self.latest_tool_call_result.clear()
             if (self.conversation_mode):
                 user_message = {
                     "role": "user",
