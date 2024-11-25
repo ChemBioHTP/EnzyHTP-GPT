@@ -550,7 +550,7 @@ class OpenAIAssistant(OpenAIChat):
         with self.client.beta.threads.runs.stream(
             assistant_id=self.assistant.id,
             thread_id=thread.id,
-            event_handler=EventHandler(self.client, self.functions)
+            event_handler=EventHandler(self)
         ) as stream:
             stream.until_done()
         return

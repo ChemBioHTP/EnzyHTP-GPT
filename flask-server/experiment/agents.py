@@ -185,5 +185,6 @@ DefinedAgent = Annotated[
         QuestionAnalyzerAssistant,
         MetricsPlannerAssistant,
         MutantPlannerAssistant,
-    ]
-] # type: ignore
+    ],
+    "DefinedAgent",
+]

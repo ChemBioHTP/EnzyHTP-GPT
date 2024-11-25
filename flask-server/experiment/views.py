@@ -437,7 +437,9 @@ def experiment_assistants_post(experiment_id: str):
     Args:
         experiment_id (str): The identifier of an experiment instance.
     """
-    # editable_attributes = ["current_assistant_type", "current_thread_id"]
+    # When the response_content contains any element in the list, the task of this agent is confirmable.
+    confirm_signals = ["please confirm", "can finalize", "final output", "can proceed", "will proceed", "further", "to review"]
+
     user: User = current_user
     experiment = Experiment.get(experiment_id)
 
@@ -467,6 +469,7 @@ def experiment_assistants_post(experiment_id: str):
         is_successful=is_openai_key_valid, 
         message=f"Received response from OpenAI.",
         response_content=response_content,
+        confirm_button=(status_code == 200 and any(signal in response_content.lower() for signal in confirm_signals)),
         tool_call_result=current_assistant.latest_tool_call_result,
     )
 
