@@ -528,9 +528,6 @@ class OpenAIAssistant(OpenAIChat):
             prompt (str): The prompt or question to send to GPT.
             thread (Thread, optional): The thread instance where the conversation to be held. Default None.
                                     If the assistant is not in conversation_mode, the thread instance should be provided.
-
-        # Returns:
-        #     run (openai.types.beta.threads.Run): The created threads.Run instance.
         """
         if (thread == None and self.conversation_mode):
             thread = self.thread
