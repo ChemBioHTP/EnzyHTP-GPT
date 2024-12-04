@@ -22,12 +22,6 @@ app.register_blueprint(experiment_blueprint, url_prefix="/api/experiment")
 # Initialize Mail Engine.
 mail.init_app(app)
 
-# Create database tables
-# from context import db
-# app.app_context().push()
-# db.init_app(app=app)
-# db.create_all()
-
 # Initialize LoginManager.
 login_manager.init_app(app=app)
 
@@ -51,3 +45,5 @@ if __name__ == "__main__":
         debug=True,
         ssl_context=ssl_context,
     )
+
+# TODO Build RESTful API referring https://www.geeksforgeeks.org/python-build-a-rest-api-using-flask/
