@@ -1,4 +1,4 @@
-FROM continuumio/anaconda3:main
+FROM continuumio/miniconda3:main
 
 # Set the Time Zone.
 ENV TZ "US/Central"

@@ -15,12 +15,13 @@ from __future__ import annotations  # To enable the annotation that a staticmeth
 from io import BufferedReader
 from flask_login import UserMixin
 from datetime import datetime, timedelta
-from typing import List, Union, Tuple
+from typing import Any, Dict, List, Union, Tuple
 from json import loads, dumps
 from plum import dispatch
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 import os
 import uuid
+import re
 
 # Here put local imports.
 from context import mongo
@@ -146,8 +147,8 @@ class Experiment():
             message (str): A string value describing the updating.
         """
         updated_attrs = list()
-        nonexistent_attrs = list()
         blocked_attrs = list()
+        nonexistent_attrs = list()
 
         for field_name, field_value in mapper.items():
             if (hasattr(self, field_name)):
@@ -174,7 +175,6 @@ class Experiment():
             message += f"Nonexistent attribute(s): {', '.join(nonexistent_attrs)}. "
 
         return updated_attrs, blocked_attrs, nonexistent_attrs, message
-
 
     def as_dict(self, stringfy_time: bool = False) -> dict:
         """Serialize the current instance to a dictionary.
@@ -423,12 +423,12 @@ class Experiment():
             message = "Getting Mutant PDB file string succeeded!"
         return is_successful, tag_string_pairs, message
 
-    def get_mutants_string_list(self) -> Tuple[bool, str, str]:
+    def get_mutants_string_list(self) -> Tuple[bool, list, str]:
         """Get a list of mutant string concerning the current experiment instance.
 
         Returns:
             is_successful (bool): Flag indicating if the update is successful.
-            mutant_string_list (str): A list of mutant string assigned by the mutation pattern. None if the pattern is invalid.
+            mutant_string_list (list): A list of mutant string assigned by the mutation pattern. None if the pattern is invalid.
             message (str): The message describing the updating.
         """
         mutant_string_list = list()
@@ -438,7 +438,7 @@ class Experiment():
                 mutant_string_list.append(get_mutant_name_str(mut))
         return is_successful, mutant_string_list, message
 
-    def update_mutation_pattern(self, mutation_pattern: str, freeze: bool = False) -> Tuple[bool, str, str]:
+    def update_mutation_pattern(self, mutation_pattern: str, freeze: bool = False) -> Tuple[bool, list, str]:
         """Update the mutation pattern of the current experiment instance.
         If the mutation pattern can be successfully parsed, the update to mutation_pattern takes place; otherwise the mutation pattern is not updated.
         
@@ -448,7 +448,7 @@ class Experiment():
 
         Returns:
             is_successful (bool): Flag indicating if the update is successful.
-            mutant_string (str): The mutants assigned by the mutation pattern. None if the pattern is invalid.
+            mutant_string_list (str): The mutants assigned by the mutation pattern. None if the pattern is invalid.
             message (str): The message describing the updating.
         """
         self.mutation_pattern = mutation_pattern
@@ -460,6 +460,38 @@ class Experiment():
             # db.session.commit()
         message = message.replace("parsing", "update")
         return is_successful, mutant_string_list, message
+
+    def parse_agent_response_content(self, response_content: str) -> Tuple[bool, str]:
+        """Update the experiment configuration information according to the response_content from GPT Agents.
+        
+        Args:
+            response_content (str): The response content from GPT.
+
+        Returns:
+            configuration_updated (bool): Indicate if the experiment configuration is updated by the response_content from GPT Agents.
+            updated_attrs (list): A list of updated attributes.
+        """
+        editable_attrs = ["metrics"]
+
+        match_rule = r"```json\n(.*?)\n```"
+
+        match_results = re.search(match_rule, response_content, re.DOTALL)
+        if (match_results):
+            json_text = match_results[0]
+            configuration_mapper: Dict[str, Any] = loads(json_text)
+
+            is_mutation_updated = False
+            mutation_field_name = "mutation_pattern"
+            if (mutation_pattern:=configuration_mapper.get(mutation_field_name)):
+                is_mutation_updated, mutant_string_list, message = self.update_mutation_pattern(mutation_pattern=mutation_pattern, freeze=True)
+                del configuration_mapper[mutation_field_name]
+
+            updated_attrs, blocked_attrs, nonexistent_attrs, message = self.update_attributes(mapper=configuration_mapper, editable_attrs=editable_attrs)
+            if (is_mutation_updated):
+                updated_attrs.append(mutation_field_name)
+            return True, updated_attrs
+        else:
+            return False, list()
 
     def post_result(self, result_record: dict):
         """Add new result record to the experiment.

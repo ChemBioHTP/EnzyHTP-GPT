@@ -332,29 +332,41 @@ def experiment_update_profile(experiment_id: str):
     if (experiment.user_id != user.id):
         return forbidden_response(user, experiment)
     
-    editable_profile_fields = ['name', 'description'] # Only fields in the list are editable.
+    editable_attrs = ['name', 'description'] # Only fields in the list are editable.
     
-    updated_profile_fields, blocked_profile_fields, nonexistent_profile_fields, message = experiment.update_attributes(
-        mapper=request.form, editable_attrs=editable_profile_fields
+    updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
+        mapper=request.form, editable_attrs=editable_attrs
     )
 
-    if (not (updated_profile_fields or blocked_profile_fields or nonexistent_profile_fields)):
+    if (not (updated_attrs or blocked_attrs or nonexistent_attrs)):
         response_info = ExperimentBehaviourResponseInfo(
             experiment, user,
             is_successful=True,
-            message='Nothing to be updated.')
+            message='Nothing to be updated.',
+            updated_attrs=updated_attrs,
+            blocked_attrs=blocked_attrs,
+            nonexistent_attrs=nonexistent_attrs,
+        )
         return Response(response=response_info.serialize(), status=200, mimetype="application/json")
-    elif (updated_profile_fields):
+    elif (updated_attrs):
         response_info = ExperimentBehaviourResponseInfo(
             experiment, user,
             is_successful=True,
-            message=message)
+            message=message,
+            updated_attrs=updated_attrs,
+            blocked_attrs=blocked_attrs,
+            nonexistent_attrs=nonexistent_attrs,
+        )
         return Response(response=response_info.serialize(), status=200, mimetype="application/json")
     else:
         response_info = ExperimentBehaviourResponseInfo(
             experiment, user,
             is_successful=False,
-            message=message)
+            message=message,
+            updated_attrs=updated_attrs,
+            blocked_attrs=blocked_attrs,
+            nonexistent_attrs=nonexistent_attrs,
+        )
         return Response(response=response_info.serialize(), status=400, mimetype="application/json")
 
 @experiment_blueprint.route("/<experiment_id>", methods=["PATCH"])
@@ -373,31 +385,43 @@ def experiment_update_progress(experiment_id: str):
     if (user is None or experiment.user_id != user.id):
         return forbidden_response(user, experiment)
     
-    editable_profile_fields = ['status', 'progress'] # Only fields in the list are editable.
+    editable_attrs = ['status', 'progress'] # Only fields in the list are editable.
     
-    updated_profile_fields, blocked_profile_fields, nonexistent_profile_fields, message = experiment.update_attributes(
-        experiment, mapper=request.form, editable_attrs=editable_profile_fields
+    updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
+        experiment, mapper=request.form, editable_attrs=editable_attrs
     )
 
-    if (not (updated_profile_fields or blocked_profile_fields or nonexistent_profile_fields)):
+    if (not (updated_attrs or blocked_attrs or nonexistent_attrs)):
         response_info = ExperimentBehaviourResponseInfo(
             experiment, user,
             is_successful=True,
-            message='Nothing to be updated.')
+            message='Nothing to be updated.',
+            updated_attrs=updated_attrs,
+            blocked_attrs=blocked_attrs,
+            nonexistent_attrs=nonexistent_attrs,
+        )
         return Response(response=response_info.serialize(), status=200, mimetype="application/json")
-    elif (updated_profile_fields):
+    elif (updated_attrs):
         # experiment.updated_time = datetime.now()
         # db.session.commit()
         response_info = ExperimentBehaviourResponseInfo(
             experiment, user,
             is_successful=True,
-            message=message)
+            message=message,
+            updated_attrs=updated_attrs,
+            blocked_attrs=blocked_attrs,
+            nonexistent_attrs=nonexistent_attrs,
+        )
         return Response(response=response_info.serialize(), status=200, mimetype="application/json")
     else:
         response_info = ExperimentBehaviourResponseInfo(
             experiment, user,
             is_successful=False,
-            message=message)
+            message=message,
+            updated_attrs=updated_attrs,
+            blocked_attrs=blocked_attrs,
+            nonexistent_attrs=nonexistent_attrs,
+        )
         return Response(response=response_info.serialize(), status=400, mimetype="application/json")
 
 #region OpenAI Assistants
@@ -465,12 +489,15 @@ def experiment_assistants_post(experiment_id: str):
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False, message=response_content)
         return Response(response_info.serialize(), status=status_code, mimetype="application/json")
 
+    configuration_updated, updated_attributes = experiment.parse_agent_response_content(response_content=response_content)
     response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
         is_successful=is_openai_key_valid, 
-        message=f"Received response from OpenAI.",
+        message=f"Received response from OpenAI. Updates to the experiment configuration may be triggered.",
         response_content=response_content,
         confirm_button=(status_code == 200 and any(signal in response_content.lower() for signal in confirm_signals)),
         tool_call_result=current_assistant.latest_tool_call_result,
+        configuration_updated=configuration_updated,
+        updated_attributes=updated_attributes,
     )
 
     # Update the current_assistant_type and current_thread_id to database.
@@ -500,13 +527,12 @@ def experiment_assistants_toggle(experiment_id: str):
         return forbidden_response(user, experiment)
     
     experiment.current_assistant_type += 1
-    updated_profile_fields, blocked_profile_fields, nonexistent_profile_fields, message = experiment.update_attributes(
+    updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
         mapper={
             "current_assistant_type": experiment.current_assistant_type,
         },
-        # editable_attrs=editable_attributes,
     )
-    if (updated_profile_fields):
+    if (updated_attrs):
         response_info = ExperimentBehaviourResponseInfo(
             experiment, user,
             is_successful=True,
