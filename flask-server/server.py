@@ -1,7 +1,9 @@
 # Here put the import lib.
 from flask import Flask, jsonify, render_template
-
 app = Flask(__name__)
+
+from flask_restful import Api
+api = Api(app=app)
 
 import config
 app.config.from_object(config)
