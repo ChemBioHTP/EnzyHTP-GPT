@@ -2,7 +2,7 @@
 
 # Activate conda environment.
 source activate enzyhtp-gpt
-conda develop /var/bin/EnzyHTP
+export PYTHONPATH=$PYTHONPATH:/var/bin/EnzyHTP
 
 export TIME_ZONE="US/Central"
 export FLASK_ENV="production"
