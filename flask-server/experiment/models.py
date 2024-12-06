@@ -55,25 +55,9 @@ class Experiment():
         description (str): A description of the experiment (default is None).
     """
 
-    DEFAULT_METRICS = ['spi', 'rmsd']
+    __tablename__ = "experiments"
 
-    __tablename__ = 'experiments'
-    # id = db.Column(db.String(36), primary_key=True, unique=True)
-    # type = db.Column(db.Integer, nullable=False, default=0)
-    # name = db.Column(db.String(128), nullable=False, default="Experiment")
-    # slurm_job_uuid = db.Column(db.String(36), nullable=True)
-    # _status = db.Column("status", db.Integer, nullable=False, default=StatusCode.CREATED)
-    # _progress = db.Column("progress", db.Float, nullable=False, default=0.0)
-    # mutation_pattern = db.Column(db.String(256), nullable=True, default="WT")
-    # metrics = db.Column(db.String(64), nullable=True)
-    # description = db.Column(db.String(128), nullable=True)
-    # created_time = db.Column(db.DateTime, nullable=False)
-    # updated_time = db.Column(db.DateTime, nullable=False)
-    # pdb_filepath = db.Column(db.String(1024), nullable=True)
-    # user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
-    # user = db.relationship('User', backref=db.backref('experiments'))
-
-    def __init__(self, user_id: str, name: str, type: int = 0, metrics: List[str] = DEFAULT_METRICS, description: str = None, **kwargs):
+    def __init__(self, user_id: str, name: str, type: int = 0, metrics: List[str] = list(), description: str = None, **kwargs):
         """Initializes an instance of Experiment with the provided parameters.
 
         Args:
@@ -89,6 +73,7 @@ class Experiment():
         self.description = description
         self.user_id = user_id
         self.metrics = metrics
+        self.constraints = kwargs.get("constraints", list())
         self.id = kwargs.get("id", str(uuid.uuid4()))
         self.created_time = kwargs.get("created_time", datetime.now())
         self.updated_time = kwargs.get("updated_time", datetime.now())
@@ -471,13 +456,13 @@ class Experiment():
             configuration_updated (bool): Indicate if the experiment configuration is updated by the response_content from GPT Agents.
             updated_attrs (list): A list of updated attributes.
         """
-        editable_attrs = ["metrics"]
+        editable_attrs = ["metrics", "constraints"]
 
         match_rule = r"```json\n(.*?)\n```"
 
         match_results = re.search(match_rule, response_content, re.DOTALL)
         if (match_results):
-            json_text = match_results[0]
+            json_text = match_results[0].replace("```json\n", "").replace("\n```", "")
             configuration_mapper: Dict[str, Any] = loads(json_text)
 
             is_mutation_updated = False
