@@ -535,9 +535,10 @@ class OpenAIAssistant(OpenAIChat):
             raise Exception("The Thread instance should be provided if the assistant is not in conversation_mode.")
         
         runs: List[Run] = self.client.beta.threads.runs.list(thread_id=thread.id).data
-        latest_run = runs[0]
-        if (latest_run.status in PENDING_STATUS_LIST): # If the latest Run instance is in progress, cancel it.
-            _ = self.client.beta.threads.runs.cancel(run_id=latest_run.id, thread_id=thread.id)
+        if (runs):
+            latest_run = runs[0]
+            if (latest_run.status in PENDING_STATUS_LIST): # If the latest Run instance is in progress, cancel it.
+                _ = self.client.beta.threads.runs.cancel(run_id=latest_run.id, thread_id=thread.id)
 
         out_message = self.client.beta.threads.messages.create(
             thread_id=thread.id,
