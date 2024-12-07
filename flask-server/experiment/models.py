@@ -15,7 +15,7 @@ from __future__ import annotations  # To enable the annotation that a staticmeth
 from io import BufferedReader
 from flask_login import UserMixin
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Union, Tuple
+from typing import Any, Dict, List, Union, Tuple, Callable
 from json import loads, dumps
 from plum import dispatch
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
@@ -27,6 +27,7 @@ import re
 from context import mongo
 from config import EXPERIMENT_FILE_DIRECTORY, SCRATCH_FOLDER
 from auth.models import User
+from .analysis import METRICS_MAPPER
 
 # Here put enzy_htp modules.
 from enzy_htp import interface
@@ -60,14 +61,14 @@ class Experiment():
 
     __tablename__ = "experiments"
 
-    def __init__(self, user_id: str, name: str, type: int = 0, metrics: List[str] = list(), description: str = None, **kwargs):
+    def __init__(self, user_id: str, name: str, type: int = 0, metrics: List[Dict[str, Any]] = list(), description: str = None, **kwargs):
         """Initializes an instance of Experiment with the provided parameters.
 
         Args:
             user_id (int): The user ID associated with this experiment.
             name (str): The name of the experiment.
             type (int, optional): The type of the experiment (default is 0).
-            metrics (list, optional): Metrics information about what kind of analysis to be performed (default is an empty list).
+            metrics (List[Dict[str, Any]], optional): Metrics information about what kind of analysis to be performed (default is an empty list).
             description (str, optional): A description of the experiment (default is None).
             kwargs: Other keyword arguments.
         """
@@ -81,7 +82,7 @@ class Experiment():
         self.created_time = kwargs.get("created_time", datetime.now())
         self.updated_time = kwargs.get("updated_time", datetime.now())
         self.pdb_filepath = kwargs.get("pdb_filepath", None)
-        self.results = kwargs.get("results", list())
+        self.results: List[dict] = kwargs.get("results", list())
         self.slurm_job_uuid = kwargs.get("slurm_job_uuid", None)
         self._status = kwargs.get("status", StatusCode.CREATED)
         self._progress = kwargs.get("progress", 0.0)
@@ -206,7 +207,7 @@ class Experiment():
         return dumps(dict_data)
     
     def __repr__(self):
-        return f"Experiment('{self.id}', '{self.name}')"
+        return f"Experiment('{self.id}', '{self.name}', '{self.pdb_filepath}')"
 
     @property
     def status(self):
@@ -234,6 +235,12 @@ class Experiment():
     def mutant_count(self) -> int:
         is_successful, mutants, message = self.get_mutants()
         return len(mutants)
+
+    @property
+    def directory(self) -> str:
+        """The directory where the file of this experiment is saved."""
+        path = os.path.join(EXPERIMENT_FILE_DIRECTORY, self.id)
+        return path
 
     @staticmethod
     def validate_pdb(pdb_file: str | FileStorage) -> Tuple[bool, str]:
@@ -298,12 +305,11 @@ class Experiment():
         """
         if (fs.get_file_ext(pdb_file.filename).lower() != ".pdb"):
             return False, "This is not a PDB file."
-        save_folder = os.path.join(EXPERIMENT_FILE_DIRECTORY, self.id)
-        fs.safe_mkdir(save_folder)
+        fs.safe_mkdir(self.directory)
         is_valid, message = Experiment.validate_pdb(pdb_file)
 
         if (is_valid):
-            filepath = os.path.join(save_folder, pdb_file.filename)
+            filepath = os.path.join(self.directory, pdb_file.filename)
             if (self.pdb_filepath and os.path.isfile(self.pdb_filepath)):
                 fs.safe_rm(self.pdb_filepath) # Delete existing file.
             pdb_file.save(filepath)
@@ -314,20 +320,53 @@ class Experiment():
 
         return is_valid, message
     
-    def analyze_ensemble(self, mutant_name: str, stru_esm: StructureEnsemble):
+    def analyze_structure_ensemble(self, mutant_name: str, stru_esm: StructureEnsemble) -> Dict[str, bool]:
         """Perform the analysis based on the given StructureEnsemble instance.
         
         Args:
             mutant_name (str): The name of the mutant associated with the trajectory. e.g.: 'A##B C##D'.
             stru_esm (StructureEnsemble): The StructureEnsemble instance for analysis.
+
+        Returns:
+            analysis_record_dict (Dict[str, bool]): A dictionary recording success and failure of each analysis.
         """
-        pass
+        result_dict = {"mutant": mutant_name}
+        analysis_record_dict = dict()
+        for metric in self.metrics:
+            analysis_tag = metric.get("name")   # The name of the analysis to be performed.
+            try:
+                analysis_params: Dict[str, Any] = metric.get("arguments", dict())
+                if (analysis_tag):
+                    analysis_callable = METRICS_MAPPER.get(analysis_tag)    # Get analysis callable.
+                    if (isinstance(analysis_callable, Callable)):
+                        analysis_params.update({    # Compose analysis arguments.
+                            "stru_esm": stru_esm,
+                        })
+                        result_dict[analysis_tag] = analysis_callable(**analysis_params)    # Perform analysis and record result.
+                        analysis_record_dict[analysis_tag] = True
+            except Exception as e:
+                message = f"Exception raised when analyzing '{analysis_tag}': {e}"
+                analysis_record_dict[analysis_tag] = False
+                _LOGGER.error(message)
+            finally:
+                continue
+
+        # Attempt to find the matched dictionary in the `results` field and update it with the latest result,
+        # otherwise, append the `results` field.
+        target_result_dict = next((result_item for result_item in self.results if result_item.get("mutant") == mutant_name), None)
+        if target_result_dict is not None:
+            target_result_dict.update(result_dict)
+        else:
+            self.results.append(result_dict)
+        db.experiments.update_one({"id": self.id}, {"$set": {"results": self.results}})
+
+        return analysis_record_dict
 
     def validate_ensemble(self, prmtop_file: str | FileStorage, traj_file: str | FileStorage) -> Tuple[bool, str]:
         """Validate the prmtop file and trajectory file sent from the user or the computing cluster."""
         return True, "The trajectory file is valid."
     
-    def update_ensemble_analysis(self, mutant_name: str, prmtop_file: FileStorage, traj_file: FileStorage) -> Tuple[bool, str]:
+    def update_ensemble_and_analysis(self, mutant_name: str, prmtop_file: FileStorage, traj_file: FileStorage) -> Tuple[bool, str]:
         """Update the structure ensemble of the mutant and perform analysis.
         Invalid Trajectory file will not trigger updates to the results.
         Trajectory files will be removed after the completion of analysis.
@@ -341,7 +380,7 @@ class Experiment():
             is_valid (bool): Flag indicating the validity of the PDB file.
             message (str): The message describing the updating.
         """
-        save_folder = os.path.join(EXPERIMENT_FILE_DIRECTORY, self.id, mutant_name)
+        save_folder = os.path.join(self.directory, mutant_name)
         fs.safe_mkdir(save_folder)
         prmtop_file_path = os.path.join(save_folder, prmtop_file.name)
         traj_file_path = os.path.join(save_folder, traj_file.name)
@@ -360,8 +399,9 @@ class Experiment():
                     prmtop_path=prmtop_file_path, traj_path=traj_file_path,
                     ref_pdb=ref_pdb_path
                 )
-                self.analyze_ensemble(mutant_name=mutant_name, stru_esm=stru_esm)
+                analysis_record_dict = self.analyze_structure_ensemble(mutant_name=mutant_name, stru_esm=stru_esm)
         finally:
+            # TODO (Zhong): Generated and save ref_stru.pdb before simulation.
             fs.safe_rm(prmtop_file_path)
             fs.safe_rm(traj_file_path)
 
@@ -371,12 +411,11 @@ class Experiment():
         Args:
             remove_folder (bool): If true, remove the folder itself as well; otherwise leave the empty folder.
         """
-        save_folder = os.path.join(EXPERIMENT_FILE_DIRECTORY, self.id)
-        fs.safe_rmdir(save_folder)
+        fs.safe_rmdir(self.directory)
         if (remove_folder):
             return
         else:
-            fs.safe_mkdir(save_folder)
+            fs.safe_mkdir(self.directory)
     
     def get_mutants(self) -> Tuple[bool, list, str]:
         """Get the mutant list of the current experiment instance.

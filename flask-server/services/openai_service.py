@@ -627,6 +627,9 @@ class OpenAIAssistant(OpenAIChat):
         except Exception as e:
             return (False, 500, "An unexpected error occurred: " + str(e))
     
+    def __repr__(self):
+        return f"OpenAIAssistant('{self.assistant.name}', '{self.assistant.model}')"
+
     def __del__(self):
         try:
             _ = self.client.beta.assistants.delete(self.assistant.id)
