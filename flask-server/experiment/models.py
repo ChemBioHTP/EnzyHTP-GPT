@@ -29,17 +29,20 @@ from config import EXPERIMENT_FILE_DIRECTORY, SCRATCH_FOLDER
 from auth.models import User
 
 # Here put enzy_htp modules.
+from enzy_htp import interface
 from enzy_htp.core.general import CaptureLogging, _LOGGER
 from enzy_htp.core import (
     exception as core_exc, 
     file_system as fs
 )
-from enzy_htp.structure import PDBParser
+from enzy_htp.structure import PDBParser, StructureEnsemble
 from enzy_htp.preparation.validity import is_structure_valid
 from enzy_htp.mutation.mutation_pattern import api as pattern_api
-from enzy_htp.mutation_class import get_mutant_name_str, get_mutant_name_tag
+from enzy_htp.mutation_class import get_mutant_name_str, get_mutant_name_tag, generate_from_mutation_flag
 from enzy_htp.mutation.api import mutate_stru
 from enzy_htp.workflow.config import StatusCode
+
+sp = PDBParser()
 
 db = mongo.db
 
@@ -259,7 +262,6 @@ class Experiment():
             if (not os.path.isfile(pdb_filepath)):
                 message = "No selected file."
             else:
-                sp = PDBParser()
                 stru = sp.get_structure(pdb_filepath)
                 if (stru.num_atoms > 0):
                     is_valid, intermediate_message = is_structure_valid(stru, print_report=False)
@@ -312,6 +314,57 @@ class Experiment():
 
         return is_valid, message
     
+    def analyze_ensemble(self, mutant_name: str, stru_esm: StructureEnsemble):
+        """Perform the analysis based on the given StructureEnsemble instance.
+        
+        Args:
+            mutant_name (str): The name of the mutant associated with the trajectory. e.g.: 'A##B C##D'.
+            stru_esm (StructureEnsemble): The StructureEnsemble instance for analysis.
+        """
+        pass
+
+    def validate_ensemble(self, prmtop_file: str | FileStorage, traj_file: str | FileStorage) -> Tuple[bool, str]:
+        """Validate the prmtop file and trajectory file sent from the user or the computing cluster."""
+        return True, "The trajectory file is valid."
+    
+    def update_ensemble_analysis(self, mutant_name: str, prmtop_file: FileStorage, traj_file: FileStorage) -> Tuple[bool, str]:
+        """Update the structure ensemble of the mutant and perform analysis.
+        Invalid Trajectory file will not trigger updates to the results.
+        Trajectory files will be removed after the completion of analysis.
+
+        Args:
+            mutant_name (str): The name of the mutant associated with the trajectory. e.g.: 'A##B C##D'
+            prmtop_file (FileStorage): The FileStorage instance of the Amber prmtop file.
+            traj_file (FileStorage): The FileStorage instance of the new trajectory file.
+        
+        Returns:
+            is_valid (bool): Flag indicating the validity of the PDB file.
+            message (str): The message describing the updating.
+        """
+        save_folder = os.path.join(EXPERIMENT_FILE_DIRECTORY, self.id, mutant_name)
+        fs.safe_mkdir(save_folder)
+        prmtop_file_path = os.path.join(save_folder, prmtop_file.name)
+        traj_file_path = os.path.join(save_folder, traj_file.name)
+        ref_pdb_path = os.path.join(save_folder, "ref_stru.pdb")
+        try:
+            prmtop_file.save(prmtop_file_path)
+            traj_file.save(traj_file_path)
+            is_valid, validation_message = self.validate_ensemble(prmtop_file=prmtop_file_path, traj_file=traj_file_path)
+            if (is_valid):
+                # Construct the reference structure PDB file.
+                mutant = [generate_from_mutation_flag(mutation_str) for mutation_str in mutant_name.split()]
+                ref_stru = mutate_stru(sp.get_structure(self.pdb_filepath), mutant=mutant)
+                sp.save_structure(outfile=ref_pdb_path, stru=ref_stru)
+
+                stru_esm = interface.amber.load_traj(
+                    prmtop_path=prmtop_file_path, traj_path=traj_file_path,
+                    ref_pdb=ref_pdb_path
+                )
+                self.analyze_ensemble(mutant_name=mutant_name, stru_esm=stru_esm)
+        finally:
+            fs.safe_rm(prmtop_file_path)
+            fs.safe_rm(traj_file_path)
+
     def clear_folder(self, remove_folder: bool = False):
         """Remove the folder of the current directory.
         
@@ -340,7 +393,7 @@ class Experiment():
             message = "The current experiment isn't associated with any PDB file."
             return is_successful, mutants, message
 
-        protein_stru = PDBParser().get_structure(self.pdb_filepath)
+        protein_stru = sp.get_structure(self.pdb_filepath)
         try:
             mutants = pattern_api.decode_mutation_pattern(protein_stru, self.mutation_pattern)
         except pattern_api.InvalidMutationPatternSyntax as e:
@@ -374,7 +427,6 @@ class Experiment():
         is_successful, mutants, message = self.get_mutants()
         if (is_successful):
             try:
-                sp = PDBParser()
                 protein_stru = sp.get_structure(self.pdb_filepath)
                 for mutant in mutants:
                     mutant_stru = mutate_stru(protein_stru, mutant, engine)
@@ -401,7 +453,6 @@ class Experiment():
         tag_string_pairs = dict()
         is_successful, tag_structure_pairs, message = self.get_mutants_structure(engine)
         if (is_successful):
-            sp = PDBParser()
             for tag, structure in tag_structure_pairs.items():
                 pdb_string = sp.get_file_str(structure)
                 tag_string_pairs[tag] = pdb_string
