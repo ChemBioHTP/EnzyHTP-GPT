@@ -366,7 +366,7 @@ class Experiment():
         """Validate the prmtop file and trajectory file sent from the user or the computing cluster."""
         return True, "The trajectory file is valid."
     
-    def update_ensemble_and_analysis(self, mutant_name: str, prmtop_file: FileStorage, traj_file: FileStorage) -> Tuple[bool, str]:
+    def update_ensemble_and_analysis(self, mutant_name: str, prmtop_file: FileStorage, traj_file: FileStorage) -> Tuple[bool, str, dict]:
         """Update the structure ensemble of the mutant and perform analysis.
         Invalid Trajectory file will not trigger updates to the results.
         Trajectory files will be removed after the completion of analysis.
@@ -378,8 +378,13 @@ class Experiment():
         
         Returns:
             is_valid (bool): Flag indicating the validity of the PDB file.
-            message (str): The message describing the updating.
+            message (str): The message describing the validation.
+            analysis_record_dict (dict): A dictionary recording success and failure of each analysis.
         """
+        is_valid = False
+        validation_message = str()
+        analysis_record_dict = dict()
+
         save_folder = os.path.join(self.directory, mutant_name)
         fs.safe_mkdir(save_folder)
         prmtop_file_path = os.path.join(save_folder, prmtop_file.name)
@@ -400,10 +405,13 @@ class Experiment():
                     ref_pdb=ref_pdb_path
                 )
                 analysis_record_dict = self.analyze_structure_ensemble(mutant_name=mutant_name, stru_esm=stru_esm)
+        except Exception as e:
+            _LOGGER.error(e)
         finally:
             # TODO (Zhong): Generated and save ref_stru.pdb before simulation.
             fs.safe_rm(prmtop_file_path)
             fs.safe_rm(traj_file_path)
+            return is_valid, validation_message, analysis_record_dict
 
     def clear_folder(self, remove_folder: bool = False):
         """Remove the folder of the current directory.
