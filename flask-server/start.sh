@@ -13,6 +13,9 @@ export SECRET_KEY="48c0e116-f078-4fa4-a290-0cffe8e3945c"
 export MONGO_URI="mongodb://10.2.192.25:27017/enzyhtp_gpt"
 export FILE_SYSTEM_FOLDER="/var/www/files"
 export OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI="/key"
+export AMBERHOME="/var/apps/amber22"
+
+export PATH=$PATH:$AMBERHOME/bin
 
 # Start the flask service using `uwsgi`.
 uwsgi --ini uwsgi.ini

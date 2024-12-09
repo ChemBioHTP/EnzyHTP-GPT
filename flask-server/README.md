@@ -138,7 +138,7 @@ To run the docker container, enter and execute the following `docker run` comman
 In this command, port 12306 of the host is mapped to port 8000 of the container, and the flask-server folder on the host is mapped to the working directory in the container, that is, any modifications in this folder will be instantly synchronized to the working directory, so that the service manager only needs to restart the container to complete the update.
 
 ```bash
-docker run -d --name enzyhtp.web.flask -v .../EnzyHTP-GPT/flask-server:/var/www/flask-server -v /path/to/ssl:/var/www/ssl -v /path/to/files:/var/www/files -v /path/to/EnzyHTP:/var/bin/EnzyHTP -p 12306:8000 enzyhtp.web.flask:2024.12.v01
+docker run -d --name enzyhtp.web.flask -v .../EnzyHTP-GPT/flask-server:/var/www/flask-server -v /path/to/ssl:/var/www/ssl -v /path/to/files:/var/www/files -v /path/to/EnzyHTP:/var/bin/EnzyHTP -v /path/to/amber22:/var/apps/amber22 -p 12306:8000 enzyhtp.web.flask:2024.12.v02
 ```
 
 **Attention:** `/path/to/files` should grant write permission to all users by `chmod g+w /path/to/log` and `chmod o+w /path/to/log` commands.
@@ -146,7 +146,7 @@ docker run -d --name enzyhtp.web.flask -v .../EnzyHTP-GPT/flask-server:/var/www/
 A practical example of use is as follows.
 
 ```bash
-docker run -d --name enzyhtp.web.flask -v /home/zhongy8/bin/EnzyHTP-GPT/flask-server:/var/www/flask-server -v /mutexa/raid5/data/enzyhtp_gpt/ssl:/var/www/ssl -v /mutexa/raid5/data/enzyhtp_gpt/files:/var/www/files -v /home/zhongy8/bin/EnzyHTP:/var/bin/EnzyHTP -p 12306:8000 enzyhtp.web.flask:2024.12.v01
+docker run -d --name enzyhtp.web.flask -v /home/zhongy8/bin/EnzyHTP-GPT/flask-server:/var/www/flask-server -v /mutexa/raid5/data/enzyhtp_gpt/ssl:/var/www/ssl -v /mutexa/raid5/data/enzyhtp_gpt/files:/var/www/files -v /home/zhongy8/bin/EnzyHTP:/var/bin/EnzyHTP -v /sb/apps/amber22:/var/apps/amber22 -p 12306:8000 enzyhtp.web.flask:2024.12.v02
 ```
 
 ### Test Backend
