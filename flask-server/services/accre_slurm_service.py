@@ -306,7 +306,7 @@ class SlurmJobData:
             return response.status_code, None
     
     @staticmethod
-    def submit(slurm_request: SlurmJobRequest, files: List[BufferedReader]) -> Tuple[int, str, str]:
+    def post(slurm_request: SlurmJobRequest, files: List[BufferedReader]) -> Tuple[int, str, str]:
         """Submit a slurm job to the Vanderbilt ACCRE Slurm.
         
         Args:

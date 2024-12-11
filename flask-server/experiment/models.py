@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Union, Tuple, Callable
 from json import loads, dumps
 from plum import dispatch
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
+from pandas import DataFrame
 import os
 import uuid
 import re
@@ -48,16 +49,7 @@ sp = PDBParser()
 db = mongo.db
 
 class Experiment():
-    """Experiment Model: Experiment information.
-    
-    Attributes:
-        user_id (int): The user ID associated with this experiment.
-        name (str): The name of the experiment.
-        type (int): The type of the experiment (default is 0).
-        status (int): The status of the experiment (default is 0).
-        metrics (list): Metrics information about what kind of analysis to be performed (default is an empty list).
-        description (str): A description of the experiment (default is None).
-    """
+    """Experiment Model: Experiment information."""
 
     __tablename__ = "experiments"
 
@@ -65,7 +57,7 @@ class Experiment():
         """Initializes an instance of Experiment with the provided parameters.
 
         Args:
-            user_id (int): The user ID associated with this experiment.
+            user_id (str): The user ID associated with this experiment.
             name (str): The name of the experiment.
             type (int, optional): The type of the experiment (default is 0).
             metrics (List[Dict[str, Any]], optional): Metrics information about what kind of analysis to be performed (default is an empty list).
@@ -92,10 +84,13 @@ class Experiment():
     
     @staticmethod
     def get(id: str) -> Experiment | None:
-        """Get experiment instance.
+        """Get experiment instance with given ID.
         
         Args:
             id (str): The `id` to identify an experiment.
+
+        Returns:
+            Matched Experiment instance or None.
         """
         experiment = Experiment.from_dict(db.experiments.find_one({"id": id}))
         # experiment = Experiment.query.filter_by(id=id).first()
@@ -320,7 +315,10 @@ class Experiment():
 
         return is_valid, message
     
-    def analyze_structure_ensemble(self, mutant_name: str, stru_esm: StructureEnsemble) -> Dict[str, bool]:
+    def __analyze_structure_ensemble_result(
+            self, mutant_name: str, 
+            stru_esm: StructureEnsemble,
+        ) -> Tuple[Dict[str, bool], Dict[str, bool]]:
         """Perform the analysis based on the given StructureEnsemble instance.
         
         Args:
@@ -329,9 +327,10 @@ class Experiment():
 
         Returns:
             analysis_record_dict (Dict[str, bool]): A dictionary recording success and failure of each analysis.
+            analysis_result_dict (Dict[str, bool]): A dictionary recording the result of each analysis.
         """
-        result_dict = {"mutant": mutant_name}
-        analysis_record_dict = dict()
+        analysis_result_dict = dict()   # Record analysis result.
+        analysis_record_dict = dict()   # Record success or failure.
         for metric in self.metrics:
             analysis_tag = metric.get("name")   # The name of the analysis to be performed.
             try:
@@ -342,7 +341,7 @@ class Experiment():
                         analysis_params.update({    # Compose analysis arguments.
                             "stru_esm": stru_esm,
                         })
-                        result_dict[analysis_tag] = analysis_callable(**analysis_params)    # Perform analysis and record result.
+                        analysis_result_dict[analysis_tag] = analysis_callable(**analysis_params)    # Perform analysis and record result.
                         analysis_record_dict[analysis_tag] = True
             except Exception as e:
                 message = f"Exception raised when analyzing '{analysis_tag}': {e}"
@@ -351,49 +350,42 @@ class Experiment():
             finally:
                 continue
 
-        # Attempt to find the matched dictionary in the `results` field and update it with the latest result,
-        # otherwise, append the `results` field.
-        target_result_dict = next((result_item for result_item in self.results if result_item.get("mutant") == mutant_name), None)
-        if target_result_dict is not None:
-            target_result_dict.update(result_dict)
-        else:
-            self.results.append(result_dict)
-        db.experiments.update_one({"id": self.id}, {"$set": {"results": self.results}})
+        return analysis_record_dict, analysis_result_dict
 
-        return analysis_record_dict
-
-    def validate_ensemble(self, prmtop_file: str | FileStorage, traj_file: str | FileStorage) -> Tuple[bool, str]:
+    def __validate_tyrajectory(self, prmtop_file: str | FileStorage, traj_file: str | FileStorage) -> Tuple[bool, str]:
         """Validate the prmtop file and trajectory file sent from the user or the computing cluster."""
         return True, "The trajectory file is valid."
     
-    def update_ensemble_and_analysis(self, mutant_name: str, prmtop_file: FileStorage, traj_file: FileStorage) -> Tuple[bool, str, dict]:
+    def update_ensemble_and_analysis(self, mutant_name: str, topology_file: FileStorage, traj_file: FileStorage) -> Tuple[bool, str, dict, dict]:
         """Update the structure ensemble of the mutant and perform analysis.
         Invalid Trajectory file will not trigger updates to the results.
         Trajectory files will be removed after the completion of analysis.
 
         Args:
             mutant_name (str): The name of the mutant associated with the trajectory. e.g.: 'A##B C##D'
-            prmtop_file (FileStorage): The FileStorage instance of the Amber prmtop file.
+            topology_file (FileStorage): The FileStorage instance of the Amber prmtop file.
             traj_file (FileStorage): The FileStorage instance of the new trajectory file.
         
         Returns:
             is_valid (bool): Flag indicating the validity of the PDB file.
             message (str): The message describing the validation.
-            analysis_record_dict (dict): A dictionary recording success and failure of each analysis.
+            analysis_record_dict (Dict[str, bool]): A dictionary recording success and failure of each analysis.
+            analysis_result_dict (Dict[str, bool]): A dictionary recording the result of each analysis.
         """
         is_valid = False
         validation_message = str()
         analysis_record_dict = dict()
+        analysis_result_dict = dict()
 
         save_folder = os.path.join(self.directory, mutant_name)
         fs.safe_mkdir(save_folder)
-        prmtop_file_path = os.path.join(save_folder, prmtop_file.name)
+        prmtop_file_path = os.path.join(save_folder, topology_file.name)
         traj_file_path = os.path.join(save_folder, traj_file.name)
         ref_pdb_path = os.path.join(save_folder, "ref_stru.pdb")
         try:
-            prmtop_file.save(prmtop_file_path)
+            topology_file.save(prmtop_file_path)
             traj_file.save(traj_file_path)
-            is_valid, validation_message = self.validate_ensemble(prmtop_file=prmtop_file_path, traj_file=traj_file_path)
+            is_valid, validation_message = self.__validate_tyrajectory(prmtop_file=prmtop_file_path, traj_file=traj_file_path)
             if (is_valid):
                 # Construct the reference structure PDB file.
                 mutant = [generate_from_mutation_flag(mutation_str) for mutation_str in mutant_name.split()]
@@ -404,14 +396,14 @@ class Experiment():
                     prmtop_path=prmtop_file_path, traj_path=traj_file_path,
                     ref_pdb=ref_pdb_path
                 )
-                analysis_record_dict = self.analyze_structure_ensemble(mutant_name=mutant_name, stru_esm=stru_esm)
+                analysis_record_dict, analysis_result_dict = self.__analyze_structure_ensemble_result(mutant_name=mutant_name, stru_esm=stru_esm)
         except Exception as e:
             _LOGGER.error(e)
         finally:
             # TODO (Zhong): Generated and save ref_stru.pdb before simulation.
             fs.safe_rm(prmtop_file_path)
             fs.safe_rm(traj_file_path)
-            return is_valid, validation_message, analysis_record_dict
+            return is_valid, validation_message, analysis_record_dict, analysis_result_dict
 
     def clear_folder(self, remove_folder: bool = False):
         """Remove the folder of the current directory.
@@ -576,11 +568,119 @@ class Experiment():
         else:
             return False, list()
 
-    def post_result(self, result_record: dict):
-        """Add new result record to the experiment.
+
+class Result():
+    """Result Model: Record and Process experiment result."""
+
+    __tablename__ = "results"
+
+    def __init__(self, experiment_id: str, pdb_filename: str, mutant: str, replica_id: str, **kwargs):
+        """Initializes an instance of Result with the provided parameters.
+
+        Args:
+            experiment_id (int): The experiment ID associated with this result.
+            pdb_filename (str): The name of the PDB file of the result.
+            mutant (str): The name of the mutant protein. e.g.: 'A##B C##D'
+            replica_id (str): The ID of the MD simulation relica of one mutant.
+            kwargs: Keyword arguments containing metrics and other attributes.
+        """
+        self.id = kwargs.get("id", str(uuid.uuid4()))
+        self.experiment_id = experiment_id
+        self.pdb_filename = pdb_filename
+        self.mutant = mutant
+        self.replica_id = replica_id
+
+        for metric in METRICS_MAPPER.keys():
+            setattr(self, metric, kwargs.get(metric, None))
+            continue
+
+        self.created_time = kwargs.get("created_time", datetime.now())
+        self.updated_time = kwargs.get("updated_time", datetime.now())
+
+        return
+    
+    @staticmethod
+    def get(id: str) -> Result | None:
+        """Get a result instance with given ID.
         
         Args:
-            result_record_dict (dict): A dict containing the result information of one mutant.
+            id (str): The `id` to identify a result.
+
+        Returns:
+            Matched Result instance or None.
         """
-        self.results.append(result_record)
+        result = Result.from_dict(db.results.find_one({"id": id}))
+        # experiment = Experiment.query.filter_by(id=id).first()
+        if (result):
+            return result
+        else:
+            return None
+
+    @staticmethod
+    def from_dict(result_dict: dict | None) -> Result:
+        """Build a result instance from a dict.
+        
+        Args:
+            result_dict (dict): A dictionary containing data of the result.
+
+        Returns:
+            Built Result instance or None.
+        """
+        if (result_dict is None):
+            return None
+        result = Result(**result_dict)
+        return result
+    
+    def as_dict(self, stringfy_time: bool = False) -> dict:
+        """Serialize the current instance to a dictionary.
+        
+        Args:
+            stringfy_time (bool, optional): Flag indicating if to convert datetime fields to string value.
+        """
+        dict_data = self.__dict__
+        if (stringfy_time):
+            dict_data["created_time"] = str(self.created_time)
+            dict_data["updated_time"] = str(self.updated_time)
+        return dict_data
+    
+    @staticmethod
+    def get_experiment_result(experiment_id: str) -> dict:
+        """Get the result dictionary of an experiment with given ID.
+        For each mutant, the value of the analysis data will be the average of all its replica.
+        
+        Args:
+            experiment_id (str): The `id` to identify an experiment.
+
+        Returns:
+            experiment_result (dict): The summarized result information of the experiment.
+        """
+        results_cursor = db.results.find({"experiment_id": experiment_id})
+        result_df = DataFrame([result for result in results_cursor])
+
+        keep_columns = list(METRICS_MAPPER.keys())
+        keep_columns.append("mutant")
+
+        result_df = result_df[keep_columns]
+        result_df_group = result_df.groupby(["mutant"]).mean()
+
+        return result_df_group.agg(lambda x: x.tolist()).reset_index().to_dict(orient='records')
+
+    def insert_or_update(self):
+        """Insert or Update the current Result instance to the database."""
+        matched_result = Result.from_dict(db.results.find_one(
+            {
+                "experiment_id": self.experiment_id,
+                "mutant": self.mutant,
+                "replica_id": self.replica_id,
+            }
+        ))
+        if (matched_result == None):
+            db.results.insert_one(self.as_dict())
+        else:
+            result_update_dict = dict()
+            for metric in METRICS_MAPPER.keys():
+                result_update_dict[metric] = self.as_dict().get(metric, None)
+                continue
+            result_update_dict["updated_time"] = datetime.now()
+            db.results.update_one({"id": matched_result.id}, {"$set": result_update_dict})
         return

@@ -14,7 +14,26 @@ from enzy_htp.structure.structure_selection import select_stru
 
 # TODO (Zhong): Add Amber path to Mutexa.
 
-def mmpbgbsa(stru_esm: StructureEnsemble, ligand: str, **kwargs):
+def active_site_rmsd(stru_esm: StructureEnsemble, region_pattern: str, **kwargs) -> float:
+    """Calculate the RMSD value of a StructureEnsemble instance with specified region pattern.
+    
+    Args:
+        stru_esm (StructureEnsemble): A collection of different geometries of the same enzyme structure.
+        region_pattern (str): A pymol-formatted selection string which defines the region for calculating RMSD value.
+    """
+    rmsd_values = rmsd(stru_esm=stru_esm, region_pattern=region_pattern)
+    return sum(rmsd_values)/len(rmsd_values)
+
+def cavity(stru_esm: StructureEnsemble, region_pattern: str, **kwargs) -> float:
+    pass
+
+def ddg_fold(stru_esm: StructureEnsemble, **kwargs):
+    pass
+
+def electric_field(stru_esm: StructureEnsemble, region_pattern: str, **kwargs):
+    pass
+
+def mmpbgbsa(stru_esm: StructureEnsemble, ligand: str, **kwargs) -> float:
     """Calculate the binding energy of `ligand` in `stru`.
     
     Args:
@@ -25,22 +44,6 @@ def mmpbgbsa(stru_esm: StructureEnsemble, ligand: str, **kwargs):
     """
     binding_values = binding_energy(stru=stru_esm, ligand=ligand, **kwargs)
     return sum(binding_values)/len(binding_values)
-
-def ddg_fold(stru_esm: StructureEnsemble, **kwargs):
-    pass
-
-def electric_field(stru_esm: StructureEnsemble, region_pattern: str, **kwargs):
-    pass
-
-def active_site_rmsd(stru_esm: StructureEnsemble, region_pattern: str, **kwargs):
-    """Calculate the RMSD value of a StructureEnsemble instance with specified region pattern.
-    
-    Args:
-        stru_esm (StructureEnsemble): A collection of different geometries of the same enzyme structure.
-        region_pattern (str): A pymol-formatted selection string which defines the region for calculating RMSD value.
-    """
-    rmsd_values = rmsd(stru_esm=stru_esm, region_pattern=region_pattern)
-    return sum(rmsd_values)/len(rmsd_values)
 
 def spi(stru_esm: StructureEnsemble, ligand: str, region_pattern: str, **kwargs) -> float:
     """Calculates the spi metric for a StructureEnsemble using a pymol-formatted pocket selection string pattern.
@@ -59,7 +62,7 @@ def spi(stru_esm: StructureEnsemble, ligand: str, region_pattern: str, **kwargs)
 # TODO (Zhong): cavity, ddg_fold and electric_field.
 METRICS_MAPPER: Dict[str, Callable] = {
     "active_site_rmsd": active_site_rmsd,
-    "cavity": None,
+    "cavity": cavity,
     "ddg_fold": ddg_fold,
     "electric_field": electric_field,
     "mmpbgbsa": mmpbgbsa,

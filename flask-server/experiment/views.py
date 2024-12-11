@@ -24,7 +24,7 @@ from datetime import datetime
 from werkzeug.datastructures import ImmutableMultiDict
 
 # Here put local imports.
-from .models import Experiment
+from .models import Experiment, Result
 from auth.models import User
 from auth.views import (
     unauth_handler as unauth_handler_in_auth, 
@@ -290,6 +290,7 @@ class IndexApi(Resource):
             )
             experiment.clear_folder(remove_folder=True)
             db.experiments.delete_one({"id": experiment.id})
+            db.results.delete_many({"experiment_id": experiment_id})
             # db.session.delete(experiment)
             # db.session.commit()
             response_info = ExperimentBehaviourResponseInfo(experiment, user,
@@ -332,12 +333,36 @@ class ExperimentApi(Resource):
         if (user is None or experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        result_record = dict()
-        for key, value in request.form.items():
-            result_record[key] = value
-            continue
-        experiment.post_result(result_record=result_record)
-    
+        mutant_name = request.files.get("mutant", None)
+        replica_id = request.files.get("replica_id", 0)
+        traj_file = request.files.get("trajectory", None)
+        topology_file = request.files.get("topology", None)
+
+        if (mutant_name is None or traj_file is None or topology_file is None):
+            response_info = ExperimentBehaviourResponseInfo(experiment, user,
+                is_successful=False, 
+                message=f"'mutant' string, 'replica_id' code, 'trajectory' file and 'topology' file are all required.")
+            return Response(response=response_info.serialize(), status=400, mimetype="application/json")
+        else:
+            is_valid, validation_message, analysis_record_dict, analysis_result_dict = experiment.update_ensemble_and_analysis(
+                mutant_name=mutant_name,
+                topology_file=topology_file,
+                traj_file=traj_file
+            )
+            result = Result(
+                experiment_id=experiment.id,
+                pdb_filename=experiment.pdb_filepath,
+                mutant=mutant_name,
+                replica_id=replica_id,
+                **analysis_result_dict
+            )
+            result.insert_or_update()
+
+            performed_analysis_metrics = [key for key, value in analysis_record_dict.items() if value]
+            response_info = ExperimentBehaviourResponseInfo(experiment, user,
+                message=f"{validation_message} Completed {', '.join(performed_analysis_metrics)} analysis.")
+            return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+
     @login_required
     def put(self, experiment_id: str):
         """Update experiment information.
@@ -984,7 +1009,7 @@ class SlurmCorrespondenceApi(Resource):
                 main_script_io,
                 pdb_file_io,
             ]
-            status, message, job_uuid = SlurmJobData.submit(slurm_request=slurm_request, files=files)
+            status, message, job_uuid = SlurmJobData.post(slurm_request=slurm_request, files=files)
             
             if (job_uuid):
                 experiment.slurm_job_uuid = job_uuid
