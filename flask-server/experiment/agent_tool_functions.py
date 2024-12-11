@@ -25,8 +25,8 @@ def find_target_protein_path(experiment: Experiment, **kwargs) -> Tuple[bool, st
         is_successful (bool): Indidate if the protein path is successfully located.
         pdb_filepath (str): The PDB filepath of the wild-type protein.
     """
-    if (experiment.pdb_filepath):
-        return True, experiment.pdb_filepath
+    if (experiment.pdb_filename):
+        return True, experiment.pdb_filename
     else:
         return False, "Not available"
 

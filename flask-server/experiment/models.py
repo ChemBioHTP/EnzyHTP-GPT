@@ -20,6 +20,7 @@ from json import loads, dumps
 from plum import dispatch
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 from pandas import DataFrame
+from os import path
 import os
 import uuid
 import re
@@ -73,7 +74,7 @@ class Experiment():
         self.id = kwargs.get("id", str(uuid.uuid4()))
         self.created_time = kwargs.get("created_time", datetime.now())
         self.updated_time = kwargs.get("updated_time", datetime.now())
-        self.pdb_filepath = kwargs.get("pdb_filepath", None)
+        self.pdb_filename = kwargs.get("pdb_filename", None)
         self.results: List[dict] = kwargs.get("results", list())
         self.slurm_job_uuid = kwargs.get("slurm_job_uuid", None)
         self._status = kwargs.get("status", StatusCode.CREATED)
@@ -202,7 +203,14 @@ class Experiment():
         return dumps(dict_data)
     
     def __repr__(self):
-        return f"Experiment('{self.id}', '{self.name}', '{self.pdb_filepath}')"
+        return f"Experiment('{self.id}', '{self.name}', '{self.pdb_filename}')"
+
+    @property
+    def pdb_filepath(self):
+        if (self.pdb_filename):
+            return path.join(self.directory, self.pdb_filename)
+        else:
+            return None
 
     @property
     def status(self):
@@ -234,8 +242,8 @@ class Experiment():
     @property
     def directory(self) -> str:
         """The directory where the file of this experiment is saved."""
-        path = os.path.join(EXPERIMENT_FILE_DIRECTORY, self.id)
-        return path
+        directory_path = path.join(EXPERIMENT_FILE_DIRECTORY, self.id)
+        return directory_path
 
     @staticmethod
     def validate_pdb(pdb_file: str | FileStorage) -> Tuple[bool, str]:
@@ -252,7 +260,7 @@ class Experiment():
 
         from_filestorage = isinstance(pdb_file, FileStorage)
         if (from_filestorage):
-            pdb_filepath = os.path.join(SCRATCH_FOLDER, pdb_file.filename)
+            pdb_filepath = path.join(SCRATCH_FOLDER, pdb_file.filename)
             pdb_file.save(pdb_filepath)
         else:
             pdb_filepath = pdb_file
@@ -261,7 +269,7 @@ class Experiment():
         message = str()
         
         with CaptureLogging(_LOGGER) as log_str:
-            if (not os.path.isfile(pdb_filepath)):
+            if (not path.isfile(pdb_filepath)):
                 message = "No selected file."
             else:
                 stru = sp.get_structure(pdb_filepath)
@@ -304,13 +312,12 @@ class Experiment():
         is_valid, message = Experiment.validate_pdb(pdb_file)
 
         if (is_valid):
-            filepath = os.path.join(self.directory, pdb_file.filename)
-            if (self.pdb_filepath and os.path.isfile(self.pdb_filepath)):
+            if (self.pdb_filepath and path.isfile(self.pdb_filepath)):
                 fs.safe_rm(self.pdb_filepath) # Delete existing file.
-            pdb_file.save(filepath)
-            self.pdb_filepath = filepath
+            self.pdb_filename = pdb_file.filename
+            pdb_file.save(self.pdb_filepath)
             message = f"The PDB file of the experiment {self.id} is updated. " + message
-            db.experiments.update_one({"id": self.id}, {"$set": {"pdb_filepath": self.pdb_filepath}})
+            db.experiments.update_one({"id": self.id}, {"$set": {"pdb_filename": self.pdb_filename}})
             # db.session.commit()
 
         return is_valid, message
@@ -377,11 +384,11 @@ class Experiment():
         analysis_record_dict = dict()
         analysis_result_dict = dict()
 
-        save_folder = os.path.join(self.directory, mutant_name)
+        save_folder = path.join(self.directory, mutant_name)
         fs.safe_mkdir(save_folder)
-        prmtop_file_path = os.path.join(save_folder, topology_file.name)
-        traj_file_path = os.path.join(save_folder, traj_file.name)
-        ref_pdb_path = os.path.join(save_folder, "ref_stru.pdb")
+        prmtop_file_path = path.join(save_folder, topology_file.name)
+        traj_file_path = path.join(save_folder, traj_file.name)
+        ref_pdb_path = path.join(save_folder, "ref_stru.pdb")
         try:
             topology_file.save(prmtop_file_path)
             traj_file.save(traj_file_path)
@@ -428,7 +435,7 @@ class Experiment():
         is_successful = False
         mutants = list()
         message = str()
-        if (not os.path.isfile(self.pdb_filepath)):
+        if (not path.isfile(self.pdb_filepath)):
             message = "The current experiment isn't associated with any PDB file."
             return is_successful, mutants, message
 

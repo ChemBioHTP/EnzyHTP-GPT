@@ -315,6 +315,8 @@ class ExperimentApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
+        # TODO (Zhong): Experiment Results.
+        
         return Response(experiment.serialize(), status=200, mimetype="application/json")
 
     # TODO (Zhong): Receive and Process trajectory files.
@@ -351,7 +353,7 @@ class ExperimentApi(Resource):
             )
             result = Result(
                 experiment_id=experiment.id,
-                pdb_filename=experiment.pdb_filepath,
+                pdb_filename=experiment.pdb_filename,
                 mutant=mutant_name,
                 replica_id=replica_id,
                 **analysis_result_dict
@@ -656,11 +658,10 @@ class PdbFileApi(Resource):
         if (not os.path.isfile(experiment.pdb_filepath)):
             return no_pdb_response()
         else:
-            base_filename = fs.base_file_name(experiment.pdb_filepath)
             return send_file(path_or_file=experiment.pdb_filepath, mimetype="text/plain",
                 as_attachment=False, 
-                download_name=base_filename, 
-                attachment_filename=base_filename)
+                download_name=experiment.pdb_filename, 
+                attachment_filename=experiment.pdb_filename)
 
     @login_required
     def post(self, experiment_id: str):
@@ -962,7 +963,7 @@ class SlurmCorrespondenceApi(Resource):
                 is_successful=False,
             )
             return Response(response=response_info.serialize(), status=409, mimetype="application/json")
-        elif (experiment.pdb_filepath == None or not os.path.isfile(experiment.pdb_filepath)):
+        elif (experiment.pdb_filename == None or not os.path.isfile(experiment.pdb_filepath)):
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,
                 user=user,
@@ -984,11 +985,10 @@ class SlurmCorrespondenceApi(Resource):
                 return Response(response=response_info.serialize(), status=429, mimetype="application/json")
 
             slurm_request = SlurmJobRequest()
-            pdb_filepath = experiment.pdb_filepath
 
             entry_script_str_io = StringIO()
             entry_script_str_io.write(Template(SLURM_JOB_ENTRY_SCRIPT).safe_substitute({
-                "pdb_filename": basename(pdb_filepath),
+                "pdb_filename": experiment.pdb_filename,
                 "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
                 "experiment_id": experiment.id,
                 "mutation_pattern": experiment.mutation_pattern,
@@ -998,7 +998,7 @@ class SlurmCorrespondenceApi(Resource):
             entry_script_str_io.mode = "r"
             entry_script_str_io.seek(0)
 
-            pdb_file_io = open(pdb_filepath)
+            pdb_file_io = open(experiment.pdb_filepath)
             pdb_file_io.seek(0)
 
             main_script_io = open(SLURM_JOB_MAIN_SCRIPT_FILEPATH)
@@ -1166,14 +1166,14 @@ class SlurmDeployApi(Resource):
             return forbidden_response(user, experiment)
         
         deploy_script = Template(SLURM_DEPLOY_SCRIPT).safe_substitute({
-            "pdb_filename": basename(experiment.pdb_filepath)
+            "pdb_filename": experiment.pdb_filename
         })
 
         deploy_pack_io = BytesIO()
         deploy_pack_zip = ZipFile(deploy_pack_io, "w")
 
         deploy_pack_zip.writestr(SLURM_DEPLOY_SCRIPT_FILENAME, deploy_script.encode("utf-8"), compress_type=ZIP_DEFLATED)       # Add bash into zip.
-        deploy_pack_zip.write(experiment.pdb_filepath, arcname=basename(experiment.pdb_filepath), compress_type=ZIP_DEFLATED)   # Add PDB file into zip.
+        deploy_pack_zip.write(experiment.pdb_filepath, arcname=experiment.pdb_filename, compress_type=ZIP_DEFLATED)   # Add PDB file into zip.
         
         deploy_pack_zip.close()
         deploy_pack_io.seek(0)
