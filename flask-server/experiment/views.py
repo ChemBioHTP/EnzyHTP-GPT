@@ -983,6 +983,8 @@ class SlurmCorrespondenceApi(Resource):
                     is_successful=False,
                 )
                 return Response(response=response_info.serialize(), status=429, mimetype="application/json")
+            else:
+                is_successful, mutant_count, message = experiment.make_mutants_pdb_file()
 
             slurm_request = SlurmJobRequest()
 
@@ -1164,6 +1166,8 @@ class SlurmDeployApi(Resource):
             return notfound_response(user, experiment_id)
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
+        
+        is_successful, mutant_count, message = experiment.make_mutants_pdb_file()
         
         deploy_script = Template(SLURM_DEPLOY_SCRIPT).safe_substitute({
             "pdb_filename": experiment.pdb_filename

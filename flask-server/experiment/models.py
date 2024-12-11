@@ -53,6 +53,7 @@ class Experiment():
     """Experiment Model: Experiment information."""
 
     __tablename__ = "experiments"
+    mutant_pdb_filename = "ref_stru.pdb"
 
     def __init__(self, user_id: str, name: str, type: int = 0, metrics: List[Dict[str, Any]] = list(), description: str = None, **kwargs):
         """Initializes an instance of Experiment with the provided parameters.
@@ -384,11 +385,11 @@ class Experiment():
         analysis_record_dict = dict()
         analysis_result_dict = dict()
 
-        save_folder = path.join(self.directory, mutant_name)
+        save_folder = path.join(self.directory, mutant_name.replace(" ", "_"))
         fs.safe_mkdir(save_folder)
         prmtop_file_path = path.join(save_folder, topology_file.name)
         traj_file_path = path.join(save_folder, traj_file.name)
-        ref_pdb_path = path.join(save_folder, "ref_stru.pdb")
+        ref_pdb_path = path.join(save_folder, __class__.mutant_pdb_filename)
         try:
             topology_file.save(prmtop_file_path)
             traj_file.save(traj_file_path)
@@ -407,7 +408,7 @@ class Experiment():
         except Exception as e:
             _LOGGER.error(e)
         finally:
-            # TODO (Zhong): Generated and save ref_stru.pdb before simulation.
+            # TODO (Zhong): Generated and save ref_stru.pdb before simulation. Completed, to be tested.
             fs.safe_rm(prmtop_file_path)
             fs.safe_rm(traj_file_path)
             return is_valid, validation_message, analysis_record_dict, analysis_result_dict
@@ -505,6 +506,34 @@ class Experiment():
             message = "Getting Mutant PDB file string succeeded!"
         return is_successful, tag_string_pairs, message
 
+    def make_mutants_pdb_file(self, engine: str = "pymol") -> Tuple[bool, int, str]:
+        """Get the PDB file string of the mutated structure.
+        
+        Args:
+            engine (str, optional): The engine (method) used for determine the mutated structure
+                (current available keywords): "tleap_min", "pymol" & "rosetta".
+        
+        Returns:
+            is_successful (bool): Flag indicating if the update is successful.
+            mutant_count (int): The number of mutants PDB file.
+            message (str): The message describing the updating.
+        """
+        mutant_count = 0
+        fail_count = 0
+        is_successful, tag_structure_pairs, message = self.get_mutants_structure(engine)
+        if (is_successful):
+            for tag, structure in tag_structure_pairs.items():
+                try:
+                    pdb_string = sp.save_structure(outfile=path.join(self.directory, tag, __class__.mutant_pdb_filename))
+                    mutant_count += 1
+                except:
+                    _LOGGER.error(f"Failed to save file to {path.join(self.directory, tag, __class__.mutant_pdb_filename)}.")
+                    fail_count += 1
+                finally:
+                    continue
+            message = f"Mutant PDB file made: {mutant_count} success, {fail_count} failure."
+        return is_successful, mutant_count, message
+    
     def get_mutants_string_list(self) -> Tuple[bool, list, str]:
         """Get a list of mutant string concerning the current experiment instance.
 
