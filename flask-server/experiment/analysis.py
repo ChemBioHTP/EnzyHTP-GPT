@@ -42,7 +42,7 @@ def mmpbgbsa(stru_esm: StructureEnsemble, ligand: str, **kwargs) -> float:
             Note that the ligand has to be part of Structure().
             Note that the ligand can be a small molecule or a protein.
     """
-    binding_values = binding_energy(stru=stru_esm, ligand=ligand, **kwargs)
+    binding_values = binding_energy(stru=stru_esm, ligand=ligand, non_armer_cpu_num=2, **kwargs)
     return sum(binding_values)/len(binding_values)
 
 def spi(stru_esm: StructureEnsemble, ligand: str, region_pattern: str, **kwargs) -> float:

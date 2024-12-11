@@ -411,6 +411,7 @@ class Experiment():
             # TODO (Zhong): Generated and save ref_stru.pdb before simulation. Completed, to be tested.
             fs.safe_rm(prmtop_file_path)
             fs.safe_rm(traj_file_path)
+            fs.safe_rm(ref_pdb_path)
             return is_valid, validation_message, analysis_record_dict, analysis_result_dict
 
     def clear_folder(self, remove_folder: bool = False):
@@ -506,7 +507,7 @@ class Experiment():
             message = "Getting Mutant PDB file string succeeded!"
         return is_successful, tag_string_pairs, message
 
-    def make_mutants_pdb_file(self, engine: str = "pymol") -> Tuple[bool, int, str]:
+    def make_mutants_pdb_files(self, engine: str = "pymol") -> Tuple[bool, int, str]:
         """Get the PDB file string of the mutated structure.
         
         Args:
@@ -524,7 +525,10 @@ class Experiment():
         if (is_successful):
             for tag, structure in tag_structure_pairs.items():
                 try:
-                    pdb_string = sp.save_structure(outfile=path.join(self.directory, tag, __class__.mutant_pdb_filename))
+                    pdb_filepath = sp.save_structure(
+                        outfile=path.join(self.directory, tag, __class__.mutant_pdb_filename), 
+                        stru=structure,
+                    )
                     mutant_count += 1
                 except:
                     _LOGGER.error(f"Failed to save file to {path.join(self.directory, tag, __class__.mutant_pdb_filename)}.")
