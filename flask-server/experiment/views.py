@@ -335,8 +335,8 @@ class ExperimentApi(Resource):
         if (user is None or experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        mutant_name = request.files.get("mutant", None)
-        replica_id = request.files.get("replica_id", 0)
+        mutant_name = request.form.get("mutant", None)
+        replica_id = request.form.get("replica_id", 0)
         traj_file = request.files.get("trajectory", None)
         topology_file = request.files.get("topology", None)
 

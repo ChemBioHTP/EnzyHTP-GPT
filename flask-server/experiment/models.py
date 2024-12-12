@@ -324,13 +324,11 @@ class Experiment():
         return is_valid, message
     
     def __analyze_structure_ensemble_result(
-            self, mutant_name: str, 
-            stru_esm: StructureEnsemble,
+            self, stru_esm: StructureEnsemble,
         ) -> Tuple[Dict[str, bool], Dict[str, bool]]:
         """Perform the analysis based on the given StructureEnsemble instance.
         
         Args:
-            mutant_name (str): The name of the mutant associated with the trajectory. e.g.: 'A##B C##D'.
             stru_esm (StructureEnsemble): The StructureEnsemble instance for analysis.
 
         Returns:
@@ -359,10 +357,6 @@ class Experiment():
                 continue
 
         return analysis_record_dict, analysis_result_dict
-
-    def __validate_tyrajectory(self, prmtop_file: str | FileStorage, traj_file: str | FileStorage) -> Tuple[bool, str]:
-        """Validate the prmtop file and trajectory file sent from the user or the computing cluster."""
-        return True, "The trajectory file is valid."
     
     def update_ensemble_and_analysis(self, mutant_name: str, topology_file: FileStorage, traj_file: FileStorage) -> Tuple[bool, str, dict, dict]:
         """Update the structure ensemble of the mutant and perform analysis.
@@ -391,24 +385,26 @@ class Experiment():
         traj_file_path = path.join(save_folder, traj_file.name)
         ref_pdb_path = path.join(save_folder, __class__.mutant_pdb_filename)
         try:
+            # Construct the reference structure PDB file.
+            mutant = [generate_from_mutation_flag(mutation_str) for mutation_str in mutant_name.split()]
+            ref_stru = mutate_stru(sp.get_structure(self.pdb_filepath), mutant=mutant)
+            sp.save_structure(outfile=ref_pdb_path, stru=ref_stru)
+            
             topology_file.save(prmtop_file_path)
             traj_file.save(traj_file_path)
-            is_valid, validation_message = self.__validate_tyrajectory(prmtop_file=prmtop_file_path, traj_file=traj_file_path)
-            if (is_valid):
-                # Construct the reference structure PDB file.
-                mutant = [generate_from_mutation_flag(mutation_str) for mutation_str in mutant_name.split()]
-                ref_stru = mutate_stru(sp.get_structure(self.pdb_filepath), mutant=mutant)
-                sp.save_structure(outfile=ref_pdb_path, stru=ref_stru)
-
+            try:
                 stru_esm = interface.amber.load_traj(
                     prmtop_path=prmtop_file_path, traj_path=traj_file_path,
                     ref_pdb=ref_pdb_path
                 )
-                analysis_record_dict, analysis_result_dict = self.__analyze_structure_ensemble_result(mutant_name=mutant_name, stru_esm=stru_esm)
+                analysis_record_dict, analysis_result_dict = self.__analyze_structure_ensemble_result(stru_esm=stru_esm)
+            except Exception as e:
+                _LOGGER.error("Exception raised when analyzing the structure ensemble:")
+                _LOGGER.error(e)
         except Exception as e:
+            _LOGGER.error("Exception raised when constructing mutant structure:")
             _LOGGER.error(e)
         finally:
-            # TODO (Zhong): Generated and save ref_stru.pdb before simulation. Completed, to be tested.
             fs.safe_rm(prmtop_file_path)
             fs.safe_rm(traj_file_path)
             fs.safe_rm(ref_pdb_path)
