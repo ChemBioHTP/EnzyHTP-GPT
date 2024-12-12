@@ -991,11 +991,13 @@ class SlurmCorrespondenceApi(Resource):
 
             entry_script_str_io = StringIO()
             entry_script_str_io.write(Template(SLURM_JOB_ENTRY_SCRIPT).safe_substitute({
+                "username": user.username,
+                "app_host": APP_HOST,
+                "experiment_id": experiment.id,
                 "pdb_filename": experiment.pdb_filename,
                 "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
-                "experiment_id": experiment.id,
                 "mutation_pattern": experiment.mutation_pattern,
-                "app_host": APP_HOST,
+                "constraints_str": dumps(experiment.constraints)
             }))
             entry_script_str_io.name = SLURM_JOB_ENTRY_SCRIPT_FILENAME
             entry_script_str_io.mode = "r"

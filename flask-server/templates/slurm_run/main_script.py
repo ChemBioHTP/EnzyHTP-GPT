@@ -16,6 +16,7 @@ from typing import List
 from time import sleep
 from requests import post, put
 from statistics import mean
+from json import loads
 
 # Here put enzy_htp modules.
 from enzy_htp import interface, _LOGGER
@@ -38,10 +39,16 @@ file_dir = environ.get("file_dir", path.curdir)
 access_token = environ.get("access_token")
 pdb_filename = environ.get("pdb_filename")
 mutation_pattern = environ.get("mutation_pattern")
-
+constraints_str = environ.get("constraints_str")
 md_length = float(environ.get("md_length", 30.0))
 ph = float(environ.get("ph", 7.4))
 pocket_range = int(environ.get("pocket_range", 5))
+
+md_constraints = []
+try:
+    md_constraints = loads(constraints_str)
+except Exception as e:
+    _LOGGER.error(f"Exception raised when loading `constraints_str`: {e}")
 
 cluster = Accre()
 gpu_job_config = {
@@ -171,12 +178,16 @@ try:
 
         # Do something here.
         # sampling
-        md_constraints = []
         mut_constraints = []
-        for cons in md_constraints:
-            mut_constraints.append(cons(mutant_stru))
-        param_method = interface.amber.build_md_parameterizer()
+        try:
+            # TODO: A correct manner to parse the constraints.
+            for cons in md_constraints:
+                mut_constraints.append(cons(mutant_stru))
+                continue
+        except:
+            _LOGGER.error(f"Exception raised when loading `constraints_str`: {e}")
 
+        param_method = interface.amber.build_md_parameterizer()
         
         md_result: List[StructureEnsemble] = equi_md_sampling(
             stru=mutant_stru,
