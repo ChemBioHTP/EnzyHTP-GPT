@@ -81,7 +81,45 @@ Fetch the detail of
 - Returns:
   - If succeeded when the experiment is running,
     - Status Code: `200 OK`.
-    - Response Body (URI: `/api/experiment/1bcb7760-c94e-4bcb-85f5-221169df8089`)
+    - Response Body (URI: `/api/experiment/c6b2d6ea-554b-4356-b8d5-4433414d68f7`)
+    ```json
+    {
+        "type": -1,
+        "name": "Zhong's experiment with 7DVP",
+        "description": "3CL-Protein with Peptide",
+        "user_id": "8dceb918-12f3-42f4-a4d9-d19266c16ac0",
+        "metrics": [
+            {
+                "name": "cavity",
+                "arguments": {}
+            }
+        ],
+        "constraints": [
+            {
+                "type": "distance",
+                "arguments": [
+                    "C.1",
+                    "C.10"
+                ]
+            }
+        ],
+        "id": "c6b2d6ea-554b-4356-b8d5-4433414d68f7",
+        "created_time": "2024-07-13 01:58:38.750000",
+        "updated_time": "2024-07-13 01:58:38.750000",
+        "pdb_filepath": "/var/www/files/experiments/c6b2d6ea-554b-4356-b8d5-4433414d68f7/7dvp.pdb",
+        "results": [],
+        "slurm_job_uuid": null,
+        "mutation_pattern": "WT",
+        "current_assistant_type": 2,
+        "current_thread_id": "thread_EBBrjLMmzHQPlb0lifv2iYtG",
+        "status": "-9",
+        "progress": "0.0",
+        "status_text": "Created"
+    }
+    ```
+  - If succeeded when the experiment is running,
+    - Status Code: `200 OK`.
+    - Response Body (URI: `/api/experiment/1bcb7760-c94e-4bcb-85f5-221169df8089`, Out of date)
     ```json
     {
         "type": -1,
@@ -94,7 +132,7 @@ Fetch the detail of
         "mutation_pattern": "{WT},{H41M},{M165C},{H41S,E166L}",
         "metrics": "[]",
         "created_time": "2024-06-24 17:01:18.773598",
-        "pdb_filepath": "/home/yinjie/EnzyHTP-GPT/flask-server/static/experiments/4f018960-c954-4afc-9d6e-00ec5bf2e00e/7dvp.pdb",
+        "pdb_filename": "7dvp.pdb",
         "status": "-8",
         "progress": "0.0",
         "status_text": "Pending"
@@ -102,7 +140,7 @@ Fetch the detail of
     ```
   - If succeeded when the experiment is completed,
     - Status Code: `200 OK`.
-    - Response Body (URI: `/api/experiment/16e8045c-a45c-4fef-b0a2-2fd8e340e277`)
+    - Response Body (URI: `/api/experiment/16e8045c-a45c-4fef-b0a2-2fd8e340e277`, Out of date)
     ```json
     {
         "type": 0,
@@ -110,7 +148,7 @@ Fetch the detail of
         "mutation_pattern": "{WT},{H41M},{M165C},{H41S,E166L}",
         "metrics": "[]",
         "created_time": "2024-04-10 15:14:31.220061",
-        "pdb_filepath": "/home/yinjie/EnzyHTP-GPT/flask-server/static/experiments/16e8045c-a45c-4fef-b0a2-2fd8e340e277/8gws.pdb",
+        "pdb_filename": "8gws.pdb",
         "id": "16e8045c-a45c-4fef-b0a2-2fd8e340e277",
         "slurm_job_uuid": "6be9bead-bd46-4bf0-ad88-91a3b9e299c5",
         "description": "This is a magic experiment.",

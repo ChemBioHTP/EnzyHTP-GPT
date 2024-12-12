@@ -110,13 +110,20 @@ In the production environment, we use uWSGI to run the Flask Server. Thus, we bu
 Please export environment variables in `start.sh` like
 
 ```bash
+export PYTHONPATH=$PYTHONPATH:/var/bin/EnzyHTP
+
+export TIME_ZONE="US/Central"
 export FLASK_ENV="production"
 export DEBUG=0
 export APP_HOST="enzyhtp.app.vanderbilt.edu"
-export SECRET_KEY=$(cat /proc/sys/kernel/random/uuid)
+export SECRET_KEY="48c0e116-f078-4fa4-a290-0cffe8e3945c"
 
+export MONGO_URI="mongodb://10.2.192.25:27017/enzyhtp_gpt"
 export FILE_SYSTEM_FOLDER="/var/www/files"
 export OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI="/key"
+export AMBERHOME="/var/apps/amber22"
+
+export PATH=$PATH:$AMBERHOME/bin
 ```
 
 ### 5.2 Build and Run.
@@ -128,7 +135,7 @@ In order to allow updates to EnzyHTP Library, we choose to clone EnzyHTP to the 
 To build the `enzyhtp.web.flask` (i.e., backend) docker image, enter and run the following `docker build` command.
 
 ```bash
-.../EnzyHTP-GPT/flask-server$ docker build -t enzyhtp.web.flask:2024.12.v01 .
+.../EnzyHTP-GPT/flask-server$ docker build -t enzyhtp.web.flask:2024.12.v02 .
 ```
 
 #### 5.2.2 Run Container
