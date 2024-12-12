@@ -239,13 +239,13 @@ class IndexApi(Resource):
 
         experiment = Experiment(user_id=user.id, name=name, type=experiment_type, description=description)
         db.experiments.insert_one(experiment.as_dict())
-        # db.session.add(experiment)
-        # db.session.commit()
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user)
 
         file = request.files.get("file", None)
+        force_update = request.form.get("force", False) # Whether to skip verification and force update of PDB files.
+
         if (file is not None):
-            has_pdb_file, pdb_file_description = experiment.update_pdb(file)
+            has_pdb_file, pdb_file_description = experiment.update_pdb(file, force_update=force_update)
 
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,
@@ -675,17 +675,14 @@ class PdbFileApi(Resource):
         message = str()
         is_valid = False
 
-        if not experiment:
-            response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
-                is_successful=False,
-                message=f"The experiment with id '{experiment_id}' doesn't exist.")
-            return Response(response=response_info.serialize(), status=404, mimetype="application/json")
-
+        if (experiment is None):
+            return notfound_response(user, experiment_id)
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
         pdb_file = request.files.get("file")
-        is_valid, message = experiment.update_pdb(pdb_file=pdb_file)
+        force_update = request.form.get("force", False) # Whether to skip verification and force update of PDB files.
+        is_valid, message = experiment.update_pdb(pdb_file=pdb_file, force_update=force_update)
 
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
             is_successful=is_valid,

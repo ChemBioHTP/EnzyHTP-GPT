@@ -247,7 +247,7 @@ class Experiment():
         return directory_path
 
     @staticmethod
-    def validate_pdb(pdb_file: str | FileStorage) -> Tuple[bool, str]:
+    def __validate_pdb(pdb_file: str | FileStorage) -> Tuple[bool, str]:
         """Validate PDB file.
 
         Args:
@@ -297,11 +297,12 @@ class Experiment():
         
         return is_valid, message
 
-    def update_pdb(self, pdb_file: FileStorage) -> Tuple[bool, str]:
+    def update_pdb(self, pdb_file: FileStorage, force_update: bool = False) -> Tuple[bool, str]:
         """Update PDB file. Invalid PDB file will not be updated.
 
         Args:
             pdb_file (FileStorage): The FileStorage instance of the new PDB file.
+            force_update (bool): Whether to skip verification and force update of PDB files.
         
         Returns:
             is_valid (bool): Flag indicating the validity of the PDB file.
@@ -310,9 +311,12 @@ class Experiment():
         if (fs.get_file_ext(pdb_file.filename).lower() != ".pdb"):
             return False, "This is not a PDB file."
         fs.safe_mkdir(self.directory)
-        is_valid, message = Experiment.validate_pdb(pdb_file)
 
-        if (is_valid):
+        is_valid, message = Experiment.__validate_pdb(pdb_file)
+        if (force_update):
+            message = f"Force the update of PDB file. {message}"
+
+        if (is_valid or force_update):
             if (self.pdb_filepath and path.isfile(self.pdb_filepath)):
                 fs.safe_rm(self.pdb_filepath) # Delete existing file.
             self.pdb_filename = pdb_file.filename
