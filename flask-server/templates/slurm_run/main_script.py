@@ -198,7 +198,7 @@ try:
             work_dir=f"{mutant_dir}/MD/",
             cluster_job_config=gpu_job_config,
             cpu_equi_step=True,
-            cpu_job_config=cpu_job_config,
+            cpu_equi_job_config=cpu_job_config,
             job_check_period=10,
         )
 

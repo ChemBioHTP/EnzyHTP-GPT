@@ -245,7 +245,7 @@ class IndexApi(Resource):
         force_update = request.form.get("force", False) # Whether to skip verification and force update of PDB files.
 
         if (file is not None):
-            has_pdb_file, pdb_file_description = experiment.update_pdb(file, force_update=force_update)
+            has_pdb_file, is_supported, pdb_file_description = experiment.update_pdb(file, force_update=force_update)
 
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,
@@ -673,7 +673,7 @@ class PdbFileApi(Resource):
         user: User = current_user
         experiment = Experiment.get(experiment_id)
         message = str()
-        is_valid = False
+        is_updated = False
 
         if (experiment is None):
             return notfound_response(user, experiment_id)
@@ -682,10 +682,10 @@ class PdbFileApi(Resource):
         
         pdb_file = request.files.get("file")
         force_update = request.form.get("force", False) # Whether to skip verification and force update of PDB files.
-        is_valid, message = experiment.update_pdb(pdb_file=pdb_file, force_update=force_update)
+        is_updated, is_supported, message = experiment.update_pdb(pdb_file=pdb_file, force_update=force_update)
 
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
-            is_successful=is_valid,
+            is_successful=is_updated,
             message=message)
         return Response(response=response_info.serialize(), status=200, mimetype="application/json")
 

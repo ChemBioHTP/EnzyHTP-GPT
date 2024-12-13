@@ -142,7 +142,6 @@ class Experiment():
                     if (field_value != None):
                         setattr(self, field_name, field_value)
                         db.experiments.update_one({"id": self.id}, {"$set": {field_name: field_value}})
-                        # db.session.commit()
                         updated_attrs.append(field_name)
                     continue
                 else:
@@ -246,8 +245,22 @@ class Experiment():
         directory_path = path.join(EXPERIMENT_FILE_DIRECTORY, self.id)
         return directory_path
 
+    def clear_folder(self, remove_folder: bool = False):
+        """Remove the folder of the current directory.
+        
+        Args:
+            remove_folder (bool): If true, remove the folder itself as well; otherwise leave the empty folder.
+        """
+        fs.safe_rmdir(self.directory)
+        if (remove_folder):
+            return
+        else:
+            fs.safe_mkdir(self.directory)
+    
+    #region Experiment - PDB File
+
     @staticmethod
-    def __validate_pdb(pdb_file: str | FileStorage) -> Tuple[bool, str]:
+    def __validate_pdb(pdb_file: str | FileStorage) -> Tuple[bool, bool, str]:
         """Validate PDB file.
 
         Args:
@@ -255,6 +268,7 @@ class Experiment():
         
         Returns:
             is_valid (bool): Flag indicating the validity of the PDB file.
+            is_supported (bool): Flag indicating if the structure is supported by EnzyHTP.
             message (str): The message describing the validity status.
         """
         pdb_filepath = str()
@@ -267,15 +281,21 @@ class Experiment():
             pdb_filepath = pdb_file
         
         is_valid = False
+        is_supported = False
         message = str()
         
         with CaptureLogging(_LOGGER) as log_str:
             if (not path.isfile(pdb_filepath)):
                 message = "No selected file."
             else:
-                stru = sp.get_structure(pdb_filepath)
+                try:
+                    stru = sp.get_structure(pdb_filepath)
+                    is_valid = True
+                except ValueError as e:
+                    is_valid = False
+                    message = f"Unreadable PDB file: {e}\n"
                 if (stru.num_atoms > 0):
-                    is_valid, intermediate_message = is_structure_valid(stru, print_report=False)
+                    is_supported, intermediate_message = is_structure_valid(stru, print_report=False)
                     message = "The following errors were found in the PDB file: \n"
                     for reason, source, suggestion in intermediate_message:
                         message += f"Reason: {str(reason)}\tSource: {str(source)}\tSuggestion: {str(suggestion)};\n"
@@ -295,38 +315,45 @@ class Experiment():
             pdb_file.stream.seek(0) # Reset the cursor for further use.
             pass
         
-        return is_valid, message
+        return is_valid, is_supported, message
 
-    def update_pdb(self, pdb_file: FileStorage, force_update: bool = False) -> Tuple[bool, str]:
+    def update_pdb(self, pdb_file: FileStorage, force_update: bool = False) -> Tuple[bool, bool, str]:
         """Update PDB file. Invalid PDB file will not be updated.
 
         Args:
             pdb_file (FileStorage): The FileStorage instance of the new PDB file.
             force_update (bool): Whether to skip verification and force update of PDB files.
+                If True, PDB file will be updated even if the PDB file is not supported (but the PDB file must be valid).
         
         Returns:
-            is_valid (bool): Flag indicating the validity of the PDB file.
+            is_updated (bool): Flag indicating if the PDB file is updated.
+            is_supported (bool): Flag indicating if the structure is supported by EnzyHTP.
             message (str): The message describing the updating.
         """
+        is_updated = False
         if (fs.get_file_ext(pdb_file.filename).lower() != ".pdb"):
             return False, "This is not a PDB file."
         fs.safe_mkdir(self.directory)
 
-        is_valid, message = Experiment.__validate_pdb(pdb_file)
-        if (force_update):
+        is_valid, is_supported, message = Experiment.__validate_pdb(pdb_file)
+        if (is_valid and force_update):
             message = f"Force the update of PDB file. {message}"
 
-        if (is_valid or force_update):
+        if (is_supported or force_update):
+            is_updated = True
             if (self.pdb_filepath and path.isfile(self.pdb_filepath)):
                 fs.safe_rm(self.pdb_filepath) # Delete existing file.
             self.pdb_filename = pdb_file.filename
             pdb_file.save(self.pdb_filepath)
             message = f"The PDB file of the experiment {self.id} is updated. " + message
             db.experiments.update_one({"id": self.id}, {"$set": {"pdb_filename": self.pdb_filename}})
-            # db.session.commit()
 
-        return is_valid, message
+        return is_updated, is_supported, message
     
+    #endregion
+
+    #region Experiment - Analysis
+
     def __analyze_structure_ensemble_result(
             self, stru_esm: StructureEnsemble,
         ) -> Tuple[Dict[str, bool], Dict[str, bool]]:
@@ -414,18 +441,10 @@ class Experiment():
             fs.safe_rm(ref_pdb_path)
             return is_valid, validation_message, analysis_record_dict, analysis_result_dict
 
-    def clear_folder(self, remove_folder: bool = False):
-        """Remove the folder of the current directory.
-        
-        Args:
-            remove_folder (bool): If true, remove the folder itself as well; otherwise leave the empty folder.
-        """
-        fs.safe_rmdir(self.directory)
-        if (remove_folder):
-            return
-        else:
-            fs.safe_mkdir(self.directory)
-    
+    #endregion
+
+    #region Experiment - Mutation
+
     def get_mutants(self) -> Tuple[bool, list, str]:
         """Get the mutant list of the current experiment instance.
 
@@ -572,9 +591,10 @@ class Experiment():
             if (freeze):
                 self.mutation_pattern = ",".join(["{}{}{}".format("{", mutant.replace(" ", ","), "}") for mutant in mutant_string_list])
             db.experiments.update_one({"id": self.id}, {"$set": {"mutation_pattern": self.mutation_pattern}})
-            # db.session.commit()
         message = message.replace("parsing", "update")
         return is_successful, mutant_string_list, message
+
+    #endregion
 
     def parse_agent_response_content(self, response_content: str) -> Tuple[bool, str]:
         """Update the experiment configuration information according to the response_content from GPT Agents.
