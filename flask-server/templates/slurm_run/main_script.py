@@ -12,7 +12,7 @@ The main script of the Slurm Job. This script is currently for test use.
 
 # Here put the import lib.
 from os import environ, path
-from typing import List
+from typing import List, Union
 from time import sleep
 from requests import post, put
 from statistics import mean
@@ -98,7 +98,7 @@ def synchronize_job_status(status: int = None, progress: float = None) -> None:
         _LOGGER.info(f"Job Status Code: {status}, Progress: {progress}")
         return
     
-def post_trajectory_and_topology_file(mutant: str, replica_id: int | str, trajectory_filepath: str, topology_filepath: str) -> None:
+def post_trajectory_and_topology_file(mutant: str, replica_id: Union[int, str], trajectory_filepath: str, topology_filepath: str) -> None:
     """Post the trajectory and topology file to the web server.
 
     Args:
@@ -131,7 +131,7 @@ def post_trajectory_and_topology_file(mutant: str, replica_id: int | str, trajec
         _LOGGER.warning(f"Unable to access the Web Server. {e}")
     finally:
         _LOGGER.info(f"Trajectory file transmitted:")
-        _LOGGER.info(f"\tmutant: {mutant}, replica_id: {replica_id}, trajectory_file: {trajectory_filepath}, topology_file: {topology_filepath}.")
+        _LOGGER.info(f"\tmutant: {mutant}, replica_id: {replica_id}, \n\ttrajectory_file: {trajectory_filepath}, \n\ttopology_file: {topology_filepath}.")
         return
 
 synchronize_job_status(status=StatusCode.INITIALIZING, progress=0.0)
@@ -214,8 +214,6 @@ try:
                 trajectory_filepath = stru_esm.coordinate_list,
                 topology_filepath = stru_esm.topology_source_file
             )
-
-
 
         if has_ligand:
             spi_list = list()
