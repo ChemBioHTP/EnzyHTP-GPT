@@ -118,12 +118,12 @@ class Experiment():
         else:
             return []
 
-    def update_attributes(self, mapper: ImmutableMultiDict, editable_attrs: list = list()) -> Tuple[list, list, list, str]:
+    def update_attributes(self, mapper: Dict[str, Any], editable_attrs: list = list()) -> Tuple[list, list, list, str]:
         """Update the attribute of a specified instance.
         
         Args:
             instance: The instance of a class who has attributes to be updated.
-            mapper (ImmutableMultiDict): A dict-like mapper which contains the fields/attributes and values.
+            mapper (Dict[str, Any]): A dict-like mapper which contains the fields/attributes and values.
             editable_attrs (list): A list of editable attributes of the instance.
 
         Returns:

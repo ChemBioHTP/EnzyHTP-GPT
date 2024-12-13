@@ -17,7 +17,7 @@ from flask import Response, request, send_file
 from flask_login import login_required, current_user
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from flask_restful import Resource
-from json import dumps
+from json import JSONDecodeError, dumps, loads
 from typing import Any, List, Tuple
 from string import Template
 from datetime import datetime
@@ -37,7 +37,10 @@ from .agents import AGENT_MAPPER, DefinedAgent
 
 # Here put enzy_htp modules.
 from enzy_htp.workflow.config import StatusCode
-from enzy_htp.core import file_system as fs
+from enzy_htp.core import (
+    file_system as fs,
+    _LOGGER
+)
 
 db = mongo.db
 
@@ -242,7 +245,7 @@ class IndexApi(Resource):
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user)
 
         file = request.files.get("file", None)
-        force_update = request.form.get("force", False) # Whether to skip verification and force update of PDB files.
+        force_update = False if request.form.get("force", "").lower() in ["false", "0", "no", ""] else True # Whether to skip verification and force update of PDB files.
 
         if (file is not None):
             has_pdb_file, is_supported, pdb_file_description = experiment.update_pdb(file, force_update=force_update)
@@ -367,7 +370,7 @@ class ExperimentApi(Resource):
 
     @login_required
     def put(self, experiment_id: str):
-        """Update experiment information.
+        """Update experiment information and configuration.
         
         Args:
             experiment_id (str): The identifier of an experiment instance.
@@ -380,17 +383,31 @@ class ExperimentApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        editable_attrs = ['name', 'description'] # Only fields in the list are editable.
+        editable_attrs = ["name", "description", "metrics", "constraints"] # Only fields in the list are editable.
+        stringfied_list_attrs = ["metrics", "constraints"]
         
+        info_mapper = dict()
+        for key, value in request.form.items():
+            if (key in stringfied_list_attrs):
+                try:
+                    loaded_value = loads(value)
+                    info_mapper[key] = loaded_value
+                except:
+
+                    pass
+            else:
+                info_mapper[key] = value
+            continue
+
         updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
-            mapper=request.form, editable_attrs=editable_attrs
+            mapper=info_mapper, editable_attrs=editable_attrs
         )
 
         if (not (updated_attrs or blocked_attrs or nonexistent_attrs)):
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=True,
-                message='Nothing to be updated.',
+                message="Nothing to be updated.",
                 updated_attrs=updated_attrs,
                 blocked_attrs=blocked_attrs,
                 nonexistent_attrs=nonexistent_attrs,
@@ -681,7 +698,7 @@ class PdbFileApi(Resource):
             return forbidden_response(user, experiment)
         
         pdb_file = request.files.get("file")
-        force_update = request.form.get("force", False) # Whether to skip verification and force update of PDB files.
+        force_update = False if request.form.get("force", "").lower() in ["false", "0", "no", ""] else True # Whether to skip verification and force update of PDB files.
         is_updated, is_supported, message = experiment.update_pdb(pdb_file=pdb_file, force_update=force_update)
 
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
