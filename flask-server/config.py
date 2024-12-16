@@ -11,6 +11,7 @@
 # Here put the import lib.
 import os
 from datetime import timedelta, timezone
+from enzy_htp import config as eh_config
 
 BASEDIR = os.getcwd()
 
@@ -42,6 +43,8 @@ SCRATCH_FOLDER = os.path.join(FILE_SYSTEM_FOLDER, "scratch")
 for folder in [FILE_SYSTEM_FOLDER, EXPERIMENT_FILE_DIRECTORY, SCRATCH_FOLDER]:
     if (not os.path.isdir(folder)):
         os.mkdir(folder)
+
+eh_config['system.SCRATCH_DIR'] = SCRATCH_FOLDER
 
 # Uri
 OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI = os.environ.get("OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI", "/api/auth/profile")

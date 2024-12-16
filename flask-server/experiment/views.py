@@ -322,8 +322,7 @@ class ExperimentApi(Resource):
         
         return Response(experiment.serialize(), status=200, mimetype="application/json")
 
-    # TODO (Zhong): Receive and Process trajectory files.
-    @jwt_required
+    @jwt_required()
     def post(self, experiment_id: str):
         """Post the result of the experiment back to the database.
         

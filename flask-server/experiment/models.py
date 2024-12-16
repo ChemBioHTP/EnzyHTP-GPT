@@ -412,34 +412,36 @@ class Experiment():
 
         save_folder = path.join(self.directory, mutant_name.replace(" ", "_"))
         fs.safe_mkdir(save_folder)
-        prmtop_file_path = path.join(save_folder, topology_file.name)
-        traj_file_path = path.join(save_folder, traj_file.name)
+        prmtop_file_path = path.join(save_folder, topology_file.filename)
+        traj_file_path = path.join(save_folder, traj_file.filename)
         ref_pdb_path = path.join(save_folder, __class__.mutant_pdb_filename)
         try:
             # Construct the reference structure PDB file.
             mutant = [generate_from_mutation_flag(mutation_str) for mutation_str in mutant_name.split()]
             ref_stru = mutate_stru(sp.get_structure(self.pdb_filepath), mutant=mutant)
             sp.save_structure(outfile=ref_pdb_path, stru=ref_stru)
-            
-            topology_file.save(prmtop_file_path)
-            traj_file.save(traj_file_path)
-            try:
-                stru_esm = interface.amber.load_traj(
-                    prmtop_path=prmtop_file_path, traj_path=traj_file_path,
-                    ref_pdb=ref_pdb_path
-                )
-                analysis_record_dict, analysis_result_dict = self.__analyze_structure_ensemble_result(stru_esm=stru_esm)
-            except Exception as e:
-                _LOGGER.error("Exception raised when analyzing the structure ensemble:")
-                _LOGGER.error(e)
         except Exception as e:
-            _LOGGER.error("Exception raised when constructing mutant structure:")
-            _LOGGER.error(e)
+            _LOGGER.error(f"Exception raised when constructing mutant structure: {e}")
+            # raise e
+        
+        topology_file.save(prmtop_file_path)
+        _LOGGER.info(f"Prmtop: {prmtop_file_path}")
+        traj_file.save(traj_file_path)
+        _LOGGER.info(f"Trajectory: {traj_file_path}")
+        try:
+            stru_esm = interface.amber.load_traj(
+                prmtop_path=prmtop_file_path, traj_path=traj_file_path,
+                ref_pdb=ref_pdb_path
+            )
+            analysis_record_dict, analysis_result_dict = self.__analyze_structure_ensemble_result(stru_esm=stru_esm)
+        except Exception as e:
+            _LOGGER.error(f"Exception raised when parsing the structure ensemble: {e}")
+            # raise e
         finally:
             fs.safe_rm(prmtop_file_path)
             fs.safe_rm(traj_file_path)
             fs.safe_rm(ref_pdb_path)
-            return is_valid, validation_message, analysis_record_dict, analysis_result_dict
+        return is_valid, validation_message, analysis_record_dict, analysis_result_dict
 
     #endregion
 
