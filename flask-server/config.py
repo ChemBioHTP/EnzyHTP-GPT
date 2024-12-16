@@ -21,6 +21,7 @@ ENV = os.environ.get("FLASK_ENV", DEVELOPMENT)
 DEBUG = os.environ.get("DEBUG", True)
 APP_HOST = os.environ.get("APP_HOST", "localhost")
 SECRET_KEY = os.environ.get("SECRET_KEY", "91-310120-MA1H") # A custom value but mandatory.
+MAX_CONTENT_LENGTH = 2 * 1000**3
 
 # Enable Non-ASCII Characters.
 JSON_AS_ASCII = False
