@@ -11,7 +11,7 @@
 
 # Install required packages on Ubuntu.
 apt-get update
-apt-get install -y git libgl1
+apt-get install -y git libgl1 libquadmath0
 
 # Build the `enzyhtp-gpt` environment.
 echo "Creating conda environment: enzyhtp-gpt."
