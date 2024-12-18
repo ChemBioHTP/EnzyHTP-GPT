@@ -232,6 +232,13 @@ class Experiment():
         is_successful, mutants, message = self.get_mutants()
         return len(mutants)
 
+    @property
+    def has_pdb_file(self) -> bool:
+        if (self.pdb_filepath and os.path.isfile(self.pdb_filepath)):
+            return True
+        else:
+            return False
+
     @staticmethod
     def validate_pdb(pdb_file: str | FileStorage) -> Tuple[bool, str]:
         """Validate PDB file.
@@ -302,7 +309,7 @@ class Experiment():
 
         if (is_valid):
             filepath = os.path.join(save_folder, pdb_file.filename)
-            if (self.pdb_filepath and os.path.isfile(self.pdb_filepath)):
+            if self.has_pdb_file:
                 fs.safe_rm(self.pdb_filepath) # Delete existing file.
             pdb_file.save(filepath)
             self.pdb_filepath = filepath
@@ -336,7 +343,7 @@ class Experiment():
         is_successful = False
         mutants = list()
         message = str()
-        if (not os.path.isfile(self.pdb_filepath)):
+        if not self.has_pdb_file:
             message = "The current experiment isn't associated with any PDB file."
             return is_successful, mutants, message
 
