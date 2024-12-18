@@ -558,6 +558,7 @@ class AssistantsApi(Resource):
             is_successful=is_openai_key_valid, 
             message=f"Received response from OpenAI. Updates to the experiment configuration may be triggered.",
             response_content=response_content,
+            has_pdb_file=experiment.has_pdb_file,
             confirm_button=(status_code == 200 and any(signal in response_content.lower() for signal in confirm_signals)),
             tool_call_result=current_assistant.latest_tool_call_result,
             configuration_updated=configuration_updated,
@@ -671,7 +672,7 @@ class PdbFileApi(Resource):
             return notfound_response(user, experiment_id)
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)    
-        if (not os.path.isfile(experiment.pdb_filepath)):
+        if not experiment.has_pdb_file:
             return no_pdb_response()
         else:
             return send_file(path_or_file=experiment.pdb_filepath, mimetype="text/plain",
@@ -748,7 +749,7 @@ class MutationApi(Resource):
             return notfound_response(user, experiment_id)
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
-        if (not os.path.isfile(experiment.pdb_filepath)):
+        if not experiment.has_pdb_file:
             return no_pdb_response(user, experiment)
 
         mutation_request = request.form.get("mutation_request")
@@ -793,7 +794,7 @@ class MutationApi(Resource):
             return notfound_response(user, experiment_id)
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
-        if (not os.path.isfile(experiment.pdb_filepath)):
+        if not experiment.has_pdb_file:
             return no_pdb_response(user, experiment)
 
         mutation_pattern = request.form.get("mutation_pattern", None)
@@ -976,15 +977,8 @@ class SlurmCorrespondenceApi(Resource):
                 is_successful=False,
             )
             return Response(response=response_info.serialize(), status=409, mimetype="application/json")
-        elif (experiment.pdb_filename == None or not os.path.isfile(experiment.pdb_filepath)):
-            response_info = ExperimentBehaviourResponseInfo(
-                experiment=experiment,
-                user=user,
-                message="This experiment does not contain a PDB file. Please upload your PDB file before submitting your computation.",
-                is_authenticated=True,
-                is_successful=False,
-            )
-            return Response(response=response_info.serialize(), status=415, mimetype="application/json")
+        elif not experiment.has_pdb_file:
+            return no_pdb_response()
         else:
             experiment_mutant_count = experiment.mutant_count
             if (experiment_mutant_count > MAX_MUTANT_COUNT):

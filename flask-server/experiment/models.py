@@ -240,6 +240,13 @@ class Experiment():
         return len(mutants)
 
     @property
+    def has_pdb_file(self) -> bool:
+        if (self.pdb_filepath and os.path.isfile(self.pdb_filepath)):
+            return True
+        else:
+            return False
+
+    @property
     def directory(self) -> str:
         """The directory where the file of this experiment is saved."""
         directory_path = path.join(EXPERIMENT_FILE_DIRECTORY, self.id)
@@ -458,7 +465,7 @@ class Experiment():
         is_successful = False
         mutants = list()
         message = str()
-        if (not path.isfile(self.pdb_filepath)):
+        if not self.has_pdb_file:
             message = "The current experiment isn't associated with any PDB file."
             return is_successful, mutants, message
 
