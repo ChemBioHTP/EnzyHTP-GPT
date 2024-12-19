@@ -110,13 +110,20 @@ In the production environment, we use uWSGI to run the Flask Server. Thus, we bu
 Please export environment variables in `start.sh` like
 
 ```bash
+export PYTHONPATH=$PYTHONPATH:/var/bin/EnzyHTP
+
+export TIME_ZONE="US/Central"
 export FLASK_ENV="production"
 export DEBUG=0
 export APP_HOST="enzyhtp.app.vanderbilt.edu"
-export SECRET_KEY=$(cat /proc/sys/kernel/random/uuid)
+export SECRET_KEY="48c0e116-f078-4fa4-a290-0cffe8e3945c"
 
+export MONGO_URI="mongodb://10.2.192.25:27017/enzyhtp_gpt"
 export FILE_SYSTEM_FOLDER="/var/www/files"
 export OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI="/key"
+export AMBERHOME="/sb/apps/amber22"
+
+export PATH=$PATH:$AMBERHOME/bin
 ```
 
 ### 5.2 Build and Run.
@@ -128,7 +135,7 @@ In order to allow updates to EnzyHTP Library, we choose to clone EnzyHTP to the 
 To build the `enzyhtp.web.flask` (i.e., backend) docker image, enter and run the following `docker build` command.
 
 ```bash
-.../EnzyHTP-GPT/flask-server$ docker build -t enzyhtp.web.flask:2024.12.v01 .
+.../EnzyHTP-GPT/flask-server$ docker build -t enzyhtp.web.flask:2024.12.v03 .
 ```
 
 #### 5.2.2 Run Container
@@ -138,7 +145,7 @@ To run the docker container, enter and execute the following `docker run` comman
 In this command, port 12306 of the host is mapped to port 8000 of the container, and the flask-server folder on the host is mapped to the working directory in the container, that is, any modifications in this folder will be instantly synchronized to the working directory, so that the service manager only needs to restart the container to complete the update.
 
 ```bash
-docker run -d --name enzyhtp.web.flask -v .../EnzyHTP-GPT/flask-server:/var/www/flask-server -v /path/to/ssl:/var/www/ssl -v /path/to/files:/var/www/files -v /path/to/EnzyHTP:/var/bin/EnzyHTP -p 12306:8000 enzyhtp.web.flask:2024.12.v01
+docker run -d --name enzyhtp.web.flask -v .../EnzyHTP-GPT/flask-server:/var/www/flask-server -v /path/to/ssl:/var/www/ssl -v /path/to/files:/var/www/files -v /path/to/EnzyHTP:/var/bin/EnzyHTP -v /path/to/amber22:/sb/apps/amber22 -p 12306:8000 enzyhtp.web.flask:2024.12.v03
 ```
 
 **Attention:** `/path/to/files` should grant write permission to all users by `chmod g+w /path/to/log` and `chmod o+w /path/to/log` commands.
@@ -146,7 +153,7 @@ docker run -d --name enzyhtp.web.flask -v .../EnzyHTP-GPT/flask-server:/var/www/
 A practical example of use is as follows.
 
 ```bash
-docker run -d --name enzyhtp.web.flask -v /home/zhongy8/bin/EnzyHTP-GPT/flask-server:/var/www/flask-server -v /mutexa/raid5/data/enzyhtp_gpt/ssl:/var/www/ssl -v /mutexa/raid5/data/enzyhtp_gpt/files:/var/www/files -v /home/zhongy8/bin/EnzyHTP:/var/bin/EnzyHTP -p 12306:8000 enzyhtp.web.flask:2024.12.v01
+docker run -d --name enzyhtp.web.flask -v /home/zhongy8/bin/EnzyHTP-GPT/flask-server:/var/www/flask-server -v /mutexa/raid5/data/enzyhtp_gpt/ssl:/var/www/ssl -v /mutexa/raid5/data/enzyhtp_gpt/files:/var/www/files -v /home/zhongy8/bin/EnzyHTP:/var/bin/EnzyHTP -v /sb/apps/amber22:/sb/apps/amber22 -p 12306:8000 enzyhtp.web.flask:2024.12.v03
 ```
 
 ### Test Backend

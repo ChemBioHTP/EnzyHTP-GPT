@@ -11,6 +11,7 @@
 # Here put the import lib.
 import os
 from datetime import timedelta, timezone
+from enzy_htp import config as eh_config
 
 BASEDIR = os.getcwd()
 
@@ -21,6 +22,7 @@ ENV = os.environ.get("FLASK_ENV", DEVELOPMENT)
 DEBUG = os.environ.get("DEBUG", True)
 APP_HOST = os.environ.get("APP_HOST", "localhost")
 SECRET_KEY = os.environ.get("SECRET_KEY", "91-310120-MA1H") # A custom value but mandatory.
+MAX_CONTENT_LENGTH = 2 * 1000**3
 
 # Enable Non-ASCII Characters.
 JSON_AS_ASCII = False
@@ -42,6 +44,8 @@ for folder in [FILE_SYSTEM_FOLDER, EXPERIMENT_FILE_DIRECTORY, SCRATCH_FOLDER]:
     if (not os.path.isdir(folder)):
         os.mkdir(folder)
 
+eh_config['system.SCRATCH_DIR'] = SCRATCH_FOLDER
+
 # Uri
 OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI = os.environ.get("OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI", "/api/auth/profile")
 
@@ -62,10 +66,10 @@ ACCRE_SLURM_HOST = "https://ssam.accre.vanderbilt.edu"
 ACCRE_SLURM_API_URL = f"{ACCRE_SLURM_HOST}/api/slurm"
 SLURM_ACCOUNT = "yang_lab"
 SLURM_PARTITION = "production"
-SLURM_JOB_ENTRY_SCRIPT_FILENAME = "entry_script.sh"
-SLURM_JOB_MAIN_SCRIPT_FILENAME = "main_script.py"
-SLURM_JOB_ENTRY_SCRIPT = open(os.path.join(BASEDIR, "templates", "slurm_run", SLURM_JOB_ENTRY_SCRIPT_FILENAME)).read()
-SLURM_JOB_MAIN_SCRIPT_FILEPATH = os.path.join(BASEDIR, "templates", "slurm_run", SLURM_JOB_MAIN_SCRIPT_FILENAME)
+SLURM_MD_JOB_ENTRY_SCRIPT = "md_entry_script.sh"
+SLURM_MD_JOB_MAIN_SCRIPT = "md_main_script.py"
+SLURM_JOB_ENTRY_SCRIPT = open(os.path.join(BASEDIR, "templates", "slurm_run", SLURM_MD_JOB_ENTRY_SCRIPT)).read()
+SLURM_JOB_MAIN_SCRIPT_FILEPATH = os.path.join(BASEDIR, "templates", "slurm_run", SLURM_MD_JOB_MAIN_SCRIPT)
 MAX_MUTANT_COUNT = 6
 
 # Run MD by Yourself.

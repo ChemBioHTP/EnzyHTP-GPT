@@ -24,7 +24,7 @@ from requests import (
     delete as req_delete,
 )
 
-from config import ACCRE_SLURM_API_URL, ACCRE_SLURM_HOST, SLURM_ACCOUNT, SLURM_PARTITION, SLURM_JOB_ENTRY_SCRIPT_FILENAME
+from config import ACCRE_SLURM_API_URL, ACCRE_SLURM_HOST, SLURM_ACCOUNT, SLURM_PARTITION, SLURM_MD_JOB_ENTRY_SCRIPT
 from context import mongo
 import jwt
 
@@ -306,7 +306,7 @@ class SlurmJobData:
             return response.status_code, None
     
     @staticmethod
-    def submit(slurm_request: SlurmJobRequest, files: List[BufferedReader]) -> Tuple[int, str, str]:
+    def post(slurm_request: SlurmJobRequest, files: List[BufferedReader]) -> Tuple[int, str, str]:
         """Submit a slurm job to the Vanderbilt ACCRE Slurm.
         
         Args:
@@ -324,7 +324,7 @@ class SlurmJobData:
         }
         payload = {
             'slurm_request': slurm_request.serialize(),
-            'entry_script': f"bash input/{SLURM_JOB_ENTRY_SCRIPT_FILENAME}",
+            'entry_script': f"bash input/{SLURM_MD_JOB_ENTRY_SCRIPT}",
         }
         files = [("files", (basename(fobj.name), fobj, "application/octet-stream")) for fobj in files]
 
