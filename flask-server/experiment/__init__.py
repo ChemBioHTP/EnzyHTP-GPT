@@ -7,6 +7,7 @@ experiment_api = Api(app=experiment)
 
 experiment_api.add_resource(views.IndexApi, "/")
 experiment_api.add_resource(views.ExperimentApi, "/<experiment_id>")
+experiment_api.add_resource(views.ResultApi, "/<experiment_id>/result")
 experiment_api.add_resource(views.AssistantsApi, "/<experiment_id>/assistants")
 experiment_api.add_resource(views.PdbFileApi, "/<experiment_id>/pdb_file")
 experiment_api.add_resource(views.MutationApi, "/<experiment_id>/mutations")

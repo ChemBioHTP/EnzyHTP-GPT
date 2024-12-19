@@ -1,12 +1,11 @@
 #! python3
 # -*- encoding: utf-8 -*-
 '''
-The main script of the Slurm Job. This script is currently for test use.
+The main script of the MD Slurm Job. This script is currently for test use.
 
 @File    :   main_script.py
 @Created :   2024/06/21 16:18
 @Author  :   Zhong, Yinjie
-@Version :   1.0
 @Contact :   yinjie.zhong@vanderbilt.edu
 '''
 
@@ -214,15 +213,6 @@ try:
                 trajectory_filepath = stru_esm.coordinate_list,
                 topology_filepath = stru_esm.topology_source_file
             )
-
-        if has_ligand:
-            spi_list = list()
-            for ensemble in md_result:
-                spi_value = spi_metric(ensemble, mutant_stru.ligands[0], pocket)
-                spi_list.append(spi_value)
-            result_record_dict["spi"] = mean(spi_list)
-
-        post_trajectory_and_topology_file(result_record_dict)
 
         # Send a request to the backend of Web Application to update status and progress.
         synchronize_job_status(status=StatusCode.RUNNING, progress=i/mutants_count)

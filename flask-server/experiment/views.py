@@ -487,15 +487,12 @@ class ExperimentApi(Resource):
             )
             return Response(response=response_info.serialize(), status=400, mimetype="application/json")
 
-#region OpenAI Assistants
-
-class AssistantsApi(Resource):
-    """Route: `/<experiment_id>/assistants`"""
-
+class ResultApi(Resource):
+    
     @login_required
     def get(self, experiment_id: str):
-        """Get the messages of the OpenAI Thread instance associated with the specific experiment instance.
-        
+        """(TODO) Get the analysis result of a selected experiment instance.
+
         Args:
             experiment_id (str): The identifier of an experiment instance.
         """
@@ -504,80 +501,13 @@ class AssistantsApi(Resource):
 
         if (experiment is None):
             return notfound_response(user, experiment_id)
-        if (user is None or experiment.user_id != user.id):
+        if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
-        
-        is_successful, assistant_messages = OpenAIAssistant.get_thread_messages(
-            openai_secret_key=user.openai_secret_key,
-            thread_id=experiment.current_thread_id,
-            limit=50
-        )
-        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
-            is_successful=is_successful, 
-            assistant_messages=assistant_messages,        
-        )
-        return Response(response_info.serialize(), status=200, mimetype="application/json")
+        pass
 
     @login_required
     def post(self, experiment_id: str):
-        """Call the virtual assistants to analyze questions and plan the experiment.
-        
-        Args:
-            experiment_id (str): The identifier of an experiment instance.
-        """
-        # When the response_content contains any element in the list, the task of this agent is confirmable.
-        confirm_signals = ["please confirm", "can finalize", "final output", "can proceed", "will proceed", "further", "to review"]
-
-        user: User = current_user
-        experiment = Experiment.get(experiment_id)
-
-        if (experiment is None):
-            return notfound_response(user, experiment_id)
-        if (user is None or experiment.user_id != user.id):
-            return forbidden_response(user, experiment)
-        
-        user_prompt = request.form.get("prompt", str())
-        current_assistant_class = AGENT_MAPPER[experiment.current_assistant_type % len(AGENT_MAPPER)]
-        # print([current_assistant_class])
-        current_assistant: DefinedAgent = current_assistant_class(
-            openai_secret_key=user.openai_secret_key, 
-            thread_id=experiment.current_thread_id, 
-            conversation_mode=True,
-            experiment=experiment,
-        )
-        # print(f"Current Assistant: {current_assistant.assistant.name}")
-        
-        is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=user_prompt)
-        
-        if (status_code != 200):
-            response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False, message=response_content)
-            return Response(response_info.serialize(), status=status_code, mimetype="application/json")
-
-        configuration_updated, updated_attributes = experiment.parse_agent_response_content(response_content=response_content)
-        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
-            is_successful=is_openai_key_valid, 
-            message=f"Received response from OpenAI. Updates to the experiment configuration may be triggered.",
-            response_content=response_content,
-            has_pdb_file=experiment.has_pdb_file,
-            confirm_button=(status_code == 200 and any(signal in response_content.lower() for signal in confirm_signals)),
-            tool_call_result=current_assistant.latest_tool_call_result,
-            configuration_updated=configuration_updated,
-            updated_attributes=updated_attributes,
-        )
-
-        # Update the current_assistant_type and current_thread_id to database.
-        _ = experiment.update_attributes(
-            mapper={
-                "current_assistant_type": experiment.current_assistant_type,
-                "current_thread_id": current_assistant.thread.id,
-            },
-            # editable_attrs=editable_attributes,
-        )
-        return Response(response_info.serialize(), status=200, mimetype="application/json")
-
-    @login_required
-    def put(self, experiment_id: str):
-        """Toggle to the next the virtual assistants when the job of one assistant is completed.
+        """Post new analysis result to a selected experiment instance.
         
         Args:
             experiment_id (str): The identifier of an experiment instance.
@@ -590,69 +520,11 @@ class AssistantsApi(Resource):
         if (user is None or experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        experiment.current_assistant_type += 1
-        updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
-            mapper={
-                "current_assistant_type": experiment.current_assistant_type,
-            },
-        )
-        if (updated_attrs):
-            response_info = ExperimentBehaviourResponseInfo(
-                experiment, user,
-                is_successful=True,
-                message=message)
-            return Response(response=response_info.serialize(), status=200, mimetype="application/json")
-        else:
-            response_info = ExperimentBehaviourResponseInfo(
-                experiment, user,
-                is_successful=False,
-                message=message)
-            return Response(response=response_info.serialize(), status=400, mimetype="application/json")
-
-    @login_required
-    def delete(self, experiment_id: str):
-        """Clear all the thread context associated with the experiment.
-        
-        Args:
-            experiment_id (str): The identifier of an experiment instance.
-        """
-        user: User = current_user
-        experiment = Experiment.get(experiment_id)
-
-        if (experiment is None):
-            return notfound_response(user, experiment_id)
-        if (user is None or experiment.user_id != user.id):
-            return forbidden_response(user, experiment)
-        
-        is_successful = False
-        if (experiment.current_thread_id):
-            is_successful = OpenAIAssistant.delete_thread(
-                openai_secret_key=user.openai_secret_key, 
-                thread_id=experiment.current_thread_id
-            )
-        else:
-            is_successful = True
-        
-        if (is_successful):
-            experiment.update_attributes(
-                mapper={
-                    "current_assistant_type": 0,
-                    "current_thread_id": "",
-                }
-            )
-            response_info = ExperimentBehaviourResponseInfo(
-                experiment, user,
-                is_successful=is_successful,
-                message="Your conversation is successfully cleared.")
-            return Response(response=response_info.serialize(), status=200, mimetype="application/json")
-        else:
-            response_info = ExperimentBehaviourResponseInfo(
-                experiment, user,
-                is_successful=is_successful,
-                message="Your conversation is unable to be cleared at present.")
-            return Response(response=response_info.serialize(), status=403, mimetype="application/json")
-
-#endregion
+        result_record = dict()
+        for key, value in request.form.items():
+            result_record[key] = value
+            continue
+        experiment.post_result(result_record=result_record)
 
 class PdbFileApi(Resource):
     """Route: `/<experiment_id>/pdb_file`"""
@@ -878,6 +750,173 @@ class MutationApi(Resource):
                 )
                 return Response(response=response_info.serialize(), status=415, mimetype="application/json")
 
+#region OpenAI Assistants
+
+class AssistantsApi(Resource):
+    """Route: `/<experiment_id>/assistants`"""
+
+    @login_required
+    def get(self, experiment_id: str):
+        """Get the messages of the OpenAI Thread instance associated with the specific experiment instance.
+        
+        Args:
+            experiment_id (str): The identifier of an experiment instance.
+        """
+        user: User = current_user
+        experiment = Experiment.get(experiment_id)
+
+        if (experiment is None):
+            return notfound_response(user, experiment_id)
+        if (user is None or experiment.user_id != user.id):
+            return forbidden_response(user, experiment)
+        
+        is_successful, assistant_messages = OpenAIAssistant.get_thread_messages(
+            openai_secret_key=user.openai_secret_key,
+            thread_id=experiment.current_thread_id,
+            limit=50
+        )
+        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
+            is_successful=is_successful, 
+            assistant_messages=assistant_messages,        
+        )
+        return Response(response_info.serialize(), status=200, mimetype="application/json")
+
+    @login_required
+    def post(self, experiment_id: str):
+        """Call the virtual assistants to analyze questions and plan the experiment.
+        
+        Args:
+            experiment_id (str): The identifier of an experiment instance.
+        """
+        # When the response_content contains any element in the list, the task of this agent is confirmable.
+        confirm_signals = ["please confirm", "can finalize", "final output", "can proceed", "will proceed", "further", "to review"]
+
+        user: User = current_user
+        experiment = Experiment.get(experiment_id)
+
+        if (experiment is None):
+            return notfound_response(user, experiment_id)
+        if (user is None or experiment.user_id != user.id):
+            return forbidden_response(user, experiment)
+        
+        user_prompt = request.form.get("prompt", str())
+        current_assistant_class = AGENT_MAPPER[experiment.current_assistant_type % len(AGENT_MAPPER)]
+        # print([current_assistant_class])
+        current_assistant: DefinedAgent = current_assistant_class(
+            openai_secret_key=user.openai_secret_key, 
+            thread_id=experiment.current_thread_id, 
+            conversation_mode=True,
+            experiment=experiment,
+        )
+        # print(f"Current Assistant: {current_assistant.assistant.name}")
+        
+        is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=user_prompt)
+        
+        if (status_code != 200):
+            response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False, message=response_content)
+            return Response(response_info.serialize(), status=status_code, mimetype="application/json")
+
+        configuration_updated, updated_attributes = experiment.parse_agent_response_content(response_content=response_content)
+        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
+            is_successful=is_openai_key_valid, 
+            message=f"Received response from OpenAI. Updates to the experiment configuration may be triggered.",
+            response_content=response_content,
+            has_pdb_file=experiment.has_pdb_file,
+            confirm_button=(status_code == 200 and any(signal in response_content.lower() for signal in confirm_signals)),
+            tool_call_result=current_assistant.latest_tool_call_result,
+            configuration_updated=configuration_updated,
+            updated_attributes=updated_attributes,
+        )
+
+        # Update the current_assistant_type and current_thread_id to database.
+        _ = experiment.update_attributes(
+            mapper={
+                "current_assistant_type": experiment.current_assistant_type,
+                "current_thread_id": current_assistant.thread.id,
+            },
+            # editable_attrs=editable_attributes,
+        )
+        return Response(response_info.serialize(), status=200, mimetype="application/json")
+
+    @login_required
+    def put(self, experiment_id: str):
+        """Toggle to the next the virtual assistants when the job of one assistant is completed.
+        
+        Args:
+            experiment_id (str): The identifier of an experiment instance.
+        """
+        user: User = current_user
+        experiment = Experiment.get(experiment_id)
+
+        if (experiment is None):
+            return notfound_response(user, experiment_id)
+        if (user is None or experiment.user_id != user.id):
+            return forbidden_response(user, experiment)
+        
+        experiment.current_assistant_type += 1
+        updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
+            mapper={
+                "current_assistant_type": experiment.current_assistant_type,
+            },
+        )
+        if (updated_attrs):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment, user,
+                is_successful=True,
+                message=message)
+            return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+        else:
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment, user,
+                is_successful=False,
+                message=message)
+            return Response(response=response_info.serialize(), status=400, mimetype="application/json")
+
+    @login_required
+    def delete(self, experiment_id: str):
+        """Clear all the thread context associated with the experiment.
+        
+        Args:
+            experiment_id (str): The identifier of an experiment instance.
+        """
+        user: User = current_user
+        experiment = Experiment.get(experiment_id)
+
+        if (experiment is None):
+            return notfound_response(user, experiment_id)
+        if (user is None or experiment.user_id != user.id):
+            return forbidden_response(user, experiment)
+        
+        is_successful = False
+        if (experiment.current_thread_id):
+            is_successful = OpenAIAssistant.delete_thread(
+                openai_secret_key=user.openai_secret_key, 
+                thread_id=experiment.current_thread_id
+            )
+        else:
+            is_successful = True
+        
+        if (is_successful):
+            experiment.update_attributes(
+                mapper={
+                    "current_assistant_type": 0,
+                    "current_thread_id": "",
+                }
+            )
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment, user,
+                is_successful=is_successful,
+                message="Your conversation is successfully cleared.")
+            return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+        else:
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment, user,
+                is_successful=is_successful,
+                message="Your conversation is unable to be cleared at present.")
+            return Response(response=response_info.serialize(), status=403, mimetype="application/json")
+
+#endregion
+
 #region Slurm Jobs.
 
 from io import StringIO, BytesIO
@@ -886,7 +925,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 
 from services import SlurmJobRequest, SlurmJobData
 from config import (
-    SLURM_JOB_ENTRY_SCRIPT_FILENAME, 
+    SLURM_MD_JOB_ENTRY_SCRIPT, 
     SLURM_JOB_ENTRY_SCRIPT, 
     SLURM_DEPLOY_SCRIPT_FILENAME, 
     SLURM_JOB_MAIN_SCRIPT_FILEPATH, 
@@ -1006,7 +1045,7 @@ class SlurmCorrespondenceApi(Resource):
                 "mutation_pattern": experiment.mutation_pattern,
                 "constraints_str": dumps(experiment.constraints)
             }))
-            entry_script_str_io.name = SLURM_JOB_ENTRY_SCRIPT_FILENAME
+            entry_script_str_io.name = SLURM_MD_JOB_ENTRY_SCRIPT
             entry_script_str_io.mode = "r"
             entry_script_str_io.seek(0)
 

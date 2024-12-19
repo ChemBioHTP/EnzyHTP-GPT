@@ -450,6 +450,20 @@ class Experiment():
             fs.safe_rm(ref_pdb_path)
         return is_valid, validation_message, analysis_record_dict, analysis_result_dict
 
+    def post_result(self, result_record: dict):
+        """Add new result record to the experiment.
+        
+        Args:
+            result_record_dict (dict): A dict containing the result information of one mutant.
+        """
+        result_record.update({
+            "experiment_id": self.id,
+            "pdb_filename": self.pdb_filename,
+        })
+        result = Result(**result_record)
+        result.insert_or_update()
+        return
+
     #endregion
 
     #region Experiment - Mutation
