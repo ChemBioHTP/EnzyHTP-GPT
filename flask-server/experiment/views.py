@@ -488,6 +488,7 @@ class ExperimentApi(Resource):
             return Response(response=response_info.serialize(), status=400, mimetype="application/json")
 
 class ResultApi(Resource):
+    """Route: `/<experiment_id>/result`."""
     
     @login_required
     def get(self, experiment_id: str):
@@ -775,9 +776,33 @@ class AssistantsApi(Resource):
             thread_id=experiment.current_thread_id,
             limit=50
         )
+        _, mutant_string_list, _ = experiment.get_mutants_string_list()
+        configuration_stages = [
+            {
+                "title": "Wild Type",
+                "content": experiment.pdb_filename if experiment.has_pdb_file else str(),
+                "is_completed": experiment.has_pdb_file,
+            },
+            {
+                "title": "Research Question",
+                "content": assistant_messages[0]["text_value"] if len(assistant_messages) else str(),
+                "is_completed": experiment.current_assistant_type > 0,
+            },
+            {
+                "title": "Target Metrics",
+                "content": ", ".join([metric.get("name") for metric in experiment.metrics]),
+                "is_completed": experiment.current_assistant_type > 1,
+            },
+            {
+                "title": "Target Mutants",
+                "content": ", ".join(mutant_string_list),
+                "is_completed": experiment.current_assistant_type > 2,
+            }
+        ]
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
-            is_successful=is_successful, 
-            assistant_messages=assistant_messages,        
+            is_successful=is_successful,
+            configuration_stages=configuration_stages,
+            assistant_messages=assistant_messages,
         )
         return Response(response_info.serialize(), status=200, mimetype="application/json")
 
