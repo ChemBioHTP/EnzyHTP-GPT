@@ -22,6 +22,7 @@ from config import (
     ENV,
     DEVELOPMENT,
     OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI,
+    JSONIFY_MIMETYPE,
 )
 from . import auth
 from .models import User, OAuthUser, VerificationCode
