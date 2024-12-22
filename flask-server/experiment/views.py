@@ -31,7 +31,13 @@ from auth.views import (
     notadmin_handler
 )
 from context import mongo, login_manager
-from config import BASEDIR, TOKEN_EXPIRES_DELTA, WORKSHEET_MUTATION_COLUMN_NAME, APP_HOST
+from config import (
+    BASEDIR,
+    TOKEN_EXPIRES_DELTA,
+    WORKSHEET_MUTATION_COLUMN_NAME,
+    APP_HOST,
+    JSONIFY_MIMETYPE
+)
 from services import OpenAIChat, OpenAIAssistant
 from .agents import AGENT_MAPPER, DefinedAgent
 
@@ -164,7 +170,7 @@ def notfound_response(user: User, experiment_id: str = str()) -> Response:
             message=f"Unable to find the experiment with id '{experiment_id}'.",
             is_authenticated=True
         )
-        return Response(response=response_info.serialize(), status=404, mimetype="application/json")
+        return Response(response=response_info.serialize(), status=404, mimetype=JSONIFY_MIMETYPE)
     else:
         response_info = ExperimentBehaviourResponseInfo(
             user=user,
@@ -172,7 +178,7 @@ def notfound_response(user: User, experiment_id: str = str()) -> Response:
             message=f"No experiment specified.",
             is_authenticated=True
         )
-        return Response(response=response_info.serialize(), status=404, mimetype="application/json")
+        return Response(response=response_info.serialize(), status=404, mimetype=JSONIFY_MIMETYPE)
 
 def forbidden_response(user: User, experiment: Experiment) -> Response:
     """Generate a 403 FORBIDDEN Response when the user doesn't have the permission to the experiment.
@@ -191,7 +197,7 @@ def forbidden_response(user: User, experiment: Experiment) -> Response:
         message="The current user doesn't have the permission to the experiment.",
         is_authenticated=True
     )
-    return Response(response=response_info.serialize(), status=403, mimetype="application/json")
+    return Response(response=response_info.serialize(), status=403, mimetype=JSONIFY_MIMETYPE)
 
 def no_pdb_response(user: User, experiment: Experiment) -> Response:
     """Generate a 404 NOT FOUND Response when the experiment isn't associated with any PDB file.
@@ -210,7 +216,7 @@ def no_pdb_response(user: User, experiment: Experiment) -> Response:
         message="The current experiment isn't associated with any PDB file.",
         is_authenticated=True
     )
-    return Response(response=response_info.serialize(), status=404, mimetype="application/json")
+    return Response(response=response_info.serialize(), status=404, mimetype=JSONIFY_MIMETYPE)
 
 #endregion
 
@@ -229,7 +235,7 @@ class IndexApi(Resource):
 
         experiments = Experiment.get_user_experiments(user=user)
         response_body = ExperimentIndexResponse(experiments)
-        return Response(response=response_body.serialize(), status=200, mimetype="application/json")
+        return Response(response=response_body.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
     def post(self):
@@ -266,7 +272,7 @@ class IndexApi(Resource):
                 is_authenticated=True,
                 has_pdb_file=False
             )
-        return Response(response=response_info.serialize(), status=201, mimetype="application/json")
+        return Response(response=response_info.serialize(), status=201, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
     def delete(self):
@@ -285,7 +291,7 @@ class IndexApi(Resource):
             response_info = ExperimentBehaviourResponseInfo(experiment, user,
                 is_successful=False, 
                 message=f"The experiment instance '{experiment_id}' is {StatusCode.status_text_mapper[experiment.status]}, which is unable to be deleted.")
-            return Response(response=response_info.serialize(), status=400, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
         else:
             OpenAIAssistant.delete_thread(
                 openai_secret_key=user.openai_secret_key, 
@@ -298,7 +304,7 @@ class IndexApi(Resource):
             # db.session.commit()
             response_info = ExperimentBehaviourResponseInfo(experiment, user,
                 is_successful=True, message=f"The experiment instance '{experiment.id}' is successfully deleted.")
-            return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
 class ExperimentApi(Resource):
     """Route: `/<experiment_id>`"""
@@ -320,7 +326,7 @@ class ExperimentApi(Resource):
         
         # TODO (Zhong): Experiment Results.
         
-        return Response(experiment.serialize(), status=200, mimetype="application/json")
+        return Response(experiment.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @jwt_required()
     def post(self, experiment_id: str):
@@ -346,7 +352,7 @@ class ExperimentApi(Resource):
             response_info = ExperimentBehaviourResponseInfo(experiment, user,
                 is_successful=False, 
                 message=f"'mutant' string, 'replica_id' code, 'trajectory' file and 'topology' file are all required.")
-            return Response(response=response_info.serialize(), status=400, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
         else:
             is_valid, validation_message, analysis_record_dict, analysis_result_dict = experiment.update_ensemble_and_analysis(
                 mutant_name=mutant_name,
@@ -365,7 +371,7 @@ class ExperimentApi(Resource):
             performed_analysis_metrics = [key for key, value in analysis_record_dict.items() if value]
             response_info = ExperimentBehaviourResponseInfo(experiment, user,
                 message=f"{validation_message} Completed {', '.join(performed_analysis_metrics)} analysis.")
-            return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
     def put(self, experiment_id: str):
@@ -411,7 +417,7 @@ class ExperimentApi(Resource):
                 blocked_attrs=blocked_attrs,
                 nonexistent_attrs=nonexistent_attrs,
             )
-            return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
         elif (updated_attrs):
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
@@ -421,7 +427,7 @@ class ExperimentApi(Resource):
                 blocked_attrs=blocked_attrs,
                 nonexistent_attrs=nonexistent_attrs,
             )
-            return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
         else:
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
@@ -431,7 +437,7 @@ class ExperimentApi(Resource):
                 blocked_attrs=blocked_attrs,
                 nonexistent_attrs=nonexistent_attrs,
             )
-            return Response(response=response_info.serialize(), status=400, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
 
     @jwt_required()
     def patch(self, experiment_id: str):
@@ -463,7 +469,7 @@ class ExperimentApi(Resource):
                 blocked_attrs=blocked_attrs,
                 nonexistent_attrs=nonexistent_attrs,
             )
-            return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
         elif (updated_attrs):
             # experiment.updated_time = datetime.now()
             # db.session.commit()
@@ -475,7 +481,7 @@ class ExperimentApi(Resource):
                 blocked_attrs=blocked_attrs,
                 nonexistent_attrs=nonexistent_attrs,
             )
-            return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
         else:
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
@@ -485,9 +491,10 @@ class ExperimentApi(Resource):
                 blocked_attrs=blocked_attrs,
                 nonexistent_attrs=nonexistent_attrs,
             )
-            return Response(response=response_info.serialize(), status=400, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
 
 class ResultApi(Resource):
+    """Route: `/<experiment_id>/result`."""
     
     @login_required
     def get(self, experiment_id: str):
@@ -576,7 +583,7 @@ class PdbFileApi(Resource):
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
             is_successful=is_updated,
             message=message)
-        return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+        return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
 class MutationApi(Resource):
     """Route: `/<experiment_id>/mutations`."""
@@ -605,7 +612,7 @@ class MutationApi(Resource):
             message=message,
             mutant_string_list=mutant_string_list,
         )
-        return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+        return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
     def post(self, experiment_id: str):
@@ -639,7 +646,7 @@ class MutationApi(Resource):
         
         if (status_code != 200):
             response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False, message=response_content)
-            return Response(response_info.serialize(), status=status_code, mimetype="application/json")
+            return Response(response_info.serialize(), status=status_code, mimetype=JSONIFY_MIMETYPE)
         mutation_pattern = response_content
 
         is_successful, mutant_string_list, message = experiment.update_mutation_pattern(mutation_pattern=mutation_pattern, freeze=True)
@@ -647,7 +654,7 @@ class MutationApi(Resource):
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
             is_successful=is_successful, message=f"Received response from OpenAI. {message}",
             mutation_pattern=mutation_pattern, mutant_string_list=mutant_string_list)
-        return Response(response_info.serialize(), status=200, mimetype="application/json")
+        return Response(response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
     def put(self, experiment_id: str):
@@ -680,7 +687,7 @@ class MutationApi(Resource):
                 mutation_pattern=mutation_pattern,
                 mutant_string_list=mutant_string_list,
             )
-            return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
         else:
             file = request.files.get("file", None)
             # If the user does not select a file, the browser submits an
@@ -693,7 +700,7 @@ class MutationApi(Resource):
                     message="The selected/uploaded file doesn't exist.",
                     is_authenticated=True,
                 )
-                return Response(response=response_info.serialize(), status=400, mimetype="application/json")
+                return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
             
             file_ext = fs.get_file_ext(file.filename).lower()
             
@@ -713,7 +720,7 @@ class MutationApi(Resource):
                         message="The file you uploaded is damaged, or the file content does not match its extension.",
                         is_authenticated=True,
                     )
-                    return Response(response=response_info.serialize(), status=415, mimetype="application/json")
+                    return Response(response=response_info.serialize(), status=415, mimetype=JSONIFY_MIMETYPE)
 
                 # Try to read the column containing mutation info from the DataFrame.
                 if column_name in df.columns:
@@ -729,7 +736,7 @@ class MutationApi(Resource):
                         mutation_pattern=mutation_pattern,
                         mutant_string_list=mutant_string_list,
                     )
-                    return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+                    return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
                 else:
                     # Column not found in the DataFrame.
                     response_info = ExperimentBehaviourResponseInfo(
@@ -738,7 +745,7 @@ class MutationApi(Resource):
                         is_successful=False,
                         message=f"Column '{column_name}' is not found.",
                     )
-                    return Response(response=response_info.serialize(), status=404, mimetype="application/json")
+                    return Response(response=response_info.serialize(), status=404, mimetype=JSONIFY_MIMETYPE)
             else:
                 # File extension is not allowed
                 response_info = ExperimentBehaviourResponseInfo(
@@ -748,7 +755,7 @@ class MutationApi(Resource):
                     message=f"{file_ext} is an unsupported file format. Only {', '.join(allowed_extensions)} files are supported.",
                     is_authenticated=True,
                 )
-                return Response(response=response_info.serialize(), status=415, mimetype="application/json")
+                return Response(response=response_info.serialize(), status=415, mimetype=JSONIFY_MIMETYPE)
 
 #region OpenAI Assistants
 
@@ -775,11 +782,35 @@ class AssistantsApi(Resource):
             thread_id=experiment.current_thread_id,
             limit=50
         )
+        _, mutant_string_list, _ = experiment.get_mutants_string_list()
+        configuration_stages = [
+            {
+                "title": "Wild Type",
+                "content": experiment.pdb_filename if experiment.has_pdb_file else str(),
+                "is_completed": experiment.has_pdb_file,
+            },
+            {
+                "title": "Research Question",
+                "content": assistant_messages[0]["text_value"] if len(assistant_messages) else str(),
+                "is_completed": experiment.current_assistant_type > 0,
+            },
+            {
+                "title": "Target Metrics",
+                "content": ", ".join([metric.get("name") for metric in experiment.metrics]),
+                "is_completed": experiment.current_assistant_type > 1,
+            },
+            {
+                "title": "Target Mutants",
+                "content": ", ".join(mutant_string_list),
+                "is_completed": experiment.current_assistant_type > 2,
+            }
+        ]
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
-            is_successful=is_successful, 
-            assistant_messages=assistant_messages,        
+            is_successful=is_successful,
+            configuration_stages=configuration_stages,
+            assistant_messages=assistant_messages,
         )
-        return Response(response_info.serialize(), status=200, mimetype="application/json")
+        return Response(response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
     def post(self, experiment_id: str):
@@ -814,7 +845,7 @@ class AssistantsApi(Resource):
         
         if (status_code != 200):
             response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False, message=response_content)
-            return Response(response_info.serialize(), status=status_code, mimetype="application/json")
+            return Response(response_info.serialize(), status=status_code, mimetype=JSONIFY_MIMETYPE)
 
         configuration_updated, updated_attributes = experiment.parse_agent_response_content(response_content=response_content)
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
@@ -836,7 +867,7 @@ class AssistantsApi(Resource):
             },
             # editable_attrs=editable_attributes,
         )
-        return Response(response_info.serialize(), status=200, mimetype="application/json")
+        return Response(response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
     def put(self, experiment_id: str):
@@ -864,13 +895,13 @@ class AssistantsApi(Resource):
                 experiment, user,
                 is_successful=True,
                 message=message)
-            return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
         else:
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=False,
                 message=message)
-            return Response(response=response_info.serialize(), status=400, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
     def delete(self, experiment_id: str):
@@ -907,13 +938,13 @@ class AssistantsApi(Resource):
                 experiment, user,
                 is_successful=is_successful,
                 message="Your conversation is successfully cleared.")
-            return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
         else:
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=is_successful,
                 message="Your conversation is unable to be cleared at present.")
-            return Response(response=response_info.serialize(), status=403, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=403, mimetype=JSONIFY_MIMETYPE)
 
 #endregion
 
@@ -959,7 +990,7 @@ class SlurmCorrespondenceApi(Resource):
                 is_authenticated=True,
                 is_successful=False,
             )
-            return Response(response=response_info.serialize(), status=404, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=404, mimetype=JSONIFY_MIMETYPE)
 
         status, slurm_job_data = SlurmJobData.get(experiment.slurm_job_uuid)
         if (slurm_job_data):
@@ -990,7 +1021,7 @@ class SlurmCorrespondenceApi(Resource):
                 is_authenticated=True,
                 is_successful=False,
             )
-        return Response(response=response_info.serialize(), status=status, mimetype="application/json")
+        return Response(response=response_info.serialize(), status=status, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
     def post(self, experiment_id: str):
@@ -1015,7 +1046,7 @@ class SlurmCorrespondenceApi(Resource):
                 is_authenticated=True,
                 is_successful=False,
             )
-            return Response(response=response_info.serialize(), status=409, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=409, mimetype=JSONIFY_MIMETYPE)
         elif not experiment.has_pdb_file:
             return no_pdb_response()
         else:
@@ -1028,7 +1059,7 @@ class SlurmCorrespondenceApi(Resource):
                     is_authenticated=True,
                     is_successful=False,
                 )
-                return Response(response=response_info.serialize(), status=429, mimetype="application/json")
+                return Response(response=response_info.serialize(), status=429, mimetype=JSONIFY_MIMETYPE)
             else:
                 # is_successful, mutant_count, message = experiment.make_mutants_pdb_files()
                 pass
@@ -1076,7 +1107,7 @@ class SlurmCorrespondenceApi(Resource):
                 is_successful=True if job_uuid else False,
                 slurm_job_uuid=job_uuid
             )
-            return Response(response=response_info.serialize(), status=status, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=status, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
     def delete(self, experiment_id: str):
@@ -1128,7 +1159,7 @@ class SlurmCorrespondenceApi(Resource):
                     is_authenticated=True,
                     is_successful=False,
                 )
-            return Response(response=response_info.serialize(), status=status, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=status, mimetype=JSONIFY_MIMETYPE)
         else:
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,
@@ -1137,7 +1168,7 @@ class SlurmCorrespondenceApi(Resource):
                 is_authenticated=True,
                 is_successful=False,
             )
-            return Response(response=response_info.serialize(), status=404, mimetype="application/json")
+            return Response(response=response_info.serialize(), status=404, mimetype=JSONIFY_MIMETYPE)
 
 class SlurmTokenApi(Resource):
     """Route: `/slurm/token`."""
@@ -1160,7 +1191,7 @@ class SlurmTokenApi(Resource):
             token=token,
             refresh_token=refresh_token,
         )
-        return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+        return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
     def post(self):
@@ -1179,7 +1210,7 @@ class SlurmTokenApi(Resource):
             is_authenticated=True,
             is_successful=is_updated,
         )
-        return Response(response=response_info.serialize(), status=200, mimetype="application/json")
+        return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
     def put(self):
@@ -1196,7 +1227,7 @@ class SlurmTokenApi(Resource):
             is_authenticated=True,
             is_successful=is_updated,
         )
-        return Response(response=response_info.serialize(), status=status_code, mimetype="application/json")
+        return Response(response=response_info.serialize(), status=status_code, mimetype=JSONIFY_MIMETYPE)
 
 class SlurmDeployApi(Resource):
     """Route: `/<experiment_id>/deploy`."""
