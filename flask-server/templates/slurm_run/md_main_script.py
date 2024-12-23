@@ -26,7 +26,6 @@ from enzy_htp.preparation import remove_solvent, remove_hydrogens, protonate_str
 from enzy_htp.mutation import assign_mutant, mutate_stru
 from enzy_htp.mutation_class import get_mutant_name_str
 from enzy_htp.geometry import equi_md_sampling
-from enzy_htp.analysis import spi_metric
 from enzy_htp.workflow.config import StatusCode
 
 DATA_DIR = f"{path.dirname(path.abspath(__file__))}/data/"
