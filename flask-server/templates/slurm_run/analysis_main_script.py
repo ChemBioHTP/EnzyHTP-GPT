@@ -1,9 +1,9 @@
 #! python3
 # -*- coding: utf-8 -*-
 '''
-The main script of the MMPBGBSA Slurm Job. This script is currently for test use.
+The main script of the Analysis Slurm Job. This script is currently for test use.
 
-@File   : mmpbgbsa_main_script.py
+@File   : analysis_main_script.py
 @Created: 2024/12/18 21:42
 @Author : Zhong, Yinjie
 @Email  : yinjie.zhong@vanderbilt.edu
@@ -11,7 +11,7 @@ The main script of the MMPBGBSA Slurm Job. This script is currently for test use
 
 # Here put the import lib.
 from os import environ, path
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Any
 from time import sleep
 from requests import post, put
 from statistics import mean
@@ -27,9 +27,21 @@ from enzy_htp.workflow.config import StatusCode
 
 app_host = environ.get("app_host")
 experiment_id = environ.get("experiment_id")
+file_dir = environ.get("file_dir", path.curdir)
+access_token = environ.get("access_token")
 DATA_DIR = f"{path.dirname(path.abspath(__file__))}/data/"
 WORK_DIR = f"{path.dirname(path.abspath(__file__))}/work_dir/"
 RESULT_POST_URL = f"https://{app_host}/api/experiment/{experiment_id}"
+
+cluster = Accre()
+cpu_job_config = {
+    "cluster" : cluster,
+    "res_keywords" : {
+        "account" : "yang_lab_csb",
+        "partition" : "production",
+        "walltime" : "5-00:00:00",
+    }
+}
 
 def post_result(experiment_id: str, mutant: str, replica_id: str, pdb_filename: str = None, **kwargs):
     """Post the result to the mutexa.
@@ -121,28 +133,62 @@ METRICS_MAPPER: Dict[str, Callable] = {
     "spi": spi,
 }
 
+def main(stru_esm: StructureEnsemble, metrics: List[Dict[str, Any]], mutant: str, replica_id: str, ligand_pattern: str = str(), region_pattern: str = str()):
+    """
+    The main function running the analysis script.
+
+    Args:
+        stru_esm (StructureEnsemble): A collection of different geometries of the same enzyme structure.
+        metrics (List[Dict[str, Any]]): Metrics information about kinds of analysis to be performed and their arguments.
+        mutant (str): The name of the mutant protein. e.g.: 'A##B C##D'
+        replica_id (str): The ID of the MD simulation relica of one mutant.
+    """
+    analysis_result_dict = {    # Record analysis result.
+        "experiment_id": experiment_id,
+        "mutant": mutant,
+        "replica_id": replica_id,
+    }
+    analysis_record_dict = dict()   # Record success or failure.
+    for metric in metrics:
+        analysis_tag = metric.get("name")   # The name of the analysis to be performed.
+        try:
+            analysis_params: Dict[str, Any] = metric.get("arguments", dict())
+            if (analysis_tag):
+                analysis_callable = METRICS_MAPPER.get(analysis_tag)    # Get analysis callable.
+                if (isinstance(analysis_callable, Callable)):
+                    analysis_params.update({    # Compose analysis arguments.
+                        "stru_esm": stru_esm,
+                    })
+                    if (ligand_pattern):
+                        analysis_params.update({
+                            "ligand_pattern": ligand_pattern,
+                        })
+                    if (region_pattern):
+                        analysis_params.update({
+                            "region_pattern": region_pattern,
+                        })
+                    analysis_result_dict[analysis_tag] = analysis_callable(**analysis_params)    # Perform analysis and record result.
+                    analysis_record_dict[analysis_tag] = True
+        except Exception as e:
+            message = f"Exception raised when analyzing '{analysis_tag}': {e}"
+            analysis_record_dict[analysis_tag] = False
+            _LOGGER.error(message)
+        finally:
+            continue
+    post_result(**analysis_result_dict)
+    return
+
 if __name__ == "__main__":
-    file_dir = environ.get("file_dir", path.curdir)
-    access_token = environ.get("access_token")
+    mutant = environ.get("mutant")
+    replica_id = environ.get("replica_id")
+    metrics = loads(environ.get("mertics"))
+    ligand_pattern = environ.get("ligand_pattern")
+
     ref_pdb_filename = environ.get("ref_pdb_filename")
     topology_filename = environ.get("topology_filename")
     trajectory_filename = environ.get("trajectory_filename")
-    ligand_pattern = environ.get("ligand_pattern")
-    mutant = environ.get("mutant")
-    replica_id = environ.get("replica_id")
 
-    cluster = Accre()
-    cpu_job_config = {
-        "cluster" : cluster,
-        "res_keywords" : {
-            "account" : "yang_lab_csb",
-            "partition" : "production",
-            "walltime" : "5-00:00:00",
-        }
-    }
     stru_esm: StructureEnsemble = interface.amber.load_traj(prmtop_path=topology_filename, traj_path=trajectory_filename, ref_pdb=ref_pdb_filename)
+    main
 
-    binding_values = binding_energy(stru=stru_esm, ligand=ligand_pattern, cluster_job_config=cpu_job_config)
-
-    post_result(experiment_id=experiment_id, mutant=mutant, replica_id=replica_id, mmpbgbsa=mean(binding_values))
     pass

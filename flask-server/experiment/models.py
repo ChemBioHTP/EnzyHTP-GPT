@@ -62,7 +62,7 @@ class Experiment():
             user_id (str): The user ID associated with this experiment.
             name (str): The name of the experiment.
             type (int, optional): The type of the experiment (default is 0).
-            metrics (List[Dict[str, Any]], optional): Metrics information about what kind of analysis to be performed (default is an empty list).
+            metrics (List[Dict[str, Any]], optional): Metrics information about kinds of analysis to be performed and their arguments (default is an empty list).
             description (str, optional): A description of the experiment (default is None).
             kwargs: Other keyword arguments.
         """

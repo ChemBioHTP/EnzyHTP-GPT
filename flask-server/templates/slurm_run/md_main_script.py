@@ -28,6 +28,9 @@ from enzy_htp.mutation_class import get_mutant_name_str
 from enzy_htp.geometry import equi_md_sampling
 from enzy_htp.workflow.config import StatusCode
 
+# Here put local modules.
+from .analysis_main_script import main as analysis_main
+
 DATA_DIR = f"{path.dirname(path.abspath(__file__))}/data/"
 WORK_DIR = f"{path.dirname(path.abspath(__file__))}/work_dir/"
 
@@ -207,10 +210,13 @@ try:
         for replica_id, stru_esm in enumerate(md_result):
             mutant_name = get_mutant_name_str(mutant=mutant)
 
-            post_trajectory_and_topology_file(
+            # post_trajectory_and_topology_file(
+            #     mutant=mutant_name, replica_id=replica_id,
+            #     trajectory_filepath = stru_esm.coordinate_list,
+            #     topology_filepath = stru_esm.topology_source_file
+            # )
+            analysis_main(stru_esm=stru_esm,
                 mutant=mutant_name, replica_id=replica_id,
-                trajectory_filepath = stru_esm.coordinate_list,
-                topology_filepath = stru_esm.topology_source_file
             )
 
         # Send a request to the backend of Web Application to update status and progress.
