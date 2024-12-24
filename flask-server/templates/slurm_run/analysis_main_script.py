@@ -185,12 +185,13 @@ if __name__ == "__main__":
     mutant = environ.get("mutant")
     replica_id = environ.get("replica_id")
     metrics = loads(environ.get("mertics"))
-    ligand_pattern = environ.get("ligand_pattern")
-    region_pattern = environ.get("region_pattern")
 
-    ref_pdb_filename = environ.get("ref_pdb_filename")
     topology_filename = environ.get("topology_filename")
     trajectory_filename = environ.get("trajectory_filename")
+    ref_pdb_filename = environ.get("ref_pdb_filename")
+
+    ligand_pattern = environ.get("ligand_pattern")
+    region_pattern = environ.get("region_pattern")
 
     stru_esm: StructureEnsemble = interface.amber.load_traj(prmtop_path=topology_filename, traj_path=trajectory_filename, ref_pdb=ref_pdb_filename)
     main(stru_esm=stru_esm, metrics=metrics, mutant=mutant, replica_id=replica_id, ligand_pattern=ligand_pattern, region_pattern=region_pattern)

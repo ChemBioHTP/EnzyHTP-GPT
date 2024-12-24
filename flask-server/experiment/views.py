@@ -306,6 +306,18 @@ class IndexApi(Resource):
                 is_successful=True, message=f"The experiment instance '{experiment.id}' is successfully deleted.")
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
+from config import (
+    SLURM_MD_JOB_ENTRY_SCRIPT,
+    SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT,
+    SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH,
+    SLURM_ANALYSIS_JOB_ENTRY_CONTENT,
+    SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
+    
+    SLURM_DEPLOY_SCRIPT_FILENAME, 
+    SLURM_DEPLOY_SCRIPT, 
+    MAX_MUTANT_COUNT
+)
+
 class ExperimentApi(Resource):
     """Route: `/<experiment_id>`"""
 
@@ -345,10 +357,24 @@ class ExperimentApi(Resource):
         
         mutant_name = request.form.get("mutant", None)
         replica_id = request.form.get("replica_id", 0)
-        traj_file = request.files.get("trajectory", None)
+        trajectory_file = request.files.get("trajectory", None)
         topology_file = request.files.get("topology", None)
 
-        if (mutant_name is None or traj_file is None or topology_file is None):
+        entry_script_str_io = StringIO()
+        entry_script_str_io.write(Template(SLURM_ANALYSIS_JOB_ENTRY_CONTENT).safe_substitute({
+            "app_host": APP_HOST,
+            "experiment_id": experiment.id,
+            "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
+            "pdb_filename": experiment.pdb_filename,
+            "metrics": dumps(experiment.metrics),
+            "topology_filename": topology_file.filename,
+            "trajectory_filename": trajectory_file.filename,
+        }))
+        entry_script_str_io.name = SLURM_MD_JOB_ENTRY_SCRIPT
+        entry_script_str_io.mode = "r"
+        entry_script_str_io.seek(0)
+
+        if (mutant_name is None or trajectory_file is None or topology_file is None):
             response_info = ExperimentBehaviourResponseInfo(experiment, user,
                 is_successful=False, 
                 message=f"'mutant' string, 'replica_id' code, 'trajectory' file and 'topology' file are all required.")
@@ -357,7 +383,7 @@ class ExperimentApi(Resource):
             is_valid, validation_message, analysis_record_dict, analysis_result_dict = experiment.update_ensemble_and_analysis(
                 mutant_name=mutant_name,
                 topology_file=topology_file,
-                traj_file=traj_file
+                traj_file=trajectory_file
             )
             result = Result(
                 experiment_id=experiment.id,
@@ -955,14 +981,6 @@ from os.path import basename
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from services import SlurmJobRequest, SlurmJobData
-from config import (
-    SLURM_MD_JOB_ENTRY_SCRIPT, 
-    SLURM_JOB_ENTRY_SCRIPT, 
-    SLURM_DEPLOY_SCRIPT_FILENAME, 
-    SLURM_JOB_MAIN_SCRIPT_FILEPATH, 
-    SLURM_DEPLOY_SCRIPT, 
-    MAX_MUTANT_COUNT
-)
 
 class SlurmCorrespondenceApi(Resource):
     """Route: `/<experiment_id>/slurm`."""
@@ -1067,11 +1085,12 @@ class SlurmCorrespondenceApi(Resource):
             slurm_request = SlurmJobRequest()
 
             entry_script_str_io = StringIO()
-            entry_script_str_io.write(Template(SLURM_JOB_ENTRY_SCRIPT).safe_substitute({
+            entry_script_str_io.write(Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute({
                 "username": user.username,
                 "app_host": APP_HOST,
                 "experiment_id": experiment.id,
                 "pdb_filename": experiment.pdb_filename,
+                "metrics": dumps(experiment.metrics),
                 "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
                 "mutation_pattern": experiment.mutation_pattern,
                 "constraints_str": dumps(experiment.constraints)
@@ -1083,12 +1102,15 @@ class SlurmCorrespondenceApi(Resource):
             pdb_file_io = open(experiment.pdb_filepath)
             pdb_file_io.seek(0)
 
-            main_script_io = open(SLURM_JOB_MAIN_SCRIPT_FILEPATH)
-            main_script_io.seek(0)
+            md_main_script_io = open(SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH)
+            md_main_script_io.seek(0)
+            analysis_main_script_io = open(SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH)
+            analysis_main_script_io.seek(0)
 
             files = [
                 entry_script_str_io,
-                main_script_io,
+                md_main_script_io,
+                analysis_main_script_io,
                 pdb_file_io,
             ]
             status, message, job_uuid = SlurmJobData.post(slurm_request=slurm_request, files=files)
