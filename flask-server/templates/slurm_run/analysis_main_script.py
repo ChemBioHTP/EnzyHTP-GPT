@@ -75,6 +75,9 @@ def post_result(experiment_id: str, mutant: str, replica_id: str, pdb_filename: 
         _LOGGER.warning(f"Unable to access the Web Server. {e}")
     finally:
         _LOGGER.info(f"Job result record:")
+        _LOGGER.info(f"\texperiment_id: {experiment_id};")
+        _LOGGER.info(f"\tmutant: {mutant};")
+        _LOGGER.info(f"\treplica_id: {replica_id};")
         for key, value in kwargs.items():
             _LOGGER.info(f"\t{key}: {value};")
         return
@@ -87,7 +90,7 @@ def active_site_rmsd(stru_esm: StructureEnsemble, region_pattern: str, **kwargs)
         region_pattern (str): A pymol-formatted selection string which defines the region for calculating RMSD value.
     """
     rmsd_values = rmsd(stru_esm=stru_esm, region_pattern=region_pattern)
-    return sum(rmsd_values)/len(rmsd_values)
+    return mean(rmsd_values)
 
 def cavity(stru_esm: StructureEnsemble, region_pattern: str, **kwargs) -> float:
     pass
@@ -183,12 +186,13 @@ if __name__ == "__main__":
     replica_id = environ.get("replica_id")
     metrics = loads(environ.get("mertics"))
     ligand_pattern = environ.get("ligand_pattern")
+    region_pattern = environ.get("region_pattern")
 
     ref_pdb_filename = environ.get("ref_pdb_filename")
     topology_filename = environ.get("topology_filename")
     trajectory_filename = environ.get("trajectory_filename")
 
     stru_esm: StructureEnsemble = interface.amber.load_traj(prmtop_path=topology_filename, traj_path=trajectory_filename, ref_pdb=ref_pdb_filename)
-    main
+    main(stru_esm=stru_esm, metrics=metrics, mutant=mutant, replica_id=replica_id, ligand_pattern=ligand_pattern, region_pattern=region_pattern)
 
     pass

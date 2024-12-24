@@ -44,6 +44,7 @@ constraints_str = environ.get("constraints_str")
 md_length = float(environ.get("md_length", 30.0))
 ph = float(environ.get("ph", 7.4))
 pocket_range = int(environ.get("pocket_range", 5))
+metrics = loads(environ.get("mertics"))
 
 md_constraints = []
 try:
@@ -159,19 +160,18 @@ try:
         mutant_dir = path.join(WORK_DIR, f"mutant_{i}")
         mutant_stru = mutate_stru(wt_stru, mutant, engine="pymol")
 
+        ligand_pattern = str()
+        region_pattern = str()
+
         ligand_chrg_spin_mapper = dict()
         pocket = list()
         if (has_ligand):
             for i, ligand in enumerate(mutant_stru.ligands):
                 # Set charge-Spin to default value: (0, 1)
                 ligand_chrg_spin_mapper[ligand.name] = (0, 1)
-
-                if (i == 0):
-                    # Set pocket to the default value: 5 Ang. around the ligand. We can only deal with the first ligand at present.
-                    selection = select_stru(mutant_stru, f"br. (resi {ligand.idx} around {pocket_range})")
-                    pocket.extend(selection.involved_residues)
-                    pocket.append(ligand)
-        pocket = list(set(pocket))
+            # Set pocket region pattern.
+            ligand_pattern = "+".join([(f"(resi {ligand.idx} and chain {ligand.chain.name})") for ligand in mutant_stru.ligands])
+            region_pattern = f"br. ({ligand_pattern}) around {pocket_range} and not ({ligand_pattern})"
 
         mutant_stru.assign_ncaa_chargespin(ligand_chrg_spin_mapper)
         remove_hydrogens(mutant_stru, polypeptide_only=True)
@@ -179,6 +179,7 @@ try:
 
         # Do something here.
         # sampling
+        mut_constraints = []
         mut_constraints = []
         try:
             # TODO: A correct manner to parse the constraints.
@@ -215,8 +216,10 @@ try:
             #     trajectory_filepath = stru_esm.coordinate_list,
             #     topology_filepath = stru_esm.topology_source_file
             # )
-            analysis_main(stru_esm=stru_esm,
+            analysis_main(
+                stru_esm=stru_esm, metrics=metrics,
                 mutant=mutant_name, replica_id=replica_id,
+                ligand_pattern=ligand_pattern, region_pattern=region_pattern,
             )
 
         # Send a request to the backend of Web Application to update status and progress.
