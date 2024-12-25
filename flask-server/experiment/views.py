@@ -360,43 +360,80 @@ class ExperimentApi(Resource):
         trajectory_file = request.files.get("trajectory", None)
         topology_file = request.files.get("topology", None)
 
-        entry_script_str_io = StringIO()
-        entry_script_str_io.write(Template(SLURM_ANALYSIS_JOB_ENTRY_CONTENT).safe_substitute({
-            "app_host": APP_HOST,
-            "experiment_id": experiment.id,
-            "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
-            "pdb_filename": experiment.pdb_filename,
-            "metrics": dumps(experiment.metrics),
-            "topology_filename": topology_file.filename,
-            "trajectory_filename": trajectory_file.filename,
-        }))
-        entry_script_str_io.name = SLURM_MD_JOB_ENTRY_SCRIPT
-        entry_script_str_io.mode = "r"
-        entry_script_str_io.seek(0)
+        is_mutant_constructed, mutant_pdb_filepath, make_mutant_message = experiment.make_mutant_pdb_file(mutant_name=mutant_name)
 
         if (mutant_name is None or trajectory_file is None or topology_file is None):
             response_info = ExperimentBehaviourResponseInfo(experiment, user,
                 is_successful=False, 
                 message=f"'mutant' string, 'replica_id' code, 'trajectory' file and 'topology' file are all required.")
             return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
-        else:
-            is_valid, validation_message, analysis_record_dict, analysis_result_dict = experiment.update_ensemble_and_analysis(
-                mutant_name=mutant_name,
-                topology_file=topology_file,
-                traj_file=trajectory_file
-            )
-            result = Result(
-                experiment_id=experiment.id,
-                pdb_filename=experiment.pdb_filename,
-                mutant=mutant_name,
-                replica_id=replica_id,
-                **analysis_result_dict
-            )
-            result.insert_or_update()
-
-            performed_analysis_metrics = [key for key, value in analysis_record_dict.items() if value]
+        elif (not is_mutant_constructed):
             response_info = ExperimentBehaviourResponseInfo(experiment, user,
-                message=f"{validation_message} Completed {', '.join(performed_analysis_metrics)} analysis.")
+                is_successful=False, 
+                message=make_mutant_message)
+            return Response(response=response_info.serialize(), status=501, mimetype=JSONIFY_MIMETYPE)
+        else:
+            entry_script_str_io = StringIO()
+            entry_script_str_io.write(Template(SLURM_ANALYSIS_JOB_ENTRY_CONTENT).safe_substitute({
+                "app_host": APP_HOST,
+                "experiment_id": experiment.id,
+                "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
+                "pdb_filename": experiment.pdb_filename,
+                "metrics": dumps(experiment.metrics),
+                "topology_filename": topology_file.filename,
+                "trajectory_filename": trajectory_file.filename,
+            }))
+            entry_script_str_io.name = SLURM_MD_JOB_ENTRY_SCRIPT
+            entry_script_str_io.mode = "r"
+            entry_script_str_io.seek(0)
+
+            analysis_main_script_io = open(SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH)
+            analysis_main_script_io.seek(0)
+
+            mutant_pdb_io = open(mutant_pdb_filepath)
+            mutant_pdb_io.seek(0)
+
+            trajectory_file_io = BytesIO()
+            trajectory_file.save(trajectory_file_io)
+            trajectory_file_io.name = trajectory_file.filename
+            trajectory_file_io.mode = "r"
+            trajectory_file_io.seek(0)
+
+            topology_file_io = BytesIO()
+            topology_file.save(topology_file_io)
+            topology_file_io.name = topology_file.filename
+            topology_file_io.mode = "r"
+            topology_file_io.seek(0)
+            
+            files = [
+                entry_script_str_io,
+                analysis_main_script_io,
+                mutant_pdb_io,
+                trajectory_file_io,
+                topology_file_io,
+            ]
+            slurm_request = SlurmJobRequest()
+            status, message, job_uuid = SlurmJobData.post(slurm_request=slurm_request, files=files)
+            
+            # TODO: Submit Analysis Slurm Job.
+            
+            if (job_uuid):
+                result = Result(
+                    experiment_id=experiment.id,
+                    pdb_filename=experiment.pdb_filename,
+                    mutant=mutant_name,
+                    replica_id=replica_id,
+                    slurm_job_uuid=job_uuid,
+                )
+                result.insert_or_update()
+
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                message=message,
+                is_successful=(True if job_uuid else False),
+                slurm_job_uuid=job_uuid
+            )
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
@@ -538,14 +575,14 @@ class ResultApi(Resource):
             return forbidden_response(user, experiment)
         pass
 
-    @login_required
+    @jwt_required
     def post(self, experiment_id: str):
         """Post new analysis result to a selected experiment instance.
         
         Args:
             experiment_id (str): The identifier of an experiment instance.
         """
-        user: User = current_user
+        user: User = User.get(get_jwt_identity())
         experiment = Experiment.get(experiment_id)
 
         if (experiment is None):

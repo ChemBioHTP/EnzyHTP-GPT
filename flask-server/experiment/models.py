@@ -424,7 +424,7 @@ class Experiment():
         ref_pdb_path = path.join(save_folder, __class__.mutant_pdb_filename)
         try:
             # Construct the reference structure PDB file.
-            mutant = [generate_from_mutation_flag(mutation_str) for mutation_str in mutant_name.split()]
+            mutant = [generate_from_mutation_flag(mutation_str) for mutation_str in mutant_name.split("_")]
             ref_stru = mutate_stru(sp.get_structure(self.pdb_filepath), mutant=mutant)
             sp.save_structure(outfile=ref_pdb_path, stru=ref_stru)
         except Exception as e:
@@ -466,7 +466,7 @@ class Experiment():
 
     #endregion
 
-    #region Experiment - Mutation
+    #region Experiment - Mutation TODO: Deduplication.
 
     def get_mutants(self) -> Tuple[bool, list, str]:
         """Get the mutant list of the current experiment instance.
@@ -549,8 +549,35 @@ class Experiment():
             message = "Getting Mutant PDB file string succeeded!"
         return is_successful, tag_string_pairs, message
 
+    def make_mutant_pdb_file(self, mutant_name: str, engine: str = "pymol") -> Tuple[bool, str, str]:
+        """Make the pdb file for a designated mutant associated with this experiment.
+        
+        Args:
+            mutant_name (str): The name of the mutant associated with the trajectory. e.g.: 'A##B C##D'
+            engine (str, optional): The engine (method) used for determine the mutated structure
+                (current available keywords): "tleap_min", "pymol" & "rosetta".
+        
+        Returns:
+            is_successful (bool): Flag indicating if the mutant PDB file is made.
+            mutant_pdb_filepath (str): The path to the mutant PDB file.
+            message (str): The message describing the mutant construction.
+        """
+        save_folder = path.join(self.directory, mutant_name.replace(" ", "_"))
+        fs.safe_mkdir(save_folder)
+        ref_pdb_path = path.join(save_folder, __class__.mutant_pdb_filename)
+        try:
+            # Construct the reference structure PDB file.
+            mutant = [generate_from_mutation_flag(mutation_str) for mutation_str in mutant_name.split("_")]
+            ref_stru = mutate_stru(sp.get_structure(self.pdb_filepath), mutant=mutant, engine=engine)
+            sp.save_structure(outfile=ref_pdb_path, stru=ref_stru)
+            return True, ref_pdb_path, f"The mutant `{mutant_name}` is constructed."
+        except Exception as e:
+            message = f"Exception raised when constructing the mutant `{mutant_name}`: {e}"
+            _LOGGER.error(message)
+            return False, str(), message
+
     def make_mutants_pdb_files(self, engine: str = "pymol") -> Tuple[bool, int, str]:
-        """Get the PDB file string of the mutated structure.
+        """Make pdb files for all the mutants associated with this experiment.
         
         Args:
             engine (str, optional): The engine (method) used for determine the mutated structure
@@ -657,7 +684,7 @@ class Result():
 
     __tablename__ = "results"
 
-    def __init__(self, experiment_id: str, pdb_filename: str, mutant: str, replica_id: str, **kwargs):
+    def __init__(self, experiment_id: str, pdb_filename: str, mutant: str, replica_id: str, slurm_job_uuid: str = None, **kwargs):
         """Initializes an instance of Result with the provided parameters.
 
         Args:
@@ -665,6 +692,7 @@ class Result():
             pdb_filename (str): The name of the PDB file of the result.
             mutant (str): The name of the mutant protein. e.g.: 'A##B C##D'
             replica_id (str): The ID of the MD simulation relica of one mutant.
+            slurm_job_uuid (str, optional): The UUID of the slurm job.
             kwargs: Keyword arguments containing metrics and other attributes.
         """
         self.id = kwargs.get("id", str(uuid.uuid4()))
@@ -672,6 +700,7 @@ class Result():
         self.pdb_filename = pdb_filename
         self.mutant = mutant
         self.replica_id = replica_id
+        self.slurm_job_uuid = slurm_job_uuid
 
         for metric in METRICS_MAPPER.keys():
             setattr(self, metric, kwargs.get(metric, None))
@@ -746,7 +775,7 @@ class Result():
         result_df = result_df[keep_columns]
         result_df_group = result_df.groupby(["mutant"]).mean()
 
-        return result_df_group.agg(lambda x: x.tolist()).reset_index().to_dict(orient='records')
+        return result_df_group.agg(lambda x: x.tolist()).reset_index().to_dict(orient="records")
 
     def insert_or_update(self):
         """Insert or Update the current Result instance to the database."""

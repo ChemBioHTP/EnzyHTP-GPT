@@ -56,7 +56,7 @@ class SlurmJobRequest:
 
     def __init__(self, account: str = SLURM_ACCOUNT, 
             partition: str = SLURM_PARTITION, 
-            job_name: str = "EnzyHTP-Web", 
+            job_name: str = "mutexa_web", 
             nodes: int = 1, mem: int = 6144, 
             time: timedelta = timedelta(days=10), 
             tasks_per_node: int = 1, ntasks: int = 1, 
@@ -264,6 +264,15 @@ class SlurmJobData:
             job_details: Union[dict, str] = dict(), job_state: str = str(), 
             created_at: datetime = None, alternate_user: str = str(),
             remote_job_id: str = None, failure_reason: str = str(), **kwargs) -> None:
+        """The information from the slurm job.
+        
+        Args:
+            job_uuid (str, optional): The UUID of the slurm job.
+            job_name (str, optional): The name of the slurm job.
+            user (str, optional): The ACCRE user of the slurm job.
+            job_details (Union[dict, str], optional): The detailed description of the slurm job.
+            job_state (str, optional): The status of the slurm job.
+        """
         self.job_uuid = job_uuid
         self.job_name = job_name
         self.user = user
