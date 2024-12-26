@@ -31,7 +31,7 @@ file_dir = environ.get("file_dir", path.curdir)
 access_token = environ.get("access_token")
 DATA_DIR = f"{path.dirname(path.abspath(__file__))}/data/"
 WORK_DIR = f"{path.dirname(path.abspath(__file__))}/work_dir/"
-RESULT_POST_URL = f"https://{app_host}/api/experiment/{experiment_id}"
+RESULT_POST_URL = f"https://{app_host}/api/experiment/{experiment_id}/result"
 
 cluster = Accre()
 cpu_job_config = {
