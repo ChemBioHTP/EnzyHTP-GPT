@@ -57,10 +57,22 @@ class ExperimentIndexResponse():
 
     default_order_by_field = "updated_time"
     default_items_on_page = 25
+    default_reverse_option = True
     
     def __init__(self, experiments: List[Experiment], page_index: int = 1, 
-            items_on_page: int = default_items_on_page, order_by: str = default_order_by_field):
-        """Experiment Index Information Response Body."""
+            items_on_page: int = default_items_on_page,
+            order_by: str = default_order_by_field,
+            reverse: bool = default_reverse_option,
+        ):
+        """Experiment Index Information Response Body.
+        
+        Args:
+            experiments (List[Experiment]): The list of user's experiments.
+            page_index (int): The index of the page to get.
+            items_on_page (int): Maximum number of items to be displayed on each page.
+            order_by (str): The field by which to sort the results.
+            reverse (bool): If to reverse the order of results.
+        """
         user: User = current_user
         self.user_id = user.id
         self.email = user.email
@@ -80,9 +92,9 @@ class ExperimentIndexResponse():
         if (self.experiments):
             if (not hasattr(experiments[0], order_by)):
                 order_by = __class__.default_order_by_field
-            self.experiments = sorted(experiments, key=lambda x: x["order_by"])
+            self.experiments = sorted(self.experiments, key=lambda x: x[order_by], reverse=reverse)
             starting_item_index = (self.page_index - 1) * items_on_page
-            ending_item_index = (self.page_index * items_on_page + 1) if (self.page_index < self.page_count) else len(experiments)
+            ending_item_index = (self.page_index * items_on_page + 1) if (self.page_index < self.page_count) else len(self.experiments)
             self.experiments = self.experiments[starting_item_index:ending_item_index]
         return
     
@@ -241,17 +253,18 @@ class IndexApi(Resource):
     @login_required
     def get(self):
         """Get the experiment list belonging to `current_user`."""
-        page_index = int(request.args.get("page", 1))       # Which page to get?
-        items_on_page = int(request.args.get(               # How many items to be displayed on each page?
+        page_index = int(request.args.get("page", 1))   # Which page to get?
+        items_on_page = int(request.args.get(           # How many items to be displayed on each page?
             "items", ExperimentIndexResponse.default_items_on_page
         ))
-        order_by = request.args.get(                        # The field by which to sort the results.
+        order_by = request.args.get(                    # The field by which to sort the results.
             "order_by", ExperimentIndexResponse.default_order_by_field
         )
+        reverse = False if request.form.get("reverse", "True").lower() in ["false", "0", "no"] else True  # If to reverse the order of results.
         
         user: User = current_user
         experiments = Experiment.get_user_experiments(user=user)
-        response_body = ExperimentIndexResponse(experiments, page_index, items_on_page, order_by)
+        response_body = ExperimentIndexResponse(experiments, page_index, items_on_page, order_by, reverse)
         return Response(response=response_body.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
