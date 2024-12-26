@@ -561,7 +561,7 @@ class ResultApi(Resource):
     
     @login_required
     def get(self, experiment_id: str):
-        """(TODO) Get the analysis result of a selected experiment instance.
+        """Get the analysis result of a selected experiment instance.
 
         Args:
             experiment_id (str): The identifier of an experiment instance.
@@ -573,7 +573,17 @@ class ResultApi(Resource):
             return notfound_response(user, experiment_id)
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
-        pass
+        
+        experiment_results = Result.get_experiment_results(experiment_id=experiment_id)
+
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment,
+            user=user,
+            message="The experiment results are fetched.",
+            is_successful=(True if experiment_results else False),
+            experiment_results=experiment_results
+        )
+        return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @jwt_required
     def post(self, experiment_id: str):

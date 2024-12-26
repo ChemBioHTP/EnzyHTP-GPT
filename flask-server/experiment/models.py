@@ -76,7 +76,7 @@ class Experiment():
         self.created_time = kwargs.get("created_time", datetime.now())
         self.updated_time = kwargs.get("updated_time", datetime.now())
         self.pdb_filename = kwargs.get("pdb_filename", None)
-        self.results: List[dict] = kwargs.get("results", list())
+        # self.results: List[dict] = kwargs.get("results", list())
         self.slurm_job_uuid = kwargs.get("slurm_job_uuid", None)
         self._status = kwargs.get("status", StatusCode.CREATED)
         self._progress = kwargs.get("progress", 0.0)
@@ -218,8 +218,8 @@ class Experiment():
     
     @status.setter
     def status(self, value):
-        if (value == StatusCode.CANCELLED):
-            self.results.clear()
+        # if (value == StatusCode.CANCELLED):
+        #     self.results.clear()
         self._status = value
         self.updated_time = datetime.now()
         return
@@ -756,15 +756,15 @@ class Result():
         return dict_data
     
     @staticmethod
-    def get_experiment_result(experiment_id: str) -> dict:
-        """Get the result dictionary of an experiment with given ID.
+    def get_experiment_results(experiment_id: str) -> List[Dict[str, Any]]:
+        """Get a list of results of an Experiment instance with designated `experiment_id`.
         For each mutant, the value of the analysis data will be the average of all its replica.
         
         Args:
             experiment_id (str): The `id` to identify an experiment.
 
         Returns:
-            experiment_result (dict): The summarized result information of the experiment.
+            experiment_results (List[Dict[str, Any]]): A list of results of an Experiment instance.
         """
         results_cursor = db.results.find({"experiment_id": experiment_id})
         result_df = DataFrame([result for result in results_cursor])

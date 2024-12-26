@@ -28,4 +28,4 @@ export ref_pdb_filename="${ref_pdb_filename}"
 export ligand_pattern="${ligand_pattern}"
 export region_pattern="${region_pattern}"
 
-python -u mmpbgbsa_main_script.py
+python -u analysis_main_script.py
