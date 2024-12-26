@@ -54,8 +54,12 @@ db = mongo.db
 
 class ExperimentIndexResponse():
     """Experiment Index Information Response Body."""
+
+    default_order_by_field = "updated_time"
+    default_items_on_page = 25
     
-    def __init__(self, experiments: List[Experiment]):
+    def __init__(self, experiments: List[Experiment], page_index: int = 1, 
+            items_on_page: int = default_items_on_page, order_by: str = default_order_by_field):
         """Experiment Index Information Response Body."""
         user: User = current_user
         self.user_id = user.id
@@ -66,9 +70,20 @@ class ExperimentIndexResponse():
         for exp in experiments:
             exp_dict = exp.as_dict(stringfy_time=True)
             del exp_dict["user_id"]
-            exp_dict["status_text"] = StatusCode.status_text_mapper[exp.status]
+            exp_dict["status_text"] = StatusCode.status_text_mapper.get(exp.status)
             self.experiments.append(exp_dict)
             continue
+
+        items_on_page = items_on_page if (items_on_page > 0) else __class__.default_items_on_page
+        self.page_count = (len(experiments)-1) // items_on_page + 1
+        self.page_index = page_index if (page_index <= self.page_count) else self.page_count
+        if (self.experiments):
+            if (not hasattr(experiments[0], order_by)):
+                order_by = __class__.default_order_by_field
+            self.experiments = sorted(experiments, key=lambda x: x["order_by"])
+            starting_item_index = (self.page_index - 1) * items_on_page
+            ending_item_index = (self.page_index * items_on_page + 1) if (self.page_index < self.page_count) else len(experiments)
+            self.experiments = self.experiments[starting_item_index:ending_item_index]
         return
     
     def serialize(self) -> str:
@@ -225,16 +240,18 @@ class IndexApi(Resource):
     
     @login_required
     def get(self):
-        """Get the experiment list belonging to `current_user`.
+        """Get the experiment list belonging to `current_user`."""
+        page_index = int(request.args.get("page", 1))       # Which page to get?
+        items_on_page = int(request.args.get(               # How many items to be displayed on each page?
+            "items", ExperimentIndexResponse.default_items_on_page
+        ))
+        order_by = request.args.get(                        # The field by which to sort the results.
+            "order_by", ExperimentIndexResponse.default_order_by_field
+        )
         
-        TODO (Zhong): Return the list of a specific page.
-        """
-        page_index = int(request.args.get("page", 0))       # Which page to get? Default 0.
-        items_on_page = int(request.args.get("items", 20))  # How many items to be displayed on each page? Default 20.
         user: User = current_user
-
         experiments = Experiment.get_user_experiments(user=user)
-        response_body = ExperimentIndexResponse(experiments)
+        response_body = ExperimentIndexResponse(experiments, page_index, items_on_page, order_by)
         return Response(response=response_body.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
@@ -336,8 +353,6 @@ class ExperimentApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        # TODO (Zhong): Experiment Results.
-        
         return Response(experiment.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @jwt_required()
@@ -414,8 +429,6 @@ class ExperimentApi(Resource):
             ]
             slurm_request = SlurmJobRequest()
             status, message, job_uuid = SlurmJobData.post(slurm_request=slurm_request, files=files)
-            
-            # TODO: Submit Analysis Slurm Job.
             
             if (job_uuid):
                 result = Result(
