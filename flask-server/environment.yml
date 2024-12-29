@@ -10,6 +10,7 @@ dependencies:
   - aiohttp=3.9.0=py39h5eee18b_0
   - aiosignal=1.3.1=pyhd8ed1ab_0
   - alsa-lib=1.2.10=hd590300_0
+  - aniso8601=9.0.1=pyhd3eb1b0_0
   - annotated-types=0.6.0=pyhd8ed1ab_0
   - anyio=3.7.1=pyhd8ed1ab_0
   - aom=3.5.0=h27087fc_0
@@ -30,10 +31,10 @@ dependencies:
   - bs4=4.12.2=py38hd3eb1b0_0
   - bzip2=1.0.8=hd590300_5
   - c-ares=1.23.0=hd590300_0
-  - ca-certificates=2024.3.11=h06a4308_0
+  - ca-certificates=2024.11.26=h06a4308_0
   - cairo=1.18.0=h3faef2a_0
   - cclib=1.8=pyhd8ed1ab_0
-  - certifi=2024.6.2=py39h06a4308_0
+  - certifi=2024.8.30=py39h06a4308_0
   - cffi=1.16.0=py39h7a31438_0
   - charset-normalizer=3.3.2=pyhd8ed1ab_0
   - click=8.0.4=py39hf3d152e_0
@@ -62,6 +63,7 @@ dependencies:
   - flask-login=0.6.2=py39h06a4308_0
   - flask-mail=0.9.1=py_2
   - flask-pymongo=2.3.0=pyhd8ed1ab_0
+  - flask-restful=0.3.9=py39h06a4308_0
   - flask-sqlalchemy=2.5.1=pyhd3eb1b0_0
   - flask-wtf=1.0.1=py39h06a4308_0
   - flask_cors=3.0.10=pyhd3eb1b0_0
@@ -204,7 +206,6 @@ dependencies:
   - mkl_fft=1.3.1=py39h051f8f4_4
   - mkl_random=1.2.2=py39h8b66066_1
   - mmcif_pdbx=2.0.0=pyh44b312d_0
-  - modeller=10.4=py39h9bf148f_0
   - mpc=1.1.0=h10f8cd9_1
   - mpfr=4.0.2=hb69a4c5_1
   - mpg123=1.32.3=h59595ed_0
@@ -223,7 +224,7 @@ dependencies:
   - numpy=1.26.2=py39heeff2f4_0
   - numpy-base=1.26.2=py39h8a23956_0
   - oauthlib=3.2.2=py39h06a4308_0
-  - openai=1.25.0=py39h06a4308_0
+  - openai=1.37.0=py39h06a4308_0
   - openbabel=3.1.1=py39h421517d_8
   - openblas=0.3.25=pthreads_h7a3da1a_0
   - openh264=2.3.1=hcb278e6_2
@@ -349,3 +350,6 @@ dependencies:
   - zipp=3.17.0=pyhd8ed1ab_0
   - zlib=1.2.13=hd590300_5
   - zstd=1.5.5=hfc55251_0
+  - pip:
+      - docutils==0.17.1
+      - fastjsonschema==2.20.0

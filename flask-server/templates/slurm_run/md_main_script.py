@@ -1,25 +1,26 @@
 #! python3
 # -*- encoding: utf-8 -*-
 '''
-The main script of the Slurm Job. This script is currently for test use.
+The main script of the MD Slurm Job. This script is currently for test use.
 
 @File    :   main_script.py
 @Created :   2024/06/21 16:18
 @Author  :   Zhong, Yinjie
-@Version :   1.0
 @Contact :   yinjie.zhong@vanderbilt.edu
 '''
 
 # Here put the import lib.
 from os import environ, path
+from typing import List, Union
 from time import sleep
 from requests import post, put
 from statistics import mean
+from json import loads
 
 # Here put enzy_htp modules.
 from enzy_htp import interface, _LOGGER
 from enzy_htp.core.clusters.accre import Accre
-from enzy_htp.structure import PDBParser
+from enzy_htp.structure import PDBParser, StructureEnsemble
 from enzy_htp.structure.structure_selection import select_stru
 from enzy_htp.preparation import remove_solvent, remove_hydrogens, protonate_stru
 from enzy_htp.mutation import assign_mutant, mutate_stru
@@ -37,10 +38,16 @@ file_dir = environ.get("file_dir", path.curdir)
 access_token = environ.get("access_token")
 pdb_filename = environ.get("pdb_filename")
 mutation_pattern = environ.get("mutation_pattern")
-
+constraints_str = environ.get("constraints_str")
 md_length = float(environ.get("md_length", 30.0))
 ph = float(environ.get("ph", 7.4))
 pocket_range = int(environ.get("pocket_range", 5))
+
+md_constraints = []
+try:
+    md_constraints = loads(constraints_str)
+except Exception as e:
+    _LOGGER.error(f"Exception raised when loading `constraints_str`: {e}")
 
 cluster = Accre()
 gpu_job_config = {
@@ -60,7 +67,7 @@ cpu_job_config = {
 }
 
 PROGRESS_UPDATE_URL = f"https://{app_host}/api/experiment/{experiment_id}"
-RESULTS_POST_URL = f"https://{app_host}/api/experiment/{experiment_id}/results"
+TRAJ_UPLOAD_URL = f"https://{app_host}/api/experiment/{experiment_id}"
 print(f"Send PATCH request to {PROGRESS_UPDATE_URL} so as to update the status and progress.")
 
 def synchronize_job_status(status: int = None, progress: float = None) -> None:
@@ -90,15 +97,31 @@ def synchronize_job_status(status: int = None, progress: float = None) -> None:
         _LOGGER.info(f"Job Status Code: {status}, Progress: {progress}")
         return
     
-def post_job_result(**kwargs) -> None:
-    """Post the result record to the web server."""
+def post_trajectory_and_topology_file(mutant: str, replica_id: Union[int, str], trajectory_filepath: str, topology_filepath: str) -> None:
+    """Post the trajectory and topology file to the web server.
+
+    Args:
+        mutant_name (str): The name of the mutant associated with the trajectory. e.g.: 'A##B C##D'
+        replica_id (int | str): The ID of the MD simulation relica of one mutant.
+        topology_file (FileStorage): The FileStorage instance of the Amber prmtop file.
+        traj_file (FileStorage): The FileStorage instance of the new trajectory file.
+    """
     try:
-        response = post(RESULTS_POST_URL,
+        data = {
+            "mutant": mutant,
+            "replica_id": str(replica_id),
+        }
+        files = {
+            "trajectory": open(trajectory_filepath, mode="rb"),
+            "topology": open(topology_filepath, mode="rb"),
+        }
+        response = post(TRAJ_UPLOAD_URL,
             headers={
                 "Authorization": f"Bearer {access_token}"
             },
-            data=kwargs,
-            timeout=30)
+            data=data,
+            files=files,
+            timeout=300)
         if (response.ok):
             return
         else:
@@ -106,9 +129,8 @@ def post_job_result(**kwargs) -> None:
     except Exception as e:
         _LOGGER.warning(f"Unable to access the Web Server. {e}")
     finally:
-        _LOGGER.info(f"Job result record:")
-        for key, value in kwargs.items():
-            _LOGGER.info(f"\t{key}: {value};")
+        _LOGGER.info(f"Trajectory file transmitted:")
+        _LOGGER.info(f"\tmutant: {mutant}, replica_id: {replica_id}, \n\ttrajectory_file: {trajectory_filepath}, \n\ttopology_file: {topology_filepath}.")
         return
 
 synchronize_job_status(status=StatusCode.INITIALIZING, progress=0.0)
@@ -130,10 +152,10 @@ try:
     synchronize_job_status(status=StatusCode.RUNNING, progress=0.0)
 
     # mutation
-    for i, mut in enumerate(mutants):
+    for i, mutant in enumerate(mutants):
         mutant_result = []
         mutant_dir = path.join(WORK_DIR, f"mutant_{i}")
-        mutant_stru = mutate_stru(wt_stru, mut, engine="pymol")
+        mutant_stru = mutate_stru(wt_stru, mutant, engine="pymol")
 
         ligand_chrg_spin_mapper = dict()
         pocket = list()
@@ -155,38 +177,42 @@ try:
 
         # Do something here.
         # sampling
-        md_constraints = []
         mut_constraints = []
-        for cons in md_constraints:
-            mut_constraints.append(cons(mutant_stru))
-        param_method = interface.amber.build_md_parameterizer()
+        try:
+            # TODO: A correct manner to parse the constraints.
+            for cons in md_constraints:
+                mut_constraints.append(cons(mutant_stru))
+                continue
+        except:
+            _LOGGER.error(f"Exception raised when loading `constraints_str`: {e}")
 
+        param_method = interface.amber.build_md_parameterizer()
         
-        md_result = equi_md_sampling(
+        md_result: List[StructureEnsemble] = equi_md_sampling(
             stru=mutant_stru,
             param_method=param_method,
             prod_constrain=mut_constraints,
             prod_time=md_length,
-            record_period=md_length*0.1,
+            record_period=md_length*0.01,
             work_dir=f"{mutant_dir}/MD/",
             cluster_job_config=gpu_job_config,
             cpu_equi_step=True,
-            cpu_job_config=cpu_job_config,
+            cpu_equi_job_config=cpu_job_config,
             job_check_period=10,
         )
 
         result_record_dict = {
-            "mutant": get_mutant_name_str(mut),
+            "mutant": get_mutant_name_str(mutant),
         }
 
-        if has_ligand:
-            spi_list = list()
-            for ensemble in md_result:
-                spi_value = spi_metric(ensemble, mutant_stru.ligands[0], pocket)
-                spi_list.append(spi_value)
-            result_record_dict["spi"] = mean(spi_list)
+        for replica_id, stru_esm in enumerate(md_result):
+            mutant_name = get_mutant_name_str(mutant=mutant)
 
-        post_job_result(result_record_dict)
+            post_trajectory_and_topology_file(
+                mutant=mutant_name, replica_id=replica_id,
+                trajectory_filepath = stru_esm.coordinate_list,
+                topology_filepath = stru_esm.topology_source_file
+            )
 
         # Send a request to the backend of Web Application to update status and progress.
         synchronize_job_status(status=StatusCode.RUNNING, progress=i/mutants_count)

@@ -50,18 +50,20 @@ Those instances can only be declared in an individual file and imported into the
 
 #### 2.2.3 NoSQL Database (on Ubuntu WSL)
 
-Install the MongoDB database by `sudo apt-get install -y mongodb-org`, and start it by `sudo service mongod start`.
+Follow the tutorial on [MongoDB official website](https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/) to install its community edition. 
 
-If you are faced with `mongod: unrecognized service` error when initializing or starting MongoDB, then try following commands. (This error is likely to happen when running MongoDB on Ubuntu WSL.)
+Start the MongoDB database by `sudo service mongod start`. If you are faced with `mongod: unrecognized service` error when initializing or starting MongoDB, then try following commands. (This error is likely to happen when running MongoDB on Ubuntu WSL.)
 
 ```bash
 sudo /usr/bin/mongod --fork --logpath /var/log/mongodb/mongodb.log --config /etc/mongod.conf
 ```
 
 Reference:
-https://deepinout.com/mongodb/mongodb-questions/109_mongodb_mongod_is_not_a_service_ubuntu_wsl_error_mongod_unrecognized_service.html
 
-##### Containerized Deployment
+- https://deepinout.com/mongodb/mongodb-questions/109_mongodb_mongod_is_not_a_service_ubuntu_wsl_error_mongod_unrecognized_service.html
+- https://stackoverflow.com/questions/62495999/installing-mongodb-in-wsl
+
+##### Alternative Method: Containerized Deployment
 
 As Vanderbilt CSB IT team hasn't completed the migration of MongoDB and Docker storage by July 13th, 2024, the author has to adopt containerized deployment for the database. It is not a good way to do so, but we have no better choices.
 
@@ -108,13 +110,20 @@ In the production environment, we use uWSGI to run the Flask Server. Thus, we bu
 Please export environment variables in `start.sh` like
 
 ```bash
+export PYTHONPATH=$PYTHONPATH:/var/bin/EnzyHTP
+
+export TIME_ZONE="US/Central"
 export FLASK_ENV="production"
 export DEBUG=0
 export APP_HOST="enzyhtp.app.vanderbilt.edu"
-export SECRET_KEY=$(cat /proc/sys/kernel/random/uuid)
+export SECRET_KEY="48c0e116-f078-4fa4-a290-0cffe8e3945c"
 
+export MONGO_URI="mongodb://10.2.192.25:27017/enzyhtp_gpt"
 export FILE_SYSTEM_FOLDER="/var/www/files"
 export OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI="/key"
+export AMBERHOME="/sb/apps/amber22"
+
+export PATH=$PATH:$AMBERHOME/bin
 ```
 
 ### 5.2 Build and Run.
@@ -126,7 +135,7 @@ In order to allow updates to EnzyHTP Library, we choose to clone EnzyHTP to the 
 To build the `enzyhtp.web.flask` (i.e., backend) docker image, enter and run the following `docker build` command.
 
 ```bash
-.../EnzyHTP-GPT/flask-server$ docker build -t enzyhtp.web.flask:2024.07.v01 .
+.../EnzyHTP-GPT/flask-server$ docker build -t enzyhtp.web.flask:2024.12.v03 .
 ```
 
 #### 5.2.2 Run Container
@@ -136,7 +145,7 @@ To run the docker container, enter and execute the following `docker run` comman
 In this command, port 12306 of the host is mapped to port 8000 of the container, and the flask-server folder on the host is mapped to the working directory in the container, that is, any modifications in this folder will be instantly synchronized to the working directory, so that the service manager only needs to restart the container to complete the update.
 
 ```bash
-docker run -d --name enzyhtp.web.flask -v .../EnzyHTP-GPT/flask-server:/var/www/flask-server -v /path/to/ssl:/var/www/ssl -v /path/to/files:/var/www/files -v /path/to/EnzyHTP:/var/bin/EnzyHTP -p 12306:8000 enzyhtp.web.flask:2024.07.v01
+docker run -d --name enzyhtp.web.flask -v .../EnzyHTP-GPT/flask-server:/var/www/flask-server -v /path/to/ssl:/var/www/ssl -v /path/to/files:/var/www/files -v /path/to/EnzyHTP:/var/bin/EnzyHTP -v /path/to/amber22:/sb/apps/amber22 -p 12306:8000 enzyhtp.web.flask:2024.12.v03
 ```
 
 **Attention:** `/path/to/files` should grant write permission to all users by `chmod g+w /path/to/log` and `chmod o+w /path/to/log` commands.
@@ -144,7 +153,7 @@ docker run -d --name enzyhtp.web.flask -v .../EnzyHTP-GPT/flask-server:/var/www/
 A practical example of use is as follows.
 
 ```bash
-docker run -d --name enzyhtp.web.flask -v /home/zhongy8/bin/EnzyHTP-GPT/flask-server:/var/www/flask-server -v /mutexa/raid5/data/enzyhtp_gpt/ssl:/var/www/ssl -v /mutexa/raid5/data/enzyhtp_gpt/files:/var/www/files -v /home/zhongy8/bin/EnzyHTP:/var/bin/EnzyHTP -p 12306:8000 enzyhtp.web.flask:2024.07.v01
+docker run -d --name enzyhtp.web.flask -v /home/zhongy8/bin/EnzyHTP-GPT/flask-server:/var/www/flask-server -v /mutexa/raid5/data/enzyhtp_gpt/ssl:/var/www/ssl -v /mutexa/raid5/data/enzyhtp_gpt/files:/var/www/files -v /home/zhongy8/bin/EnzyHTP:/var/bin/EnzyHTP -v /sb/apps/amber22:/sb/apps/amber22 -p 12306:8000 enzyhtp.web.flask:2024.12.v03
 ```
 
 ### Test Backend

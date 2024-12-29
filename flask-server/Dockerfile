@@ -1,10 +1,10 @@
-FROM continuumio/anaconda3:main
+FROM continuumio/miniconda3:main
 
 # Set the Time Zone.
 ENV TZ "US/Central"
 
 # Copy the current directory file to the working directory.
-RUN mkdir -p /var/www/flask-server && mkdir -p /var/www/ssl && mkdir -p /var/www/files && mkdir -p /var/bin/EnzyHTP
+RUN mkdir -p /var/www/flask-server && mkdir -p /var/www/ssl && mkdir -p /var/www/files && mkdir -p /var/bin/EnzyHTP && mkdir -p /sb/apps/amber22
 WORKDIR /var/www/flask-server
 ADD . /var/www/flask-server
 

@@ -2,7 +2,7 @@
 
 # This script is a part of first time installation.
 # This script is to config environment variables of the current conda env.
-# This script currently depends on the `develop_refactor` branch of EnzyHTP (https://github.com/ChemBioHTP/EnzyHTP/tree/develop_refactor).
+# This script currently depends on the `develop` branch of EnzyHTP (https://github.com/ChemBioHTP/EnzyHTP/tree/develop).
 # This script should be executed when `enzyhtp-gpt` env is activated.
 # This script should be modified before execution.
 
@@ -60,4 +60,4 @@ done
 # ========== Don't change anything below this line. ==========
 
 cd $enzyhtp_installation_path
-bash dev-tools/conda-install --name $target_env_name
+source dev-tools/conda-install --name $target_env_name

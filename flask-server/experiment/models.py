@@ -1,6 +1,8 @@
 #! python3
 # -*- encoding: utf-8 -*-
 '''
+The entities for the Experiment module.
+
 @File    :   models.py
 @Created :   2024/01/07 17:00
 @Author  :   Zhong, Yinjie
@@ -13,71 +15,54 @@ from __future__ import annotations  # To enable the annotation that a staticmeth
 from io import BufferedReader
 from flask_login import UserMixin
 from datetime import datetime, timedelta
-from typing import List, Union, Tuple
+from typing import Any, Dict, List, Union, Tuple, Callable
 from json import loads, dumps
 from plum import dispatch
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
+from pandas import DataFrame
+from os import path
 import os
 import uuid
+import re
 
 # Here put local imports.
 from context import mongo
 from config import EXPERIMENT_FILE_DIRECTORY, SCRATCH_FOLDER
 from auth.models import User
+from .analysis import METRICS_MAPPER
 
 # Here put enzy_htp modules.
+from enzy_htp import interface
 from enzy_htp.core.general import CaptureLogging, _LOGGER
 from enzy_htp.core import (
     exception as core_exc, 
     file_system as fs
 )
-from enzy_htp.structure import PDBParser
+from enzy_htp.structure import PDBParser, StructureEnsemble
 from enzy_htp.preparation.validity import is_structure_valid
 from enzy_htp.mutation.mutation_pattern import api as pattern_api
-from enzy_htp.mutation_class import get_mutant_name_str, get_mutant_name_tag
+from enzy_htp.mutation_class import get_mutant_name_str, get_mutant_name_tag, generate_from_mutation_flag
 from enzy_htp.mutation.api import mutate_stru
 from enzy_htp.workflow.config import StatusCode
+
+sp = PDBParser()
 
 db = mongo.db
 
 class Experiment():
-    """Experiment Model: Experiment information.
-    
-    Attributes:
-        user_id (int): The user ID associated with this experiment.
-        name (str): The name of the experiment.
-        type (int): The type of the experiment (default is 0).
-        status (int): The status of the experiment (default is 0).
-        metrics (list): Metrics information about what kind of analysis to be performed (default is an empty list).
-        description (str): A description of the experiment (default is None).
-    """
+    """Experiment Model: Experiment information."""
 
-    DEFAULT_METRICS = ['spi', 'rmsd']
+    __tablename__ = "experiments"
+    mutant_pdb_filename = "ref_stru.pdb"
 
-    __tablename__ = 'experiments'
-    # id = db.Column(db.String(36), primary_key=True, unique=True)
-    # type = db.Column(db.Integer, nullable=False, default=0)
-    # name = db.Column(db.String(128), nullable=False, default="Experiment")
-    # slurm_job_uuid = db.Column(db.String(36), nullable=True)
-    # _status = db.Column("status", db.Integer, nullable=False, default=StatusCode.CREATED)
-    # _progress = db.Column("progress", db.Float, nullable=False, default=0.0)
-    # mutation_pattern = db.Column(db.String(256), nullable=True, default="WT")
-    # metrics = db.Column(db.String(64), nullable=True)
-    # description = db.Column(db.String(128), nullable=True)
-    # created_time = db.Column(db.DateTime, nullable=False)
-    # updated_time = db.Column(db.DateTime, nullable=False)
-    # pdb_filepath = db.Column(db.String(1024), nullable=True)
-    # user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
-    # user = db.relationship('User', backref=db.backref('experiments'))
-
-    def __init__(self, user_id: str, name: str, type: int = 0, metrics: List[str] = DEFAULT_METRICS, description: str = None, **kwargs):
+    def __init__(self, user_id: str, name: str, type: int = 0, metrics: List[Dict[str, Any]] = list(), description: str = None, **kwargs):
         """Initializes an instance of Experiment with the provided parameters.
 
         Args:
-            user_id (int): The user ID associated with this experiment.
+            user_id (str): The user ID associated with this experiment.
             name (str): The name of the experiment.
             type (int, optional): The type of the experiment (default is 0).
-            metrics (list, optional): Metrics information about what kind of analysis to be performed (default is an empty list).
+            metrics (List[Dict[str, Any]], optional): Metrics information about what kind of analysis to be performed (default is an empty list).
             description (str, optional): A description of the experiment (default is None).
             kwargs: Other keyword arguments.
         """
@@ -86,11 +71,12 @@ class Experiment():
         self.description = description
         self.user_id = user_id
         self.metrics = metrics
+        self.constraints = kwargs.get("constraints", list())
         self.id = kwargs.get("id", str(uuid.uuid4()))
         self.created_time = kwargs.get("created_time", datetime.now())
         self.updated_time = kwargs.get("updated_time", datetime.now())
-        self.pdb_filepath = kwargs.get("pdb_filepath", None)
-        self.results = kwargs.get("results", list())
+        self.pdb_filename = kwargs.get("pdb_filename", None)
+        self.results: List[dict] = kwargs.get("results", list())
         self.slurm_job_uuid = kwargs.get("slurm_job_uuid", None)
         self._status = kwargs.get("status", StatusCode.CREATED)
         self._progress = kwargs.get("progress", 0.0)
@@ -100,10 +86,13 @@ class Experiment():
     
     @staticmethod
     def get(id: str) -> Experiment | None:
-        """Get experiment instance.
+        """Get experiment instance with given ID.
         
         Args:
             id (str): The `id` to identify an experiment.
+
+        Returns:
+            Matched Experiment instance or None.
         """
         experiment = Experiment.from_dict(db.experiments.find_one({"id": id}))
         # experiment = Experiment.query.filter_by(id=id).first()
@@ -129,12 +118,12 @@ class Experiment():
         else:
             return []
 
-    def update_attributes(self, mapper: ImmutableMultiDict, editable_attrs: list = list()) -> Tuple[list, list, list, str]:
+    def update_attributes(self, mapper: Dict[str, Any], editable_attrs: list = list()) -> Tuple[list, list, list, str]:
         """Update the attribute of a specified instance.
         
         Args:
             instance: The instance of a class who has attributes to be updated.
-            mapper (ImmutableMultiDict): A dict-like mapper which contains the fields/attributes and values.
+            mapper (Dict[str, Any]): A dict-like mapper which contains the fields/attributes and values.
             editable_attrs (list): A list of editable attributes of the instance.
 
         Returns:
@@ -144,8 +133,8 @@ class Experiment():
             message (str): A string value describing the updating.
         """
         updated_attrs = list()
-        nonexistent_attrs = list()
         blocked_attrs = list()
+        nonexistent_attrs = list()
 
         for field_name, field_value in mapper.items():
             if (hasattr(self, field_name)):
@@ -153,7 +142,6 @@ class Experiment():
                     if (field_value != None):
                         setattr(self, field_name, field_value)
                         db.experiments.update_one({"id": self.id}, {"$set": {field_name: field_value}})
-                        # db.session.commit()
                         updated_attrs.append(field_name)
                     continue
                 else:
@@ -173,8 +161,7 @@ class Experiment():
 
         return updated_attrs, blocked_attrs, nonexistent_attrs, message
 
-
-    def as_dict(self, stringfy_time: bool = False) -> str:
+    def as_dict(self, stringfy_time: bool = False) -> dict:
         """Serialize the current instance to a dictionary.
         
         Args:
@@ -200,21 +187,30 @@ class Experiment():
 
     def serialize(self) -> str:
         """Serialize the current instance to json string."""
-        from json import dumps
 
         dict_data = self.as_dict()
-        del dict_data["_sa_instance_state"]
+        fields_to_delete = ["_sa_instance_state", "_status", "_progress"]
+
         dict_data["created_time"] = str(self.created_time)
         dict_data["updated_time"] = str(self.updated_time)
         dict_data["status"] = str(self._status)
         dict_data["progress"] = str(self._progress)
         dict_data["status_text"] = StatusCode.status_text_mapper.get(self.status, self.status)
-        del dict_data["_status"]
-        del dict_data["_progress"]
+
+        for field_key in fields_to_delete:
+            if (field_key in dict_data.keys()):
+                del dict_data[field_key]
         return dumps(dict_data)
     
     def __repr__(self):
-        return f"Experiment('{self.id}', '{self.name}')"
+        return f"Experiment('{self.id}', '{self.name}', '{self.pdb_filename}')"
+
+    @property
+    def pdb_filepath(self):
+        if (self.pdb_filename):
+            return path.join(self.directory, self.pdb_filename)
+        else:
+            return None
 
     @property
     def status(self):
@@ -243,8 +239,35 @@ class Experiment():
         is_successful, mutants, message = self.get_mutants()
         return len(mutants)
 
+    @property
+    def has_pdb_file(self) -> bool:
+        if (self.pdb_filepath and os.path.isfile(self.pdb_filepath)):
+            return True
+        else:
+            return False
+
+    @property
+    def directory(self) -> str:
+        """The directory where the file of this experiment is saved."""
+        directory_path = path.join(EXPERIMENT_FILE_DIRECTORY, self.id)
+        return directory_path
+
+    def clear_folder(self, remove_folder: bool = False):
+        """Remove the folder of the current directory.
+        
+        Args:
+            remove_folder (bool): If true, remove the folder itself as well; otherwise leave the empty folder.
+        """
+        fs.safe_rmdir(self.directory)
+        if (remove_folder):
+            return
+        else:
+            fs.safe_mkdir(self.directory)
+    
+    #region Experiment - PDB File
+
     @staticmethod
-    def validate_pdb(pdb_file: str | FileStorage) -> Tuple[bool, str]:
+    def __validate_pdb(pdb_file: str | FileStorage) -> Tuple[bool, bool, str]:
         """Validate PDB file.
 
         Args:
@@ -252,28 +275,34 @@ class Experiment():
         
         Returns:
             is_valid (bool): Flag indicating the validity of the PDB file.
+            is_supported (bool): Flag indicating if the structure is supported by EnzyHTP.
             message (str): The message describing the validity status.
         """
         pdb_filepath = str()
 
         from_filestorage = isinstance(pdb_file, FileStorage)
         if (from_filestorage):
-            pdb_filepath = os.path.join(SCRATCH_FOLDER, pdb_file.filename)
+            pdb_filepath = path.join(SCRATCH_FOLDER, pdb_file.filename)
             pdb_file.save(pdb_filepath)
         else:
             pdb_filepath = pdb_file
         
         is_valid = False
+        is_supported = False
         message = str()
         
         with CaptureLogging(_LOGGER) as log_str:
-            if (not os.path.isfile(pdb_filepath)):
+            if (not path.isfile(pdb_filepath)):
                 message = "No selected file."
             else:
-                sp = PDBParser()
-                stru = sp.get_structure(pdb_filepath)
+                try:
+                    stru = sp.get_structure(pdb_filepath)
+                    is_valid = True
+                except ValueError as e:
+                    is_valid = False
+                    message = f"Unreadable PDB file: {e}\n"
                 if (stru.num_atoms > 0):
-                    is_valid, intermediate_message = is_structure_valid(stru, print_report=False)
+                    is_supported, intermediate_message = is_structure_valid(stru, print_report=False)
                     message = "The following errors were found in the PDB file: \n"
                     for reason, source, suggestion in intermediate_message:
                         message += f"Reason: {str(reason)}\tSource: {str(source)}\tSuggestion: {str(suggestion)};\n"
@@ -293,49 +322,152 @@ class Experiment():
             pdb_file.stream.seek(0) # Reset the cursor for further use.
             pass
         
-        return is_valid, message
+        return is_valid, is_supported, message
 
-    def update_pdb(self, pdb_file: FileStorage) -> Tuple[bool, str]:
+    def update_pdb(self, pdb_file: FileStorage, force_update: bool = False) -> Tuple[bool, bool, str]:
         """Update PDB file. Invalid PDB file will not be updated.
 
         Args:
             pdb_file (FileStorage): The FileStorage instance of the new PDB file.
+            force_update (bool): Whether to skip verification and force update of PDB files.
+                If True, PDB file will be updated even if the PDB file is not supported (but the PDB file must be valid).
+        
+        Returns:
+            is_updated (bool): Flag indicating if the PDB file is updated.
+            is_supported (bool): Flag indicating if the structure is supported by EnzyHTP.
+            message (str): The message describing the updating.
+        """
+        is_updated = False
+        if (fs.get_file_ext(pdb_file.filename).lower() != ".pdb"):
+            return False, "This is not a PDB file."
+        fs.safe_mkdir(self.directory)
+
+        is_valid, is_supported, message = Experiment.__validate_pdb(pdb_file)
+        if (is_valid and force_update):
+            message = f"Force the update of PDB file. {message}"
+
+        if (is_supported or force_update):
+            is_updated = True
+            if (self.pdb_filepath and path.isfile(self.pdb_filepath)):
+                fs.safe_rm(self.pdb_filepath) # Delete existing file.
+            self.pdb_filename = pdb_file.filename
+            pdb_file.save(self.pdb_filepath)
+            message = f"The PDB file of the experiment {self.id} is updated. " + message
+            db.experiments.update_one({"id": self.id}, {"$set": {"pdb_filename": self.pdb_filename}})
+
+        return is_updated, is_supported, message
+    
+    #endregion
+
+    #region Experiment - Analysis
+
+    def __analyze_structure_ensemble_result(
+            self, stru_esm: StructureEnsemble,
+        ) -> Tuple[Dict[str, bool], Dict[str, bool]]:
+        """Perform the analysis based on the given StructureEnsemble instance.
+        
+        Args:
+            stru_esm (StructureEnsemble): The StructureEnsemble instance for analysis.
+
+        Returns:
+            analysis_record_dict (Dict[str, bool]): A dictionary recording success and failure of each analysis.
+            analysis_result_dict (Dict[str, bool]): A dictionary recording the result of each analysis.
+        """
+        analysis_result_dict = dict()   # Record analysis result.
+        analysis_record_dict = dict()   # Record success or failure.
+        for metric in self.metrics:
+            analysis_tag = metric.get("name")   # The name of the analysis to be performed.
+            try:
+                analysis_params: Dict[str, Any] = metric.get("arguments", dict())
+                if (analysis_tag):
+                    analysis_callable = METRICS_MAPPER.get(analysis_tag)    # Get analysis callable.
+                    if (isinstance(analysis_callable, Callable)):
+                        analysis_params.update({    # Compose analysis arguments.
+                            "stru_esm": stru_esm,
+                        })
+                        analysis_result_dict[analysis_tag] = analysis_callable(**analysis_params)    # Perform analysis and record result.
+                        analysis_record_dict[analysis_tag] = True
+            except Exception as e:
+                message = f"Exception raised when analyzing '{analysis_tag}': {e}"
+                analysis_record_dict[analysis_tag] = False
+                _LOGGER.error(message)
+            finally:
+                continue
+
+        return analysis_record_dict, analysis_result_dict
+    
+    def update_ensemble_and_analysis(self, mutant_name: str, topology_file: FileStorage, traj_file: FileStorage) -> Tuple[bool, str, dict, dict]:
+        """Update the structure ensemble of the mutant and perform analysis.
+        Invalid Trajectory file will not trigger updates to the results.
+        Trajectory files will be removed after the completion of analysis.
+
+        Args:
+            mutant_name (str): The name of the mutant associated with the trajectory. e.g.: 'A##B C##D'
+            topology_file (FileStorage): The FileStorage instance of the Amber prmtop file.
+            traj_file (FileStorage): The FileStorage instance of the new trajectory file.
         
         Returns:
             is_valid (bool): Flag indicating the validity of the PDB file.
-            message (str): The message describing the updating.
+            message (str): The message describing the validation.
+            analysis_record_dict (Dict[str, bool]): A dictionary recording success and failure of each analysis.
+            analysis_result_dict (Dict[str, bool]): A dictionary recording the result of each analysis.
         """
-        if (fs.get_file_ext(pdb_file.filename).lower() != ".pdb"):
-            return False, "This is not a PDB file."
-        save_folder = os.path.join(EXPERIMENT_FILE_DIRECTORY, self.id)
+        is_valid = False
+        validation_message = str()
+        analysis_record_dict = dict()
+        analysis_result_dict = dict()
+
+        save_folder = path.join(self.directory, mutant_name.replace(" ", "_"))
         fs.safe_mkdir(save_folder)
-        is_valid, message = Experiment.validate_pdb(pdb_file)
+        prmtop_file_path = path.join(save_folder, topology_file.filename)
+        traj_file_path = path.join(save_folder, traj_file.filename)
+        ref_pdb_path = path.join(save_folder, __class__.mutant_pdb_filename)
+        try:
+            # Construct the reference structure PDB file.
+            mutant = [generate_from_mutation_flag(mutation_str) for mutation_str in mutant_name.split()]
+            ref_stru = mutate_stru(sp.get_structure(self.pdb_filepath), mutant=mutant)
+            sp.save_structure(outfile=ref_pdb_path, stru=ref_stru)
+        except Exception as e:
+            _LOGGER.error(f"Exception raised when constructing mutant structure: {e}")
+            # raise e
+        
+        topology_file.save(prmtop_file_path)
+        _LOGGER.info(f"Prmtop: {prmtop_file_path}")
+        traj_file.save(traj_file_path)
+        _LOGGER.info(f"Trajectory: {traj_file_path}")
+        try:
+            stru_esm = interface.amber.load_traj(
+                prmtop_path=prmtop_file_path, traj_path=traj_file_path,
+                ref_pdb=ref_pdb_path
+            )
+            analysis_record_dict, analysis_result_dict = self.__analyze_structure_ensemble_result(stru_esm=stru_esm)
+        except Exception as e:
+            _LOGGER.error(f"Exception raised when parsing the structure ensemble: {e}")
+            # raise e
+        finally:
+            fs.safe_rm(prmtop_file_path)
+            fs.safe_rm(traj_file_path)
+            fs.safe_rm(ref_pdb_path)
+        return is_valid, validation_message, analysis_record_dict, analysis_result_dict
 
-        if (is_valid):
-            filepath = os.path.join(save_folder, pdb_file.filename)
-            if (self.pdb_filepath and os.path.isfile(self.pdb_filepath)):
-                fs.safe_rm(self.pdb_filepath) # Delete existing file.
-            pdb_file.save(filepath)
-            self.pdb_filepath = filepath
-            message = f"The PDB file of the experiment {self.id} is updated. " + message
-            db.experiments.update_one({"id": self.id}, {"$set": {"pdb_filepath": self.pdb_filepath}})
-            # db.session.commit()
-
-        return is_valid, message
-    
-    def clear_folder(self, remove_folder: bool = False):
-        """Remove the folder of the current directory.
+    def post_result(self, result_record: dict):
+        """Add new result record to the experiment.
         
         Args:
-            remove_folder (bool): If true, remove the folder itself as well; otherwise leave the empty folder.
+            result_record_dict (dict): A dict containing the result information of one mutant.
         """
-        save_folder = os.path.join(EXPERIMENT_FILE_DIRECTORY, self.id)
-        fs.safe_rmdir(save_folder)
-        if (remove_folder):
-            return
-        else:
-            fs.safe_mkdir(save_folder)
-    
+        result_record.update({
+            "experiment_id": self.id,
+            "pdb_filename": self.pdb_filename,
+        })
+        result = Result(**result_record)
+        result.insert_or_update()
+        return
+
+    #endregion
+
+    #region Experiment - Mutation
+
     def get_mutants(self) -> Tuple[bool, list, str]:
         """Get the mutant list of the current experiment instance.
 
@@ -347,11 +479,11 @@ class Experiment():
         is_successful = False
         mutants = list()
         message = str()
-        if (not os.path.isfile(self.pdb_filepath)):
+        if not self.has_pdb_file:
             message = "The current experiment isn't associated with any PDB file."
             return is_successful, mutants, message
 
-        protein_stru = PDBParser().get_structure(self.pdb_filepath)
+        protein_stru = sp.get_structure(self.pdb_filepath)
         try:
             mutants = pattern_api.decode_mutation_pattern(protein_stru, self.mutation_pattern)
         except pattern_api.InvalidMutationPatternSyntax as e:
@@ -385,7 +517,6 @@ class Experiment():
         is_successful, mutants, message = self.get_mutants()
         if (is_successful):
             try:
-                sp = PDBParser()
                 protein_stru = sp.get_structure(self.pdb_filepath)
                 for mutant in mutants:
                     mutant_stru = mutate_stru(protein_stru, mutant, engine)
@@ -412,19 +543,49 @@ class Experiment():
         tag_string_pairs = dict()
         is_successful, tag_structure_pairs, message = self.get_mutants_structure(engine)
         if (is_successful):
-            sp = PDBParser()
             for tag, structure in tag_structure_pairs.items():
                 pdb_string = sp.get_file_str(structure)
                 tag_string_pairs[tag] = pdb_string
             message = "Getting Mutant PDB file string succeeded!"
         return is_successful, tag_string_pairs, message
 
-    def get_mutants_string_list(self) -> Tuple[bool, str, str]:
+    def make_mutants_pdb_files(self, engine: str = "pymol") -> Tuple[bool, int, str]:
+        """Get the PDB file string of the mutated structure.
+        
+        Args:
+            engine (str, optional): The engine (method) used for determine the mutated structure
+                (current available keywords): "tleap_min", "pymol" & "rosetta".
+        
+        Returns:
+            is_successful (bool): Flag indicating if the update is successful.
+            mutant_count (int): The number of mutants PDB file.
+            message (str): The message describing the updating.
+        """
+        mutant_count = 0
+        fail_count = 0
+        is_successful, tag_structure_pairs, message = self.get_mutants_structure(engine)
+        if (is_successful):
+            for tag, structure in tag_structure_pairs.items():
+                try:
+                    pdb_filepath = sp.save_structure(
+                        outfile=path.join(self.directory, tag, __class__.mutant_pdb_filename), 
+                        stru=structure,
+                    )
+                    mutant_count += 1
+                except:
+                    _LOGGER.error(f"Failed to save file to {path.join(self.directory, tag, __class__.mutant_pdb_filename)}.")
+                    fail_count += 1
+                finally:
+                    continue
+            message = f"Mutant PDB file made: {mutant_count} success, {fail_count} failure."
+        return is_successful, mutant_count, message
+    
+    def get_mutants_string_list(self) -> Tuple[bool, list, str]:
         """Get a list of mutant string concerning the current experiment instance.
 
         Returns:
             is_successful (bool): Flag indicating if the update is successful.
-            mutant_string_list (str): A list of mutant string assigned by the mutation pattern. None if the pattern is invalid.
+            mutant_string_list (list): A list of mutant string assigned by the mutation pattern. None if the pattern is invalid.
             message (str): The message describing the updating.
         """
         mutant_string_list = list()
@@ -434,7 +595,7 @@ class Experiment():
                 mutant_string_list.append(get_mutant_name_str(mut))
         return is_successful, mutant_string_list, message
 
-    def update_mutation_pattern(self, mutation_pattern: str, freeze: bool = False) -> Tuple[bool, str, str]:
+    def update_mutation_pattern(self, mutation_pattern: str, freeze: bool = False) -> Tuple[bool, list, str]:
         """Update the mutation pattern of the current experiment instance.
         If the mutation pattern can be successfully parsed, the update to mutation_pattern takes place; otherwise the mutation pattern is not updated.
         
@@ -444,7 +605,7 @@ class Experiment():
 
         Returns:
             is_successful (bool): Flag indicating if the update is successful.
-            mutant_string (str): The mutants assigned by the mutation pattern. None if the pattern is invalid.
+            mutant_string_list (str): The mutants assigned by the mutation pattern. None if the pattern is invalid.
             message (str): The message describing the updating.
         """
         self.mutation_pattern = mutation_pattern
@@ -453,243 +614,156 @@ class Experiment():
             if (freeze):
                 self.mutation_pattern = ",".join(["{}{}{}".format("{", mutant.replace(" ", ","), "}") for mutant in mutant_string_list])
             db.experiments.update_one({"id": self.id}, {"$set": {"mutation_pattern": self.mutation_pattern}})
-            # db.session.commit()
         message = message.replace("parsing", "update")
         return is_successful, mutant_string_list, message
 
-    def post_result(self, result_record: dict):
-        """Add new result record to the experiment.
+    #endregion
+
+    def parse_agent_response_content(self, response_content: str) -> Tuple[bool, str]:
+        """Update the experiment configuration information according to the response_content from GPT Agents.
         
         Args:
-            result_record_dict (dict): A dict containing the result information of one mutant.
+            response_content (str): The response content from GPT.
+
+        Returns:
+            configuration_updated (bool): Indicate if the experiment configuration is updated by the response_content from GPT Agents.
+            updated_attrs (list): A list of updated attributes.
         """
-        self.results.append(result_record)
+        editable_attrs = ["metrics", "constraints"]
+
+        match_rule = r"```json\n(.*?)\n```"
+
+        match_results = re.search(match_rule, response_content, re.DOTALL)
+        if (match_results):
+            json_text = match_results[0].replace("```json\n", "").replace("\n```", "")
+            configuration_mapper: Dict[str, Any] = loads(json_text)
+
+            is_mutation_updated = False
+            mutation_field_name = "mutation_pattern"
+            if (mutation_pattern:=configuration_mapper.get(mutation_field_name)):
+                is_mutation_updated, mutant_string_list, message = self.update_mutation_pattern(mutation_pattern=mutation_pattern, freeze=True)
+                del configuration_mapper[mutation_field_name]
+
+            updated_attrs, blocked_attrs, nonexistent_attrs, message = self.update_attributes(mapper=configuration_mapper, editable_attrs=editable_attrs)
+            if (is_mutation_updated):
+                updated_attrs.append(mutation_field_name)
+            return True, updated_attrs
+        else:
+            return False, list()
+
+
+class Result():
+    """Result Model: Record and Process experiment result."""
+
+    __tablename__ = "results"
+
+    def __init__(self, experiment_id: str, pdb_filename: str, mutant: str, replica_id: str, **kwargs):
+        """Initializes an instance of Result with the provided parameters.
+
+        Args:
+            experiment_id (int): The experiment ID associated with this result.
+            pdb_filename (str): The name of the PDB file of the result.
+            mutant (str): The name of the mutant protein. e.g.: 'A##B C##D'
+            replica_id (str): The ID of the MD simulation relica of one mutant.
+            kwargs: Keyword arguments containing metrics and other attributes.
+        """
+        self.id = kwargs.get("id", str(uuid.uuid4()))
+        self.experiment_id = experiment_id
+        self.pdb_filename = pdb_filename
+        self.mutant = mutant
+        self.replica_id = replica_id
+
+        for metric in METRICS_MAPPER.keys():
+            setattr(self, metric, kwargs.get(metric, None))
+            continue
+
+        self.created_time = kwargs.get("created_time", datetime.now())
+        self.updated_time = kwargs.get("updated_time", datetime.now())
+
         return
-
-#region Slurm Jobs
-
-from os.path import basename
-from requests import (
-    get as req_get, 
-    post as req_post, 
-    delete as req_delete,
-)
-
-from config import ACCRE_SLURM_URL, ACCRE_SLURM_AUTHORIZATION, SLURM_ACCOUNT, SLURM_PARTITION, SLURM_JOB_ENTRY_SCRIPT_FILENAME
-
-class SlurmJobRequest:
-    """The configuration information to start a slurm job on Vanderbilt ACCRE.
-    
-    Attributes:
-        partition (str): Partition requested.
-        nodes (str): Number of Nodes on which to run (N = min[-max]).
-        job_name (str): Name of Job.
-        mem (str): Minimum amount of real Memory.
-        account (str): Charge job to specified Account.
-        time (timedelta): Time limit.
-        tasks_per_node (int): Number of Tasks to invoke on each Node.
-        ntasks (int): Number of Tasks to run.
-        cpus_per_task (int): Number of CPUs required per spawned task.
-        nodelist (list): Request a specific list of hosts.
-        exclude (list): Exclude a specific list of hosts.
-        array (list): Job array index values.
-        mail_user (str): Who to send email notification for job state changes.
-        mail_type (str): Notify on state change: BEGIN, END, FAIL or ALL.
-        depend (str): Defer job until condition on jobid is satisfied. Format: type:jobid[:time]
-        constraint (str): Specify a list of Constraints.
-        gres (str): Flags related to GRES management.
-    """
-
-    def __init__(self, account: str = SLURM_ACCOUNT, 
-            partition: str = SLURM_PARTITION, 
-            job_name: str = "EnzyHTP-Web", 
-            nodes: int = 1, mem: str = "6G", 
-            time: timedelta = timedelta(days=10), 
-            tasks_per_node: int = 1, ntasks: int = 1, 
-            cpus_per_task: int = 1, nodelist: List[str] = list(),
-            exclude: List[str] = list(), array: list = list(),
-            mail_user: str = None, mail_type: str = None,
-            depend: str = str(), constraint: str = str(),
-            gres: str = str(), **kwargs):
-        """The configuration information to start a slurm job on Vanderbilt ACCRE.
-        
-        Args:
-            account (str): Charge job to specified Account.
-            partition (str): Partition requested.
-            job_name (str): Name of Job. Default "EnzyHTP Workflow".
-            nodes (int): Number of Nodes on which to run (N = min[-max]).
-            mem (str): Minimum amount of real Memory. Default "6G".
-            time (timedelta): Time limit. Default 10 days.
-            tasks_per_node (int): Number of Tasks to invoke on each Node. Default 1.
-            ntasks (int): Number of Tasks to run. Default 1.
-            cpus_per_task (int): Number of CPUs required per spawned task. Default 1.
-            nodelist (list): Request a specific list of hosts. Default Empty.
-            exclude (list): Exclude a specific list of hosts. Default Empty.
-            array (list): Job array index values. Default Empty.
-            mail_user (str): Who to send email notification for job state changes. Default None.
-            mail_type (str): Notify on state change: BEGIN, END, FAIL or ALL. Default None.
-            depend (str): Defer job until condition on jobid is satisfied. Format: type:jobid[:time]. Default Empty.
-            constraint (str): Specify a list of Constraints. Default Empty.
-            gres (str): Flags related to GRES management. Default Empty.
-        """
-        self.account = account
-        self.partition = partition
-        self.job_name = job_name
-        self.time = time
-        self.nodes = nodes
-        self.mem = mem
-        self.tasks_per_node = tasks_per_node
-        self.ntasks = ntasks
-        self.cpus_per_task = cpus_per_task
-        self.nodelist = nodelist
-        self.exclude = exclude
-        self.array = array
-        self.mail_user = mail_user
-        self.mail_type = mail_type
-        self.depend = depend
-        self.constraint = constraint
-        self.gres = gres
-
-    def serialize(self) -> str:
-        """Serialize the current instance to json string, None or Empty value will be omitted."""
-        from json import dumps
-
-        dict_to_serialize = dict()
-        for key, value in self.__dict__.items():
-            if value:
-                dict_to_serialize[key] = value
-        
-        dict_to_serialize["time"] = f"{self.time.days}-{self.time.seconds//3600}:{(self.time.seconds % 3600) // 60}:{self.time.seconds%60}"
-        return dumps(dict_to_serialize)
-
-class SlurmJobData:
-    """The information from the slurm job."""
-
-    def __init__(self, job_uuid: str = str(),
-            job_name: str = str(), user: str = str(),
-            job_details: Union[dict, str] = dict(), job_state: str = str(), 
-            created_at: datetime = None, alternate_user: str = str(),
-            remote_job_id: str = None, failure_reason: str = str(), **kwargs) -> None:
-        self.job_uuid = job_uuid
-        self.job_name = job_name
-        self.user = user
-        if (isinstance(job_details, dict)):
-            self.job_details = job_details
-        else:
-            self.job_details = loads(job_details)
-        self.job_state = job_state
-        if (created_at is None):
-            self.created_at = datetime.now()
-        else:
-            self.created_at = created_at
-        self.alternate_user = alternate_user
-        self.remote_job_id = remote_job_id
-        self.failure_reason = failure_reason
-        self.kwargs = kwargs
-        
-    @staticmethod
-    def get(id: str) -> Tuple[int, SlurmJobData] | None:
-        """Get the information of a specific slurm job.
-        
-        Args:
-            id (str): The `uuid` of a specific slurm job.
-
-        Returns:
-            status (int): The status from the response.
-            job_data (SlurmJobData): The Slurm Job Data instance.
-        """
-        headers = {
-            "Authorization": ACCRE_SLURM_AUTHORIZATION
-        }
-        response = req_get(f"{ACCRE_SLURM_URL}/{id}", headers=headers)
-        if (response.ok):
-            response_dict: dict = loads(response.text)
-            slurm_job_data_dict = response_dict.get("data", dict())
-            slurm_job_data = __class__(**slurm_job_data_dict)
-            return 200, slurm_job_data
-        else:
-            return response.status_code, None
     
     @staticmethod
-    def submit(slurm_request: SlurmJobRequest, files: List[BufferedReader]) -> Tuple[int, str, str]:
-        """Submit a slurm job to the Vanderbilt ACCRE Slurm.
+    def get(id: str) -> Result | None:
+        """Get a result instance with given ID.
         
         Args:
-            slurm_request (SlurmJobRequest): The configuration of the slurm request.
-            files (list): A list of files to be sent to the working directory on Vanderbilt ACCRE.
+            id (str): The `id` to identify a result.
 
         Returns:
-            status (int): The status from the response.
-            message (str): The Slurm Job Data instance.        
-            job_uuid (str): The UUID of the Slurm Job.
+            Matched Result instance or None.
         """
-        headers = {
-            "Authorization": ACCRE_SLURM_AUTHORIZATION
-        }
-        payload = {
-            'slurm_request': slurm_request.serialize(),
-            'entry_script': f"bash input/{SLURM_JOB_ENTRY_SCRIPT_FILENAME}",
-        }
-        files = [("files", (basename(fobj.name), fobj, "application/octet-stream")) for fobj in files]
-
-        response = req_post(f"{ACCRE_SLURM_URL}", headers=headers, data=payload, files=files)
-        if (response.ok):
-            response_dict: dict = loads(response.text)
-            message = response_dict.get("message", str())
-            if (response_dict.get("success", False)):
-                job_uuid = response_dict.get("data", dict()).get("job_uuid", str())
-                return 201, message, job_uuid
-            else:
-                return 400, message, None
+        result = Result.from_dict(db.results.find_one({"id": id}))
+        # experiment = Experiment.query.filter_by(id=id).first()
+        if (result):
+            return result
         else:
-            message = str()
-            try:
-                print(response.text)
-                response_dict: dict = loads(response.text)
-                message = response_dict.get("message", str())
-            except:
-                message = "The Slurm Job submission is failed."
-            return response.status_code, message, None
+            return None
 
     @staticmethod
-    def delete(id: str) -> Tuple[int, str]:
-        """Delete a specific slurm job.
+    def from_dict(result_dict: dict | None) -> Result:
+        """Build a result instance from a dict.
         
         Args:
-            id (str): The `uuid` of a specific slurm job.
-        
+            result_dict (dict): A dictionary containing data of the result.
+
         Returns:
-            status (int): The status code from the response.
-            message (str): The message to describe the consequence.
+            Built Result instance or None.
         """
-        headers = {
-            "Authorization": ACCRE_SLURM_AUTHORIZATION
-        }
-        status, job_data = __class__.get(id)
-        if (status != 200):
-            return status, "Unable to delete the Slurm Job. The target job doesn't exist."
-
-        cancel_response = req_post(f"{ACCRE_SLURM_URL}/{id}/cancel", headers=headers)
-        delete_response = req_delete(f"{ACCRE_SLURM_URL}/{id}", headers=headers)
-        if (delete_response.status_code == 200):
-            return 200, "The Slurm Job has successfully be deleted."
-        else:
-            return delete_response.status_code, "Unable to delete the Slurm Job."
-
-    def __bool__(self):
-        return bool(self.job_uuid)
+        if (result_dict is None):
+            return None
+        result = Result(**result_dict)
+        return result
     
-    def as_dict(self):
-        """Serialize the current instance to a dictionary."""
+    def as_dict(self, stringfy_time: bool = False) -> dict:
+        """Serialize the current instance to a dictionary.
+        
+        Args:
+            stringfy_time (bool, optional): Flag indicating if to convert datetime fields to string value.
+        """
         dict_data = self.__dict__
-        for key, value in self.kwargs.items():
-            dict_data[key] = value
-        del dict_data["kwargs"]
+        if (stringfy_time):
+            dict_data["created_time"] = str(self.created_time)
+            dict_data["updated_time"] = str(self.updated_time)
         return dict_data
+    
+    @staticmethod
+    def get_experiment_result(experiment_id: str) -> dict:
+        """Get the result dictionary of an experiment with given ID.
+        For each mutant, the value of the analysis data will be the average of all its replica.
+        
+        Args:
+            experiment_id (str): The `id` to identify an experiment.
 
-    def serialize(self) -> str:
-        """Serialize the current instance to json string."""
-        serialized_data = self.as_dict()
-        return dumps(serialized_data)
+        Returns:
+            experiment_result (dict): The summarized result information of the experiment.
+        """
+        results_cursor = db.results.find({"experiment_id": experiment_id})
+        result_df = DataFrame([result for result in results_cursor])
 
-#endregion
+        keep_columns = list(METRICS_MAPPER.keys())
+        keep_columns.append("mutant")
+
+        result_df = result_df[keep_columns]
+        result_df_group = result_df.groupby(["mutant"]).mean()
+
+        return result_df_group.agg(lambda x: x.tolist()).reset_index().to_dict(orient='records')
+
+    def insert_or_update(self):
+        """Insert or Update the current Result instance to the database."""
+        matched_result = Result.from_dict(db.results.find_one(
+            {
+                "experiment_id": self.experiment_id,
+                "mutant": self.mutant,
+                "replica_id": self.replica_id,
+            }
+        ))
+        if (matched_result == None):
+            db.results.insert_one(self.as_dict())
+        else:
+            result_update_dict = dict()
+            for metric in METRICS_MAPPER.keys():
+                result_update_dict[metric] = self.as_dict().get(metric, None)
+                continue
+            result_update_dict["updated_time"] = datetime.now()
+            db.results.update_one({"id": matched_result.id}, {"$set": result_update_dict})
+        return
