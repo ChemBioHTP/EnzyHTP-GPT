@@ -196,6 +196,7 @@ class Experiment():
         dict_data["status"] = str(self._status)
         dict_data["progress"] = str(self._progress)
         dict_data["status_text"] = StatusCode.status_text_mapper.get(self.status, self.status)
+        dict_data["assistant_conversation_completed"] = self.assistant_conversation_completed
 
         for field_key in fields_to_delete:
             if (field_key in dict_data.keys()):
@@ -203,7 +204,7 @@ class Experiment():
         return dumps(dict_data)
     
     def __repr__(self):
-        return f"Experiment('{self.id}', '{self.name}', '{self.pdb_filename}')"
+        return f"Experiment(Id: '{self.id}', Name: '{self.name}', PDB file: '{self.pdb_filename if self.pdb_filename else "None"}')"
 
     @property
     def pdb_filepath(self):
@@ -223,6 +224,14 @@ class Experiment():
         self._status = value
         self.updated_time = datetime.now()
         return
+    
+    @property
+    def assistant_conversation_completed(self) -> bool:
+        """Indicate if the conversation with OpenAI Assistant is completed."""
+        if (self.current_assistant_type > 2):
+            return True
+        else:
+            return False
     
     @property
     def progress(self):
