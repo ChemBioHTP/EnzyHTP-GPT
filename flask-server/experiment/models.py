@@ -204,7 +204,7 @@ class Experiment():
         return dumps(dict_data)
     
     def __repr__(self):
-        return f"Experiment(Id: '{self.id}', Name: '{self.name}', PDB file: '{self.pdb_filename if self.pdb_filename else "None"}')"
+        return f"Experiment(Id: '{self.id}', Name: '{self.name}', PDB file: {self.pdb_filename if self.has_pdb_file else 'None'})"
 
     @property
     def pdb_filepath(self):
