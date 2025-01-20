@@ -1,0 +1,40 @@
+
+
+footer {
+    margin-top: 6vh;
+    text-align: center;
+}
+
+footer > #docs > a {
+    color: lightslategray;
+}
+
+footer > div > img {
+    margin-left: 2vw;
+    margin-right: 2vw;
+    width: 5vw;
+}
+
+@media screen and (max-width: 1200px) {
+
+    #footer {
+        margin-top: 6vh;
+    }
+
+    #footer > div > img {
+        width: 10vw;
+    }
+}
+
+@media screen and (max-width: 900px) {
+    #footer > div > img {
+        width: 15vw;
+    }
+}
+
+@media screen and (max-width: 800px) {
+
+    #footer > div > img {
+        width: 20vw;
+    }
+}
