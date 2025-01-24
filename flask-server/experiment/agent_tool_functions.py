@@ -18,6 +18,16 @@ from enzy_htp.structure import Residue
 
 from .models import Experiment
 
+def summon_next_agent(experiment: Experiment) -> Tuple[bool, str]:
+    """Suggest an optional completion of all tasks of the current agent and an optional summon of the next agent in the workflow.
+    
+    Returns:
+        is_successful (bool): Indidate if the next agent summon option is on.
+        message (str): The message indicating the switch.
+    """
+    experiment.summon_next_agent = True
+    return True, "Next agent summon option is on."
+
 def find_target_protein_path(experiment: Experiment, **kwargs) -> Tuple[bool, str]:
     """Return the PDB filepath of the wild-type protein.
     
@@ -79,6 +89,7 @@ def find_residue_by_name(experiment: Experiment, name: str, **kwargs) -> Tuple[b
         return False, str()
 
 TOOL_FUNCTION_MAPPER = {
+    "summon_next_agent": summon_next_agent,
     "find_target_protein_path": find_target_protein_path,
     "find_residue_around": find_residue_around,
     "find_residue_by_name": find_residue_by_name,

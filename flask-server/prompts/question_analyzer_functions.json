@@ -39,5 +39,32 @@
       },
       "required": ["pdb_path", "name"]
     }
+  },
+  {
+    "name": "find_target_protein_path",
+    "description": "Determine the path of the target protein, return None if the path cannot be found",
+    "strict": false,
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "desc": {
+          "type": "string",
+          "description": "the natural language description of the target protein"
+        }
+      },
+      "required": [
+        "desc"
+      ]
+    }
+  },
+  {
+    "name": "summon_next_agent",
+    "description": "Suggest an optional completion of all tasks of the current agent and an optional summon of the next agent in the workflow.",
+    "strict": false,
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    }
   }
 ]

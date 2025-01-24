@@ -33,6 +33,8 @@ PROMPTS_DIRECTORY = path.join(BASEDIR, "prompts")
 MODEL_VERSION = "gpt-4o"
 # MODEL_VERSION = "gpt-4o-2024-05-13"
 
+NEXT_AGENT_FIRST_PROMPT = "Please introduce yourself and proceed."
+
 class QuestionAnalyzerAssistant(OpenAIAssistant):
     """The agent acting as a Question Analyzer."""
     

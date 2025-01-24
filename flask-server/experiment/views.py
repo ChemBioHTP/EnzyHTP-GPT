@@ -38,8 +38,6 @@ from config import (
     APP_HOST,
     JSONIFY_MIMETYPE
 )
-from services import OpenAIChat, OpenAIAssistant
-from .agents import AGENT_MAPPER, DefinedAgent
 
 # Here put enzy_htp modules.
 from enzy_htp.workflow.config import StatusCode
@@ -857,6 +855,8 @@ class MutationApi(Resource):
                 return Response(response=response_info.serialize(), status=415, mimetype=JSONIFY_MIMETYPE)
 
 #region OpenAI Assistants
+from services import OpenAIChat, OpenAIAssistant
+from .agents import NEXT_AGENT_FIRST_PROMPT, AGENT_MAPPER, DefinedAgent
 
 class AssistantsApi(Resource):
     """Route: `/<experiment_id>/assistants`"""
@@ -952,7 +952,7 @@ class AssistantsApi(Resource):
             message=f"Received response from OpenAI. Updates to the experiment configuration may be triggered.",
             response_content=response_content,
             has_pdb_file=experiment.has_pdb_file,
-            confirm_button=(status_code == 200 and any(signal in response_content.lower() for signal in confirm_signals)),
+            confirm_button=experiment.summon_next_agent,
             tool_call_result=current_assistant.latest_tool_call_result,
             configuration_updated=configuration_updated,
             updated_attributes=updated_attributes,
@@ -989,11 +989,30 @@ class AssistantsApi(Resource):
                 "current_assistant_type": experiment.current_assistant_type,
             },
         )
+
+        experiment.summon_next_agent = False
+
         if (updated_attrs):
+            current_assistant_class = AGENT_MAPPER[experiment.current_assistant_type % len(AGENT_MAPPER)]
+            current_assistant: DefinedAgent = current_assistant_class(
+                openai_secret_key=user.openai_secret_key, 
+                thread_id=experiment.current_thread_id, 
+                conversation_mode=True,
+                experiment=experiment,
+            )
+            is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=NEXT_AGENT_FIRST_PROMPT)
+            configuration_updated, updated_attributes = experiment.parse_agent_response_content(response_content=response_content)
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=True,
-                message=message)
+                message=f"{message} Received response from OpenAI.",
+                response_content=response_content,
+                has_pdb_file=experiment.has_pdb_file,
+                confirm_button=experiment.summon_next_agent,
+                tool_call_result=current_assistant.latest_tool_call_result,
+                configuration_updated=configuration_updated,
+                updated_attributes=(updated_attrs+updated_attributes),
+            )
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
         else:
             response_info = ExperimentBehaviourResponseInfo(

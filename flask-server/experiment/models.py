@@ -83,6 +83,7 @@ class Experiment():
         self.mutation_pattern = kwargs.get("mutation_pattern", "WT")
         self.current_assistant_type = kwargs.get("current_assistant_type", 0)  # 0: Question Analyzer; 1: Metrics Planner; 2: Mutant Planner.
         self.current_thread_id = kwargs.get("current_thread_id", str())
+        self.summon_next_agent = kwargs.get("summon_next_agent", False)
     
     @staticmethod
     def get(id: str) -> Experiment | None:
