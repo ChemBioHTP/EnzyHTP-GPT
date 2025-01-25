@@ -25,7 +25,11 @@ def summon_next_agent(experiment: Experiment) -> Tuple[bool, str]:
         is_successful (bool): Indidate if the next agent summon option is on.
         message (str): The message indicating the switch.
     """
-    experiment.summon_next_agent = True
+    experiment.update_attributes(
+        mapper={
+            "summon_next_agent": True
+        }
+    )
     return True, "Next agent summon option is on."
 
 def find_target_protein_path(experiment: Experiment, **kwargs) -> Tuple[bool, str]:

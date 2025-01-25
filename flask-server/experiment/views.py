@@ -983,14 +983,12 @@ class AssistantsApi(Resource):
         if (user is None or experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        experiment.current_assistant_type += 1
         updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
             mapper={
-                "current_assistant_type": experiment.current_assistant_type,
+                "current_assistant_type": experiment.current_assistant_type + 1,
+                "summon_next_agent": False,
             },
         )
-
-        experiment.summon_next_agent = False
 
         if (updated_attrs):
             current_assistant_class = AGENT_MAPPER[experiment.current_assistant_type % len(AGENT_MAPPER)]
@@ -1007,7 +1005,7 @@ class AssistantsApi(Resource):
                 is_successful=True,
                 message=f"{message} Received response from OpenAI.",
                 response_content=response_content,
-                has_pdb_file=experiment.has_pdb_file,
+                require_pdb_file=(not experiment.has_pdb_file),
                 confirm_button=experiment.summon_next_agent,
                 tool_call_result=current_assistant.latest_tool_call_result,
                 configuration_updated=configuration_updated,
@@ -1018,7 +1016,10 @@ class AssistantsApi(Resource):
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=False,
-                message=message)
+                message=message,
+                require_pdb_file=(not experiment.has_pdb_file),
+                confirm_button=experiment.summon_next_agent,
+            )
             return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
