@@ -114,6 +114,7 @@ def find_residue_by_name(experiment: Experiment, name: str, **kwargs) -> Tuple[b
 
 TOOL_FUNCTION_MAPPER = {
     "summon_next_agent": summon_next_agent,
+    "summon_upload_box": summon_upload_box,
     "find_target_protein_path": find_target_protein_path,
     "find_residue_around": find_residue_around,
     "find_residue_by_name": find_residue_by_name,
