@@ -18,8 +18,11 @@ from enzy_htp.structure import Residue
 
 from .models import Experiment
 
-def summon_next_agent(experiment: Experiment) -> Tuple[bool, str]:
+def summon_next_agent(experiment: Experiment, **kwargs) -> Tuple[bool, str]:
     """Suggest an optional completion of all tasks of the current agent and an optional summon of the next agent in the workflow.
+    
+    Args:
+        experiment (Experiment): The Experiment instance calling this assistant.
     
     Returns:
         is_successful (bool): Indidate if the next agent summon option is on.
@@ -31,6 +34,23 @@ def summon_next_agent(experiment: Experiment) -> Tuple[bool, str]:
         }
     )
     return True, "Next agent summon option is on."
+
+def summon_upload_box(experiment: Experiment, **kwargs) -> Tuple[bool, str]:
+    """Summon an upload box in frontend so that user can choose to upload files to the backend.
+    
+    Args:
+        experiment (Experiment): The Experiment instance calling this assistant.
+
+    Returns:
+        is_successful (bool): Indidate if the upload box summon is on.
+        message (str): The message indicating the status.
+    """
+    experiment.update_attributes(
+        mapper={
+            "summon_upload_pdb": True
+        }
+    )
+    return True, "The PDB summon upload box is on."
 
 def find_target_protein_path(experiment: Experiment, **kwargs) -> Tuple[bool, str]:
     """Return the PDB filepath of the wild-type protein.

@@ -84,6 +84,7 @@ class Experiment():
         self.current_assistant_type = kwargs.get("current_assistant_type", 0)  # 0: Question Analyzer; 1: Metrics Planner; 2: Mutant Planner.
         self.current_thread_id = kwargs.get("current_thread_id", str())
         self.summon_next_agent = kwargs.get("summon_next_agent", False)
+        self.summon_upload_pdb = kwargs.get("summon_upload_box", False)
     
     @staticmethod
     def get(id: str) -> Experiment | None:
@@ -361,9 +362,10 @@ class Experiment():
             if (self.pdb_filepath and path.isfile(self.pdb_filepath)):
                 fs.safe_rm(self.pdb_filepath) # Delete existing file.
             self.pdb_filename = pdb_file.filename
+            self.summon_upload_pdb = False
             pdb_file.save(self.pdb_filepath)
             message = f"The PDB file of the experiment {self.id} is updated. " + message
-            db.experiments.update_one({"id": self.id}, {"$set": {"pdb_filename": self.pdb_filename}})
+            db.experiments.update_one({"id": self.id}, {"$set": {"pdb_filename": self.pdb_filename, "summon_upload_pdb": self.summon_upload_pdb}})
 
         return is_updated, is_supported, message
     
