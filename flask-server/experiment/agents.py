@@ -96,7 +96,7 @@ class MetricsPlannerAssistant(OpenAIAssistant):
         instructions = str()
         tools = list()
 
-        with open(path.join(PROMPTS_DIRECTORY, "metrics_planner-v2.txt")) as txt_fobj:
+        with open(path.join(PROMPTS_DIRECTORY, "metrics_planner-v3.txt")) as txt_fobj:
             instructions = txt_fobj.read()
         with open(path.join(PROMPTS_DIRECTORY, "metrics_planner_functions.json")) as json_fobj:
             tool_functions: List[dict] = load(json_fobj)

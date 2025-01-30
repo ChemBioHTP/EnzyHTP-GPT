@@ -1,36 +1,12 @@
 [
   {
-    "name": "find_target_protein_path",
-    "description": "Determine the path of the target protein",
+    "name": "summon_next_agent",
+    "description": "Suggest an optional completion of all tasks of the current agent and an optional summon of the next agent in the workflow.",
     "strict": false,
     "parameters": {
       "type": "object",
-      "properties": {
-        "desc": {
-          "type": "string",
-          "description": "the natural language description of the target protein"
-        }
-      },
-      "required": ["desc"]
-    }
-  },
-  {
-    "name": "find_residue_by_name",
-    "description": "Find the key of a residue by its name.",
-    "strict": false,
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "pdb_path": {
-          "type": "string",
-          "description": "the target pdb path"
-        },
-        "name": {
-          "type": "string",
-          "description": "the 3-letter PDB name of the residue"
-        }
-      },
-      "required": ["pdb_path", "name"]
+      "properties": {},
+      "required": []
     }
   }
 ]
