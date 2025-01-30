@@ -14,6 +14,7 @@ Three OpenAI Assistant Agents:
 
 # Here put the import lib.
 from os import path
+from string import Template
 from json import load
 from typing import List, Union
 from typing_extensions import Annotated
@@ -98,6 +99,10 @@ class MetricsPlannerAssistant(OpenAIAssistant):
 
         with open(path.join(PROMPTS_DIRECTORY, "metrics_planner-v3.txt")) as txt_fobj:
             instructions = txt_fobj.read()
+            with open(path.join(PROMPTS_DIRECTORY, "supported_metrics_reference.txt")) as ref_fobj:
+                instructions = Template(instructions).safe_substitute({
+                    "REPLACEMARK": ref_fobj.read(),
+                }) 
         with open(path.join(PROMPTS_DIRECTORY, "metrics_planner_functions.json")) as json_fobj:
             tool_functions: List[dict] = load(json_fobj)
             tools = [

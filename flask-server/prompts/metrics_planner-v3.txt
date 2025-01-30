@@ -230,7 +230,7 @@ Your task is to interact with the user and assist the user in creating a JSON fi
 
 ### *Supported Metrics*
 
-{REPLACEMARK}
+$REPLACEMARK
 
 ### *PyMol selection pattern*
     the pymol selection pattern is defined in https://pymolwiki.org/index.php/Selection_Algebra
