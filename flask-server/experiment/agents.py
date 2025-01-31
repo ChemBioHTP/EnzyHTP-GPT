@@ -40,6 +40,7 @@ class QuestionAnalyzerAssistant(OpenAIAssistant):
     """The agent acting as a Question Analyzer."""
     
     experiment: Experiment
+    completion_message: str = "Question Confirmed!"
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
         """
@@ -82,6 +83,7 @@ class MetricsPlannerAssistant(OpenAIAssistant):
     """The agent acting as a Metrics Planner."""
     
     experiment: Experiment
+    completion_message: str = "Computational Details Confirmed!"
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
         """
@@ -128,6 +130,7 @@ class MutantPlannerAssistant(OpenAIAssistant):
     """The agent acting as a Mutant Planner."""
     
     experiment: Experiment
+    completion_message: str = "Experiment has been set up successfully!"
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
         """
@@ -141,7 +144,7 @@ class MutantPlannerAssistant(OpenAIAssistant):
         """
         self.experiment = experiment
         instructions = str()
-        with open(path.join(PROMPTS_DIRECTORY, "mutant_planner-v1.txt")) as fobj:
+        with open(path.join(PROMPTS_DIRECTORY, "mutant_planner-v2.txt")) as fobj:
             instructions = fobj.read()
         super().__init__(openai_secret_key, 
             assistant_name="Mutant Planner", 

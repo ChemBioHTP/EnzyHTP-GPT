@@ -983,6 +983,11 @@ class AssistantsApi(Resource):
         if (user is None or experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
+        completion_message = str()
+        current_assistant_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
+        if (issubclass(current_assistant_class, OpenAIAssistant)):
+            completion_message = current_assistant_class.completion_message
+
         updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
             mapper={
                 "current_assistant_type": experiment.current_assistant_type + 1,
@@ -991,25 +996,32 @@ class AssistantsApi(Resource):
         )
 
         if (updated_attrs):
-            current_assistant_class = AGENT_MAPPER[experiment.current_assistant_type % len(AGENT_MAPPER)]
-            current_assistant: DefinedAgent = current_assistant_class(
-                openai_secret_key=user.openai_secret_key, 
-                thread_id=experiment.current_thread_id, 
-                conversation_mode=True,
-                experiment=experiment,
-            )
-            is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=NEXT_AGENT_FIRST_PROMPT)
-            configuration_updated, updated_attributes = experiment.parse_agent_response_content(response_content=response_content)
+            # Set the value for the last agent completion.
+            response_content = "Please press the **Next** button to proceed your experiment configuration."
+            configuration_updated = False
+            updated_attributes_from_response = list()
+
+            if (experiment.current_assistant_type < len(AGENT_MAPPER)): # If there's next agent, correspond with OpenAI.
+                current_assistant_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
+                current_assistant: DefinedAgent = current_assistant_class(
+                    openai_secret_key=user.openai_secret_key, 
+                    thread_id=experiment.current_thread_id, 
+                    conversation_mode=True,
+                    experiment=experiment,
+                )
+                is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=NEXT_AGENT_FIRST_PROMPT)
+                configuration_updated, updated_attributes_from_response = experiment.parse_agent_response_content(response_content=response_content)
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=True,
+                completion_message=completion_message,
                 message=f"{message} Received response from OpenAI.",
                 response_content=response_content,
                 require_pdb_file=experiment.summon_upload_pdb,
                 confirm_button=experiment.summon_next_agent,
                 tool_call_result=current_assistant.latest_tool_call_result,
                 configuration_updated=configuration_updated,
-                updated_attributes=(updated_attrs+updated_attributes),
+                updated_attributes=(updated_attrs+updated_attributes_from_response),
             )
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
         else:

@@ -371,6 +371,7 @@ class OpenAIAssistant(OpenAIChat):
 
     functions: List[AssistantFunction]
     latest_tool_call_result: Dict[str, bool]
+    completion_message: str = str()
 
     def __init__(self, openai_secret_key: str, assistant_name: str = str(), instructions: str = str(), model: str = "gpt-3.5-turbo", tools: List[dict] = list(), tool_function_mapper: Dict[str, Callable] = dict(), tool_function_callable_kwargs: Dict[str, Any] = dict(), thread_id: str = str(), conversation_mode: bool = False, **kwargs) -> None:
         """

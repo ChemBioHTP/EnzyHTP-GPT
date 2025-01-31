@@ -658,7 +658,7 @@ class Experiment():
 
     #endregion
 
-    def parse_agent_response_content(self, response_content: str) -> Tuple[bool, str]:
+    def parse_agent_response_content(self, response_content: str) -> Tuple[bool, list]:
         """Update the experiment configuration information according to the response_content from GPT Agents.
         
         Args:
