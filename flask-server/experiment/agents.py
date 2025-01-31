@@ -31,8 +31,8 @@ from enzy_htp.structure import Residue
 from enzy_htp.mutation.mutation_pattern import decode_position_pattern
 
 PROMPTS_DIRECTORY = path.join(BASEDIR, "prompts")
-MODEL_VERSION = "gpt-4o"
-# MODEL_VERSION = "gpt-4o-2024-05-13"
+# MODEL_VERSION = "gpt-4o"
+MODEL_VERSION = "gpt-4o-2024-11-20"
 
 NEXT_AGENT_FIRST_PROMPT = "Please introduce yourself and proceed."
 
