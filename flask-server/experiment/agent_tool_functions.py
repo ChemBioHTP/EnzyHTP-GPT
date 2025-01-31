@@ -10,6 +10,7 @@
 
 # Here put the import lib.
 from typing import List, Tuple, Union
+from os import path
 
 from enzy_htp import PDBParser
 from enzy_htp.core import _LOGGER
@@ -45,12 +46,15 @@ def summon_upload_box(experiment: Experiment, **kwargs) -> Tuple[bool, str]:
         is_successful (bool): Indidate if the upload box summon is on.
         message (str): The message indicating the status.
     """
-    experiment.update_attributes(
-        mapper={
-            "summon_upload_pdb": True
-        }
-    )
-    return True, "The PDB summon upload box is on."
+    if (not experiment.pdb_filepath or not path.isfile(experiment.pdb_filepath)):
+        experiment.update_attributes(
+            mapper={
+                "summon_upload_pdb": True
+            }
+        )
+        return True, "The PDB file summon upload box is on."
+    else:
+        return False, "The PDB file already exists."
 
 def find_target_protein_path(experiment: Experiment, **kwargs) -> Tuple[bool, str]:
     """Return the PDB filepath of the wild-type protein.

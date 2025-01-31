@@ -143,7 +143,7 @@ class Experiment():
                 if (not editable_attrs) or (field_name in editable_attrs):
                     if (field_value != None):
                         setattr(self, field_name, field_value)
-                        db.experiments.update_one({"id": self.id}, {"$set": {field_name: field_value}})
+                        db.experiments.update_one({"id": self.id}, {"$set": {field_name: field_value, "updated_time": datetime.now()}})
                         updated_attrs.append(field_name)
                     continue
                 else:
@@ -652,7 +652,7 @@ class Experiment():
         if (is_successful):
             if (freeze):
                 self.mutation_pattern = ",".join(["{}{}{}".format("{", mutant.replace(" ", ","), "}") for mutant in mutant_string_list])
-            db.experiments.update_one({"id": self.id}, {"$set": {"mutation_pattern": self.mutation_pattern}})
+            db.experiments.update_one({"id": self.id}, {"$set": {"mutation_pattern": self.mutation_pattern, "updated_time": datetime.now()}})
         message = message.replace("parsing", "update")
         return is_successful, mutant_string_list, message
 
