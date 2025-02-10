@@ -48,4 +48,4 @@ if __name__ == "__main__":
         ssl_context=ssl_context,
     )
 
-# TODO Build RESTful API referring https://www.geeksforgeeks.org/python-build-a-rest-api-using-flask/
+# RESTful API referring https://www.geeksforgeeks.org/python-build-a-rest-api-using-flask/

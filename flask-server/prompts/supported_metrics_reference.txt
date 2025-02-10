@@ -1,0 +1,105 @@
+    - Electric Field Strength along the Bond
+        + JSON Name:
+            electric_field
+        + Description:
+            the electric field strength of the internal electric field of an enzyme along a target bond at the center of the bond.
+        + Required argument:
+            - atom_1: the first atom of the bond of interest
+            - atom_2: the second atom of the bond of interest
+            NOTE: The format of atom_1, atom_2 is "Chain_id.Residue_index.Atom_name"
+            Example: "A.125.CA" - means the CA atom in residue 125 of chain A
+        + Optional argument:
+            N/A
+        + Related properties (under different MD models)
+            (NOTE: The related properties are different under different MD models)
+            - MD Model: protein-ligand complex without constraint
+                + Related property: Electric Field, Activation Barrier, Enzyme Activity
+            - MD Model: pre-reaction complex (protein-ligand complex with a constraint applied to the "forming bond")
+                + Related property: Electric Field, Activation Barrier, Enzyme Activity
+            - MD Model: apo-protein without constraint
+                + Related property: None
+
+    - Substrate Positioning Index (SPI)
+        + JSON Name:
+            spi
+        + Description:
+            the substrate positioning index is defined by the ratio between the solvent-accessible surface area (SASA) of the substrate and the SASA of the enzyme pocket.
+        + Required argument:
+            - substrate_selection_pattern: the PyMol style selection pattern defining the substrate. Refer to *PyMol selection pattern*
+        + Optional argument:
+            - pocket_selection_pattern: the PyMol style selection pattern defining the pocket. (by default residues 5 angstroms near the substrate) Refer to *PyMol selection pattern*
+        + Related Properties 
+            (NOTE: The related properties are different under different MD models)
+            - MD Model: protein-ligand complex without constraint
+                + Related property: None
+            - MD Model: pre-reaction complex (protein-ligand complex with a constraint applied to the "forming bond")
+                + Related property: Substrate Positioning Dynamics, Activation Barrier, Enzyme Activity
+            - MD Model: apo-protein without constraint
+                + Related property: None
+
+    - Active Site RMSD
+        + JSON Name:
+            active_site_rmsd
+        + Description:
+            The Root Mean Square Deviation (RMSD) of the active site of the enzyme
+        + Required argument:
+            - pocket_selection_pattern: the PyMol style selection pattern defining the active site pocket. Refer to *PyMol selection pattern* (by default 5 angstroms near the substrate if the substrate is given)
+        + Optional argument:
+            - None
+        + Related Properties 
+            (NOTE: The related properties are different under different MD models)
+            - MD Model: protein-ligand complex without constraint
+                + Related property: None
+            - MD Model: pre-reaction complex (protein-ligand complex with a constraint applied to the "forming bond")
+                + Related properties: Substrate Positioning Dynamics, Activation Barrier, Enzyme Activity, Ligand binding
+            - MD Model: apo-protein without constraint
+                + Related property: None
+
+    - MMPB/GBSA Ligand Binding Energy
+        + JSON Name:
+            mmpbgbsa
+        + Description:
+            The binding energy between the ligand and the protein. Calculate based on the MMPB/GBSA method.
+        + Required argument:
+            - ligand_selection_pattern: the PyMol style selection pattern defining the ligand. Refer to *PyMol selection pattern*
+        + Optional argument:
+            - N/A
+        + Related Properties 
+            (NOTE: The related properties are different under different MD models)
+            - MD Model: protein-ligand complex without constraint
+                + Related property: Ligand Binding
+            - MD Model: pre-reaction complex (protein-ligand complex with a constraint applied to the "forming bond")
+                + Related property: Activation Barrier, Enzyme Activity
+            - MD Model: apo-protein without constraint
+                + Related property: None
+
+    - Relative Folding Free Energy
+        + JSON Name:
+            ddg_fold
+        + Description:
+            The folding free energy of a protein mutant relative to the wild-type.
+        + Required argument:
+            - None
+        + Optional argument:
+            - None
+        + Related Properties 
+            (this metric is not influenced by the MD model)
+            - Thermostability
+
+    - Cavity Volume
+        + JSON Name:
+            cavity
+        + Description:
+            The cavity volume of a binding pocket of the protein
+        + Required argument:
+            - None
+        + Optional argument:
+            - None
+        + Related Properties 
+            (NOTE: The related properties are different under different MD models)
+            - MD Model: protein-ligand complex without constraint
+                + Related property: None
+            - MD Model: pre-reaction complex (protein-ligand complex with a constraint applied to the "forming bond")
+                + Related property: None
+            - MD Model: apo-protein without constraint
+                + Related property: Cavity Size

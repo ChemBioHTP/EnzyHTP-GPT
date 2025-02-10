@@ -38,8 +38,6 @@ from config import (
     APP_HOST,
     JSONIFY_MIMETYPE
 )
-from services import OpenAIChat, OpenAIAssistant
-from .agents import AGENT_MAPPER, DefinedAgent
 
 # Here put enzy_htp modules.
 from enzy_htp.workflow.config import StatusCode
@@ -54,9 +52,25 @@ db = mongo.db
 
 class ExperimentIndexResponse():
     """Experiment Index Information Response Body."""
+
+    default_order_by_field = "updated_time"
+    default_items_on_page = 25
+    default_reverse_option = True
     
-    def __init__(self, experiments: List[Experiment]):
-        """Experiment Index Information Response Body."""
+    def __init__(self, experiments: List[Experiment], page_index: int = 1, 
+            items_on_page: int = default_items_on_page,
+            order_by: str = default_order_by_field,
+            reverse: bool = default_reverse_option,
+        ):
+        """Experiment Index Information Response Body.
+        
+        Args:
+            experiments (List[Experiment]): The list of user's experiments.
+            page_index (int): The index of the page to get.
+            items_on_page (int): Maximum number of items to be displayed on each page.
+            order_by (str): The field by which to sort the results.
+            reverse (bool): If to reverse the order of results.
+        """
         user: User = current_user
         self.user_id = user.id
         self.email = user.email
@@ -66,9 +80,20 @@ class ExperimentIndexResponse():
         for exp in experiments:
             exp_dict = exp.as_dict(stringfy_time=True)
             del exp_dict["user_id"]
-            exp_dict["status_text"] = StatusCode.status_text_mapper[exp.status]
+            exp_dict["status_text"] = StatusCode.status_text_mapper.get(exp.status)
             self.experiments.append(exp_dict)
             continue
+
+        items_on_page = items_on_page if (items_on_page > 0) else __class__.default_items_on_page
+        self.page_count = (len(experiments)-1) // items_on_page + 1
+        self.page_index = page_index if (page_index <= self.page_count) else self.page_count
+        if (self.experiments):
+            if (not hasattr(experiments[0], order_by)):
+                order_by = __class__.default_order_by_field
+            self.experiments = sorted(self.experiments, key=lambda x: x[order_by], reverse=reverse)
+            starting_item_index = (self.page_index - 1) * items_on_page
+            ending_item_index = (self.page_index * items_on_page + 1) if (self.page_index < self.page_count) else len(self.experiments)
+            self.experiments = self.experiments[starting_item_index:ending_item_index]
         return
     
     def serialize(self) -> str:
@@ -225,16 +250,19 @@ class IndexApi(Resource):
     
     @login_required
     def get(self):
-        """Get the experiment list belonging to `current_user`.
+        """Get the experiment list belonging to `current_user`."""
+        page_index = int(request.args.get("page", 1))   # Which page to get?
+        items_on_page = int(request.args.get(           # How many items to be displayed on each page?
+            "items", ExperimentIndexResponse.default_items_on_page
+        ))
+        order_by = request.args.get(                    # The field by which to sort the results.
+            "order_by", ExperimentIndexResponse.default_order_by_field
+        )
+        reverse = False if request.form.get("reverse", "True").lower() in ["false", "0", "no"] else True  # If to reverse the order of results.
         
-        TODO (Zhong): Return the list of a specific page.
-        """
-        page_index = int(request.args.get("page", 0))       # Which page to get? Default 0.
-        items_on_page = int(request.args.get("items", 20))  # How many items to be displayed on each page? Default 20.
         user: User = current_user
-
         experiments = Experiment.get_user_experiments(user=user)
-        response_body = ExperimentIndexResponse(experiments)
+        response_body = ExperimentIndexResponse(experiments, page_index, items_on_page, order_by, reverse)
         return Response(response=response_body.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
@@ -306,6 +334,18 @@ class IndexApi(Resource):
                 is_successful=True, message=f"The experiment instance '{experiment.id}' is successfully deleted.")
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
+from config import (
+    SLURM_MD_JOB_ENTRY_SCRIPT,
+    SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT,
+    SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH,
+    SLURM_ANALYSIS_JOB_ENTRY_CONTENT,
+    SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
+    
+    SLURM_DEPLOY_SCRIPT_FILENAME, 
+    SLURM_DEPLOY_SCRIPT, 
+    MAX_MUTANT_COUNT
+)
+
 class ExperimentApi(Resource):
     """Route: `/<experiment_id>`"""
 
@@ -323,8 +363,6 @@ class ExperimentApi(Resource):
             return notfound_response(user, experiment_id)
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
-        
-        # TODO (Zhong): Experiment Results.
         
         return Response(experiment.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
@@ -345,32 +383,81 @@ class ExperimentApi(Resource):
         
         mutant_name = request.form.get("mutant", None)
         replica_id = request.form.get("replica_id", 0)
-        traj_file = request.files.get("trajectory", None)
+        trajectory_file = request.files.get("trajectory", None)
         topology_file = request.files.get("topology", None)
 
-        if (mutant_name is None or traj_file is None or topology_file is None):
+        is_mutant_constructed, mutant_pdb_filepath, make_mutant_message = experiment.make_mutant_pdb_file(mutant_name=mutant_name)
+
+        if (mutant_name is None or trajectory_file is None or topology_file is None):
             response_info = ExperimentBehaviourResponseInfo(experiment, user,
                 is_successful=False, 
                 message=f"'mutant' string, 'replica_id' code, 'trajectory' file and 'topology' file are all required.")
             return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
-        else:
-            is_valid, validation_message, analysis_record_dict, analysis_result_dict = experiment.update_ensemble_and_analysis(
-                mutant_name=mutant_name,
-                topology_file=topology_file,
-                traj_file=traj_file
-            )
-            result = Result(
-                experiment_id=experiment.id,
-                pdb_filename=experiment.pdb_filename,
-                mutant=mutant_name,
-                replica_id=replica_id,
-                **analysis_result_dict
-            )
-            result.insert_or_update()
-
-            performed_analysis_metrics = [key for key, value in analysis_record_dict.items() if value]
+        elif (not is_mutant_constructed):
             response_info = ExperimentBehaviourResponseInfo(experiment, user,
-                message=f"{validation_message} Completed {', '.join(performed_analysis_metrics)} analysis.")
+                is_successful=False, 
+                message=make_mutant_message)
+            return Response(response=response_info.serialize(), status=501, mimetype=JSONIFY_MIMETYPE)
+        else:
+            entry_script_str_io = StringIO()
+            entry_script_str_io.write(Template(SLURM_ANALYSIS_JOB_ENTRY_CONTENT).safe_substitute({
+                "app_host": APP_HOST,
+                "experiment_id": experiment.id,
+                "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
+                "pdb_filename": experiment.pdb_filename,
+                "metrics": dumps(experiment.metrics),
+                "topology_filename": topology_file.filename,
+                "trajectory_filename": trajectory_file.filename,
+            }))
+            entry_script_str_io.name = SLURM_MD_JOB_ENTRY_SCRIPT
+            entry_script_str_io.mode = "r"
+            entry_script_str_io.seek(0)
+
+            analysis_main_script_io = open(SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH)
+            analysis_main_script_io.seek(0)
+
+            mutant_pdb_io = open(mutant_pdb_filepath)
+            mutant_pdb_io.seek(0)
+
+            trajectory_file_io = BytesIO()
+            trajectory_file.save(trajectory_file_io)
+            trajectory_file_io.name = trajectory_file.filename
+            trajectory_file_io.mode = "r"
+            trajectory_file_io.seek(0)
+
+            topology_file_io = BytesIO()
+            topology_file.save(topology_file_io)
+            topology_file_io.name = topology_file.filename
+            topology_file_io.mode = "r"
+            topology_file_io.seek(0)
+            
+            files = [
+                entry_script_str_io,
+                analysis_main_script_io,
+                mutant_pdb_io,
+                trajectory_file_io,
+                topology_file_io,
+            ]
+            slurm_request = SlurmJobRequest()
+            status, message, job_uuid = SlurmJobData.post(slurm_request=slurm_request, files=files)
+            
+            if (job_uuid):
+                result = Result(
+                    experiment_id=experiment.id,
+                    pdb_filename=experiment.pdb_filename,
+                    mutant=mutant_name,
+                    replica_id=replica_id,
+                    slurm_job_uuid=job_uuid,
+                )
+                result.insert_or_update()
+
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                message=message,
+                is_successful=(True if job_uuid else False),
+                slurm_job_uuid=job_uuid
+            )
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
@@ -498,7 +585,7 @@ class ResultApi(Resource):
     
     @login_required
     def get(self, experiment_id: str):
-        """(TODO) Get the analysis result of a selected experiment instance.
+        """Get the analysis result of a selected experiment instance.
 
         Args:
             experiment_id (str): The identifier of an experiment instance.
@@ -510,16 +597,26 @@ class ResultApi(Resource):
             return notfound_response(user, experiment_id)
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
-        pass
+        
+        experiment_results = Result.get_experiment_results(experiment_id=experiment_id)
 
-    @login_required
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment,
+            user=user,
+            message="The experiment results are fetched.",
+            is_successful=(True if experiment_results else False),
+            experiment_results=experiment_results
+        )
+        return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
+
+    @jwt_required
     def post(self, experiment_id: str):
         """Post new analysis result to a selected experiment instance.
         
         Args:
             experiment_id (str): The identifier of an experiment instance.
         """
-        user: User = current_user
+        user: User = User.get(get_jwt_identity())
         experiment = Experiment.get(experiment_id)
 
         if (experiment is None):
@@ -758,6 +855,8 @@ class MutationApi(Resource):
                 return Response(response=response_info.serialize(), status=415, mimetype=JSONIFY_MIMETYPE)
 
 #region OpenAI Assistants
+from services import OpenAIChat, OpenAIAssistant
+from .agents import NEXT_AGENT_FIRST_PROMPT, AGENT_MAPPER, DefinedAgent
 
 class AssistantsApi(Resource):
     """Route: `/<experiment_id>/assistants`"""
@@ -852,8 +951,8 @@ class AssistantsApi(Resource):
             is_successful=is_openai_key_valid, 
             message=f"Received response from OpenAI. Updates to the experiment configuration may be triggered.",
             response_content=response_content,
-            has_pdb_file=experiment.has_pdb_file,
-            confirm_button=(status_code == 200 and any(signal in response_content.lower() for signal in confirm_signals)),
+            require_pdb_file=experiment.summon_upload_pdb,
+            confirm_button=experiment.summon_next_agent,
             tool_call_result=current_assistant.latest_tool_call_result,
             configuration_updated=configuration_updated,
             updated_attributes=updated_attributes,
@@ -884,23 +983,55 @@ class AssistantsApi(Resource):
         if (user is None or experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        experiment.current_assistant_type += 1
+        completion_message = str()
+        current_assistant_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
+        if (issubclass(current_assistant_class, OpenAIAssistant)):
+            completion_message = current_assistant_class.completion_message
+
         updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
             mapper={
-                "current_assistant_type": experiment.current_assistant_type,
+                "current_assistant_type": experiment.current_assistant_type + 1,
+                "summon_next_agent": False,
             },
         )
+
         if (updated_attrs):
+            # Set the value for the last agent completion.
+            response_content = "Please press the **Next** button to proceed your experiment configuration."
+            configuration_updated = False
+            updated_attributes_from_response = list()
+
+            if (experiment.current_assistant_type < len(AGENT_MAPPER)): # If there's next agent, correspond with OpenAI.
+                current_assistant_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
+                current_assistant: DefinedAgent = current_assistant_class(
+                    openai_secret_key=user.openai_secret_key, 
+                    thread_id=experiment.current_thread_id, 
+                    conversation_mode=True,
+                    experiment=experiment,
+                )
+                is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=NEXT_AGENT_FIRST_PROMPT)
+                configuration_updated, updated_attributes_from_response = experiment.parse_agent_response_content(response_content=response_content)
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=True,
-                message=message)
+                completion_message=completion_message,
+                message=f"{message} Received response from OpenAI.",
+                response_content=response_content,
+                require_pdb_file=experiment.summon_upload_pdb,
+                confirm_button=experiment.summon_next_agent,
+                tool_call_result=current_assistant.latest_tool_call_result,
+                configuration_updated=configuration_updated,
+                updated_attributes=(updated_attrs+updated_attributes_from_response),
+            )
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
         else:
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=False,
-                message=message)
+                message=message,
+                require_pdb_file=experiment.summon_upload_pdb,
+                confirm_button=experiment.summon_next_agent,
+            )
             return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
@@ -955,14 +1086,6 @@ from os.path import basename
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from services import SlurmJobRequest, SlurmJobData
-from config import (
-    SLURM_MD_JOB_ENTRY_SCRIPT, 
-    SLURM_JOB_ENTRY_SCRIPT, 
-    SLURM_DEPLOY_SCRIPT_FILENAME, 
-    SLURM_JOB_MAIN_SCRIPT_FILEPATH, 
-    SLURM_DEPLOY_SCRIPT, 
-    MAX_MUTANT_COUNT
-)
 
 class SlurmCorrespondenceApi(Resource):
     """Route: `/<experiment_id>/slurm`."""
@@ -1067,11 +1190,12 @@ class SlurmCorrespondenceApi(Resource):
             slurm_request = SlurmJobRequest()
 
             entry_script_str_io = StringIO()
-            entry_script_str_io.write(Template(SLURM_JOB_ENTRY_SCRIPT).safe_substitute({
+            entry_script_str_io.write(Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute({
                 "username": user.username,
                 "app_host": APP_HOST,
                 "experiment_id": experiment.id,
                 "pdb_filename": experiment.pdb_filename,
+                "metrics": dumps(experiment.metrics),
                 "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
                 "mutation_pattern": experiment.mutation_pattern,
                 "constraints_str": dumps(experiment.constraints)
@@ -1083,12 +1207,15 @@ class SlurmCorrespondenceApi(Resource):
             pdb_file_io = open(experiment.pdb_filepath)
             pdb_file_io.seek(0)
 
-            main_script_io = open(SLURM_JOB_MAIN_SCRIPT_FILEPATH)
-            main_script_io.seek(0)
+            md_main_script_io = open(SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH)
+            md_main_script_io.seek(0)
+            analysis_main_script_io = open(SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH)
+            analysis_main_script_io.seek(0)
 
             files = [
                 entry_script_str_io,
-                main_script_io,
+                md_main_script_io,
+                analysis_main_script_io,
                 pdb_file_io,
             ]
             status, message, job_uuid = SlurmJobData.post(slurm_request=slurm_request, files=files)

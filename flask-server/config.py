@@ -66,10 +66,17 @@ ACCRE_SLURM_HOST = "https://ssam.accre.vanderbilt.edu"
 ACCRE_SLURM_API_URL = f"{ACCRE_SLURM_HOST}/api/slurm"
 SLURM_ACCOUNT = "yang_lab"
 SLURM_PARTITION = "production"
+
 SLURM_MD_JOB_ENTRY_SCRIPT = "md_entry_script.sh"
+SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT = open(os.path.join(BASEDIR, "templates", "slurm_run", SLURM_MD_JOB_ENTRY_SCRIPT)).read()
 SLURM_MD_JOB_MAIN_SCRIPT = "md_main_script.py"
-SLURM_JOB_ENTRY_SCRIPT = open(os.path.join(BASEDIR, "templates", "slurm_run", SLURM_MD_JOB_ENTRY_SCRIPT)).read()
-SLURM_JOB_MAIN_SCRIPT_FILEPATH = os.path.join(BASEDIR, "templates", "slurm_run", SLURM_MD_JOB_MAIN_SCRIPT)
+SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH = os.path.join(BASEDIR, "templates", "slurm_run", SLURM_MD_JOB_MAIN_SCRIPT)
+
+SLURM_ANALYSIS_JOB_ENTRY_SCRIPT = "analysis_entry_script.sh"
+SLURM_ANALYSIS_JOB_ENTRY_CONTENT = open(os.path.join(BASEDIR, "templates", "slurm_run", SLURM_ANALYSIS_JOB_ENTRY_SCRIPT)).read()
+SLURM_ANALYSIS_JOB_MAIN_SCRIPT = "analysis_main_script.py"
+SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH = os.path.join(BASEDIR, "templates", "slurm_run", SLURM_ANALYSIS_JOB_MAIN_SCRIPT)
+
 MAX_MUTANT_COUNT = 6
 
 # Run MD by Yourself.

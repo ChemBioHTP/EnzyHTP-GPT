@@ -10,6 +10,7 @@
 
 # Here put the import lib.
 from typing import List, Tuple, Union
+from os import path
 
 from enzy_htp import PDBParser
 from enzy_htp.core import _LOGGER
@@ -17,6 +18,43 @@ from enzy_htp.mutation.mutation_pattern import decode_position_pattern
 from enzy_htp.structure import Residue
 
 from .models import Experiment
+
+def summon_next_agent(experiment: Experiment, **kwargs) -> Tuple[bool, str]:
+    """Suggest an optional completion of all tasks of the current agent and an optional summon of the next agent in the workflow.
+    
+    Args:
+        experiment (Experiment): The Experiment instance calling this assistant.
+    
+    Returns:
+        is_successful (bool): Indidate if the next agent summon option is on.
+        message (str): The message indicating the switch.
+    """
+    experiment.update_attributes(
+        mapper={
+            "summon_next_agent": True
+        }
+    )
+    return True, "Next agent summon option is on."
+
+def summon_upload_box(experiment: Experiment, **kwargs) -> Tuple[bool, str]:
+    """Summon an upload box in frontend so that user can choose to upload files to the backend.
+    
+    Args:
+        experiment (Experiment): The Experiment instance calling this assistant.
+
+    Returns:
+        is_successful (bool): Indidate if the upload box summon is on.
+        message (str): The message indicating the status.
+    """
+    if (not experiment.pdb_filepath or not path.isfile(experiment.pdb_filepath)):
+        experiment.update_attributes(
+            mapper={
+                "summon_upload_pdb": True
+            }
+        )
+        return True, "The PDB file summon upload box is on."
+    else:
+        return False, "The PDB file already exists."
 
 def find_target_protein_path(experiment: Experiment, **kwargs) -> Tuple[bool, str]:
     """Return the PDB filepath of the wild-type protein.
@@ -79,6 +117,8 @@ def find_residue_by_name(experiment: Experiment, name: str, **kwargs) -> Tuple[b
         return False, str()
 
 TOOL_FUNCTION_MAPPER = {
+    "summon_next_agent": summon_next_agent,
+    "summon_upload_box": summon_upload_box,
     "find_target_protein_path": find_target_protein_path,
     "find_residue_around": find_residue_around,
     "find_residue_by_name": find_residue_by_name,

@@ -56,7 +56,7 @@ class SlurmJobRequest:
 
     def __init__(self, account: str = SLURM_ACCOUNT, 
             partition: str = SLURM_PARTITION, 
-            job_name: str = "EnzyHTP-Web", 
+            job_name: str = "mutexa_web", 
             nodes: int = 1, mem: int = 6144, 
             time: timedelta = timedelta(days=10), 
             tasks_per_node: int = 1, ntasks: int = 1, 
@@ -125,13 +125,13 @@ class SlurmJobRequest:
             token (str): The token string.
             refresh_token (str): The refresh_token string.
         """
-        token_dict = db.tokens.find_one({"name": __class__.SLURM_TOKEN_NAME})
+        token_dict: dict = db.tokens.find_one({"name": __class__.SLURM_TOKEN_NAME})
         if (token_dict is not None):
-            token = token_dict.get("token", "")
-            refresh_token = token_dict.get("refresh_token", "")
+            token = token_dict.get("token", str())
+            refresh_token = token_dict.get("refresh_token", str())
             return True, token, refresh_token
         else:
-            return False, "", ""
+            return False, str(), str()
 
     @staticmethod
     def is_token_newer(new_token: str, old_token: str = str()) -> bool:
@@ -264,6 +264,15 @@ class SlurmJobData:
             job_details: Union[dict, str] = dict(), job_state: str = str(), 
             created_at: datetime = None, alternate_user: str = str(),
             remote_job_id: str = None, failure_reason: str = str(), **kwargs) -> None:
+        """The information from the slurm job.
+        
+        Args:
+            job_uuid (str, optional): The UUID of the slurm job.
+            job_name (str, optional): The name of the slurm job.
+            user (str, optional): The ACCRE user of the slurm job.
+            job_details (Union[dict, str], optional): The detailed description of the slurm job.
+            job_state (str, optional): The status of the slurm job.
+        """
         self.job_uuid = job_uuid
         self.job_name = job_name
         self.user = user
@@ -315,37 +324,41 @@ class SlurmJobData:
 
         Returns:
             status (int): The status from the response.
-            message (str): The Slurm Job Data instance.        
+            message (str): The Slurm Job Data instance.
             job_uuid (str): The UUID of the Slurm Job.
         """
-        _, token, _ = SlurmJobRequest.get_slurm_token()
-        headers = {
-            "Authorization": f"Bearer {token}"
-        }
-        payload = {
-            'slurm_request': slurm_request.serialize(),
-            'entry_script': f"bash input/{SLURM_MD_JOB_ENTRY_SCRIPT}",
-        }
-        files = [("files", (basename(fobj.name), fobj, "application/octet-stream")) for fobj in files]
+        if_exist, token, _ = SlurmJobRequest.get_slurm_token()
+        if (if_exist):
+            headers = {
+                "Authorization": f"Bearer {token}"
+            }
+            payload = {
+                "slurm_request": slurm_request.serialize(),
+                "entry_script": f"bash input/{SLURM_MD_JOB_ENTRY_SCRIPT}",
+            }
+            files = [("files", (basename(fobj.name), fobj, "application/octet-stream")) for fobj in files]
 
-        response = req_post(f"{ACCRE_SLURM_API_URL}", headers=headers, data=payload, files=files)
-        if (response.ok):
-            response_dict: dict = loads(response.text)
-            message = response_dict.get("message", str())
-            if (response_dict.get("success", False)):
-                job_uuid = response_dict.get("data", dict()).get("job_uuid", str())
-                return 201, message, job_uuid
-            else:
-                return 400, message, None
-        else:
-            message = str()
-            try:
-                print(response.text)
+            response = req_post(f"{ACCRE_SLURM_API_URL}", headers=headers, data=payload, files=files)
+            if (response.ok):
                 response_dict: dict = loads(response.text)
                 message = response_dict.get("message", str())
-            except:
-                message = "The Slurm Job submission is failed."
-            return response.status_code, message, None
+                if (response_dict.get("success", False)):
+                    job_uuid = response_dict.get("data", dict()).get("job_uuid", str())
+                    return 201, message, job_uuid
+                else:
+                    return 400, message, None
+            else:
+                message = str()
+                try:
+                    print(response.text)
+                    response_dict: dict = loads(response.text)
+                    message = response_dict.get("message", str())
+                except:
+                    message = "The Slurm Job submission is failed."
+                return response.status_code, message, None
+        else:
+            message = "Slurm token doesn't exist. Please contact the website administrator."
+            return 403, message, None
 
     @staticmethod
     def delete(id: str) -> Tuple[int, str]:

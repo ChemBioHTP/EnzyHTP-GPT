@@ -14,6 +14,7 @@ Three OpenAI Assistant Agents:
 
 # Here put the import lib.
 from os import path
+from string import Template
 from json import load
 from typing import List, Union
 from typing_extensions import Annotated
@@ -30,13 +31,16 @@ from enzy_htp.structure import Residue
 from enzy_htp.mutation.mutation_pattern import decode_position_pattern
 
 PROMPTS_DIRECTORY = path.join(BASEDIR, "prompts")
-MODEL_VERSION = "gpt-4o"
-# MODEL_VERSION = "gpt-4o-2024-05-13"
+# MODEL_VERSION = "gpt-4o"
+MODEL_VERSION = "gpt-4o-2024-11-20"
+
+NEXT_AGENT_FIRST_PROMPT = "Please proceed and continue configuration."
 
 class QuestionAnalyzerAssistant(OpenAIAssistant):
     """The agent acting as a Question Analyzer."""
     
     experiment: Experiment
+    completion_message: str = "Question Confirmed!"
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
         """
@@ -52,7 +56,7 @@ class QuestionAnalyzerAssistant(OpenAIAssistant):
         instructions = str()
         tools = list()
 
-        with open(path.join(PROMPTS_DIRECTORY, "question_analyzer-v3.txt")) as fobj:
+        with open(path.join(PROMPTS_DIRECTORY, "question_analyzer-v4.txt")) as fobj:
             instructions = fobj.read()
         with open(path.join(PROMPTS_DIRECTORY, "question_analyzer_functions.json")) as json_fobj:
             tool_functions: List[dict] = load(json_fobj)
@@ -79,6 +83,7 @@ class MetricsPlannerAssistant(OpenAIAssistant):
     """The agent acting as a Metrics Planner."""
     
     experiment: Experiment
+    completion_message: str = "Computational Details Confirmed!"
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
         """
@@ -94,8 +99,12 @@ class MetricsPlannerAssistant(OpenAIAssistant):
         instructions = str()
         tools = list()
 
-        with open(path.join(PROMPTS_DIRECTORY, "metrics_planner-v2.txt")) as txt_fobj:
+        with open(path.join(PROMPTS_DIRECTORY, "metrics_planner-v3.txt")) as txt_fobj:
             instructions = txt_fobj.read()
+            with open(path.join(PROMPTS_DIRECTORY, "supported_metrics_reference.txt")) as ref_fobj:
+                instructions = Template(instructions).safe_substitute({
+                    "REPLACEMARK": ref_fobj.read(),
+                }) 
         with open(path.join(PROMPTS_DIRECTORY, "metrics_planner_functions.json")) as json_fobj:
             tool_functions: List[dict] = load(json_fobj)
             tools = [
@@ -121,6 +130,7 @@ class MutantPlannerAssistant(OpenAIAssistant):
     """The agent acting as a Mutant Planner."""
     
     experiment: Experiment
+    completion_message: str = "Experiment has been set up successfully!"
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
         """
@@ -134,7 +144,7 @@ class MutantPlannerAssistant(OpenAIAssistant):
         """
         self.experiment = experiment
         instructions = str()
-        with open(path.join(PROMPTS_DIRECTORY, "mutant_planner-v1.txt")) as fobj:
+        with open(path.join(PROMPTS_DIRECTORY, "mutant_planner-v2.txt")) as fobj:
             instructions = fobj.read()
         super().__init__(openai_secret_key, 
             assistant_name="Mutant Planner", 

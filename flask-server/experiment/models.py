@@ -62,7 +62,7 @@ class Experiment():
             user_id (str): The user ID associated with this experiment.
             name (str): The name of the experiment.
             type (int, optional): The type of the experiment (default is 0).
-            metrics (List[Dict[str, Any]], optional): Metrics information about what kind of analysis to be performed (default is an empty list).
+            metrics (List[Dict[str, Any]], optional): Metrics information about kinds of analysis to be performed and their arguments (default is an empty list).
             description (str, optional): A description of the experiment (default is None).
             kwargs: Other keyword arguments.
         """
@@ -76,13 +76,15 @@ class Experiment():
         self.created_time = kwargs.get("created_time", datetime.now())
         self.updated_time = kwargs.get("updated_time", datetime.now())
         self.pdb_filename = kwargs.get("pdb_filename", None)
-        self.results: List[dict] = kwargs.get("results", list())
+        # self.results: List[dict] = kwargs.get("results", list())
         self.slurm_job_uuid = kwargs.get("slurm_job_uuid", None)
         self._status = kwargs.get("status", StatusCode.CREATED)
         self._progress = kwargs.get("progress", 0.0)
         self.mutation_pattern = kwargs.get("mutation_pattern", "WT")
         self.current_assistant_type = kwargs.get("current_assistant_type", 0)  # 0: Question Analyzer; 1: Metrics Planner; 2: Mutant Planner.
         self.current_thread_id = kwargs.get("current_thread_id", str())
+        self.summon_next_agent = kwargs.get("summon_next_agent", False)
+        self.summon_upload_pdb = kwargs.get("summon_upload_box", False)
     
     @staticmethod
     def get(id: str) -> Experiment | None:
@@ -141,7 +143,7 @@ class Experiment():
                 if (not editable_attrs) or (field_name in editable_attrs):
                     if (field_value != None):
                         setattr(self, field_name, field_value)
-                        db.experiments.update_one({"id": self.id}, {"$set": {field_name: field_value}})
+                        db.experiments.update_one({"id": self.id}, {"$set": {field_name: field_value, "updated_time": datetime.now()}})
                         updated_attrs.append(field_name)
                     continue
                 else:
@@ -196,6 +198,7 @@ class Experiment():
         dict_data["status"] = str(self._status)
         dict_data["progress"] = str(self._progress)
         dict_data["status_text"] = StatusCode.status_text_mapper.get(self.status, self.status)
+        dict_data["assistant_conversation_completed"] = self.assistant_conversation_completed
 
         for field_key in fields_to_delete:
             if (field_key in dict_data.keys()):
@@ -203,7 +206,7 @@ class Experiment():
         return dumps(dict_data)
     
     def __repr__(self):
-        return f"Experiment('{self.id}', '{self.name}', '{self.pdb_filename}')"
+        return f"Experiment(Id: '{self.id}', Name: '{self.name}', PDB file: {self.pdb_filename if self.has_pdb_file else 'None'})"
 
     @property
     def pdb_filepath(self):
@@ -218,11 +221,19 @@ class Experiment():
     
     @status.setter
     def status(self, value):
-        if (value == StatusCode.CANCELLED):
-            self.results.clear()
+        # if (value == StatusCode.CANCELLED):
+        #     self.results.clear()
         self._status = value
         self.updated_time = datetime.now()
         return
+    
+    @property
+    def assistant_conversation_completed(self) -> bool:
+        """Indicate if the conversation with OpenAI Assistant is completed."""
+        if (self.current_assistant_type > 2):
+            return True
+        else:
+            return False
     
     @property
     def progress(self):
@@ -351,9 +362,10 @@ class Experiment():
             if (self.pdb_filepath and path.isfile(self.pdb_filepath)):
                 fs.safe_rm(self.pdb_filepath) # Delete existing file.
             self.pdb_filename = pdb_file.filename
+            self.summon_upload_pdb = False
             pdb_file.save(self.pdb_filepath)
             message = f"The PDB file of the experiment {self.id} is updated. " + message
-            db.experiments.update_one({"id": self.id}, {"$set": {"pdb_filename": self.pdb_filename}})
+            db.experiments.update_one({"id": self.id}, {"$set": {"pdb_filename": self.pdb_filename, "summon_upload_pdb": self.summon_upload_pdb}})
 
         return is_updated, is_supported, message
     
@@ -424,7 +436,7 @@ class Experiment():
         ref_pdb_path = path.join(save_folder, __class__.mutant_pdb_filename)
         try:
             # Construct the reference structure PDB file.
-            mutant = [generate_from_mutation_flag(mutation_str) for mutation_str in mutant_name.split()]
+            mutant = [generate_from_mutation_flag(mutation_str) for mutation_str in mutant_name.split("_")]
             ref_stru = mutate_stru(sp.get_structure(self.pdb_filepath), mutant=mutant)
             sp.save_structure(outfile=ref_pdb_path, stru=ref_stru)
         except Exception as e:
@@ -466,7 +478,7 @@ class Experiment():
 
     #endregion
 
-    #region Experiment - Mutation
+    #region Experiment - Mutation TODO: Deduplication.
 
     def get_mutants(self) -> Tuple[bool, list, str]:
         """Get the mutant list of the current experiment instance.
@@ -549,8 +561,35 @@ class Experiment():
             message = "Getting Mutant PDB file string succeeded!"
         return is_successful, tag_string_pairs, message
 
+    def make_mutant_pdb_file(self, mutant_name: str, engine: str = "pymol") -> Tuple[bool, str, str]:
+        """Make the pdb file for a designated mutant associated with this experiment.
+        
+        Args:
+            mutant_name (str): The name of the mutant associated with the trajectory. e.g.: 'A##B C##D'
+            engine (str, optional): The engine (method) used for determine the mutated structure
+                (current available keywords): "tleap_min", "pymol" & "rosetta".
+        
+        Returns:
+            is_successful (bool): Flag indicating if the mutant PDB file is made.
+            mutant_pdb_filepath (str): The path to the mutant PDB file.
+            message (str): The message describing the mutant construction.
+        """
+        save_folder = path.join(self.directory, mutant_name.replace(" ", "_"))
+        fs.safe_mkdir(save_folder)
+        ref_pdb_path = path.join(save_folder, __class__.mutant_pdb_filename)
+        try:
+            # Construct the reference structure PDB file.
+            mutant = [generate_from_mutation_flag(mutation_str) for mutation_str in mutant_name.split("_")]
+            ref_stru = mutate_stru(sp.get_structure(self.pdb_filepath), mutant=mutant, engine=engine)
+            sp.save_structure(outfile=ref_pdb_path, stru=ref_stru)
+            return True, ref_pdb_path, f"The mutant `{mutant_name}` is constructed."
+        except Exception as e:
+            message = f"Exception raised when constructing the mutant `{mutant_name}`: {e}"
+            _LOGGER.error(message)
+            return False, str(), message
+
     def make_mutants_pdb_files(self, engine: str = "pymol") -> Tuple[bool, int, str]:
-        """Get the PDB file string of the mutated structure.
+        """Make pdb files for all the mutants associated with this experiment.
         
         Args:
             engine (str, optional): The engine (method) used for determine the mutated structure
@@ -613,13 +652,13 @@ class Experiment():
         if (is_successful):
             if (freeze):
                 self.mutation_pattern = ",".join(["{}{}{}".format("{", mutant.replace(" ", ","), "}") for mutant in mutant_string_list])
-            db.experiments.update_one({"id": self.id}, {"$set": {"mutation_pattern": self.mutation_pattern}})
+            db.experiments.update_one({"id": self.id}, {"$set": {"mutation_pattern": self.mutation_pattern, "updated_time": datetime.now()}})
         message = message.replace("parsing", "update")
         return is_successful, mutant_string_list, message
 
     #endregion
 
-    def parse_agent_response_content(self, response_content: str) -> Tuple[bool, str]:
+    def parse_agent_response_content(self, response_content: str) -> Tuple[bool, list]:
         """Update the experiment configuration information according to the response_content from GPT Agents.
         
         Args:
@@ -657,7 +696,7 @@ class Result():
 
     __tablename__ = "results"
 
-    def __init__(self, experiment_id: str, pdb_filename: str, mutant: str, replica_id: str, **kwargs):
+    def __init__(self, experiment_id: str, pdb_filename: str, mutant: str, replica_id: str, slurm_job_uuid: str = None, **kwargs):
         """Initializes an instance of Result with the provided parameters.
 
         Args:
@@ -665,6 +704,7 @@ class Result():
             pdb_filename (str): The name of the PDB file of the result.
             mutant (str): The name of the mutant protein. e.g.: 'A##B C##D'
             replica_id (str): The ID of the MD simulation relica of one mutant.
+            slurm_job_uuid (str, optional): The UUID of the slurm job.
             kwargs: Keyword arguments containing metrics and other attributes.
         """
         self.id = kwargs.get("id", str(uuid.uuid4()))
@@ -672,6 +712,7 @@ class Result():
         self.pdb_filename = pdb_filename
         self.mutant = mutant
         self.replica_id = replica_id
+        self.slurm_job_uuid = slurm_job_uuid
 
         for metric in METRICS_MAPPER.keys():
             setattr(self, metric, kwargs.get(metric, None))
@@ -727,15 +768,15 @@ class Result():
         return dict_data
     
     @staticmethod
-    def get_experiment_result(experiment_id: str) -> dict:
-        """Get the result dictionary of an experiment with given ID.
+    def get_experiment_results(experiment_id: str) -> List[Dict[str, Any]]:
+        """Get a list of results of an Experiment instance with designated `experiment_id`.
         For each mutant, the value of the analysis data will be the average of all its replica.
         
         Args:
             experiment_id (str): The `id` to identify an experiment.
 
         Returns:
-            experiment_result (dict): The summarized result information of the experiment.
+            experiment_results (List[Dict[str, Any]]): A list of results of an Experiment instance.
         """
         results_cursor = db.results.find({"experiment_id": experiment_id})
         result_df = DataFrame([result for result in results_cursor])
@@ -746,7 +787,7 @@ class Result():
         result_df = result_df[keep_columns]
         result_df_group = result_df.groupby(["mutant"]).mean()
 
-        return result_df_group.agg(lambda x: x.tolist()).reset_index().to_dict(orient='records')
+        return result_df_group.agg(lambda x: x.tolist()).reset_index().to_dict(orient="records")
 
     def insert_or_update(self):
         """Insert or Update the current Result instance to the database."""

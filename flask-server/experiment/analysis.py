@@ -12,8 +12,6 @@ from enzy_htp.analysis import binding_energy, ddg_fold_of_mutants, ele_field_str
 from enzy_htp.structure import StructureEnsemble, Ligand
 from enzy_htp.structure.structure_selection import select_stru
 
-# TODO (Zhong): Add Amber path to Mutexa.
-
 def active_site_rmsd(stru_esm: StructureEnsemble, region_pattern: str, **kwargs) -> float:
     """Calculate the RMSD value of a StructureEnsemble instance with specified region pattern.
     
