@@ -82,6 +82,7 @@ class Experiment():
         self._progress = kwargs.get("progress", 0.0)
         self.mutation_pattern = kwargs.get("mutation_pattern", "WT")
         self.current_assistant_type = kwargs.get("current_assistant_type", 0)  # 0: Question Analyzer; 1: Metrics Planner; 2: Mutant Planner.
+        self.thread_ids = kwargs.get("thread_ids", list())
         self.current_thread_id = kwargs.get("current_thread_id", str())
         self.summon_next_agent = kwargs.get("summon_next_agent", False)
         self.summon_upload_pdb = kwargs.get("summon_upload_box", False)

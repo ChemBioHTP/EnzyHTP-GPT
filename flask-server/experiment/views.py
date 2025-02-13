@@ -1055,6 +1055,11 @@ class AssistantsApi(Resource):
                 openai_secret_key=user.openai_secret_key, 
                 thread_id=experiment.current_thread_id
             )
+        if (experiment.thread_ids):
+            is_successful, deleted_thread_ids = OpenAIAssistant.delete_threads(
+                openai_secret_key=user.openai_secret_key, 
+                thread_id=experiment.thread_ids
+            )
         else:
             is_successful = True
         

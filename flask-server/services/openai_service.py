@@ -521,6 +521,29 @@ class OpenAIAssistant(OpenAIChat):
             return True
         except (Exception):
             return False
+        
+    @staticmethod
+    def delete_threads(openai_secret_key: str, thread_ids: List[str]):
+        """Delete a thread with the given ID.
+
+        Args:
+            openai_secret_key (str): API key for accessing OpenAI services.
+            thread_ids (List[str]): A list of the thread ID of those to be deleted.
+        
+        Returns:
+            is_successful (bool): Indidate if the threads are all deleted.
+            deleted_thread_ids (List): Indidate if the threads are deleted.
+        """
+        is_successful = True
+        deleted_thread_ids = list()
+        for thread_id in thread_ids:
+            is_deleted = __class__.delete_thread(openai_secret_key=openai_secret_key, thread_id=thread_id)
+            if (is_deleted):
+                deleted_thread_ids.append(thread_id)
+            else:
+                is_successful = False
+            continue
+        return is_successful, deleted_thread_ids
     
     def __run_thread(self, prompt: str, thread: Thread = None) -> None:
         """Sends a prompt to GPT assistant and retrieves the response.
