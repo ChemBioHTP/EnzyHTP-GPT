@@ -918,9 +918,6 @@ class AssistantsApi(Resource):
         Args:
             experiment_id (str): The identifier of an experiment instance.
         """
-        # When the response_content contains any element in the list, the task of this agent is confirmable.
-        confirm_signals = ["please confirm", "can finalize", "final output", "can proceed", "will proceed", "further", "to review"]
-
         user: User = current_user
         experiment = Experiment.get(experiment_id)
 
@@ -945,6 +942,10 @@ class AssistantsApi(Resource):
         if (status_code != 200):
             response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False, message=response_content)
             return Response(response_info.serialize(), status=status_code, mimetype=JSONIFY_MIMETYPE)
+
+        # Append the chat message records.
+        experiment.append_chat_messages(role="user", text_value=user_prompt)
+        experiment.append_chat_messages(role="assistant", text_value=response_content)
 
         configuration_updated, updated_attributes = experiment.parse_agent_response_content(response_content=response_content)
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
@@ -1010,6 +1011,8 @@ class AssistantsApi(Resource):
                     experiment=experiment,
                 )
                 is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=NEXT_AGENT_FIRST_PROMPT)
+                
+                experiment.append_chat_messages(role="assistant", text_value=response_content)  # Only the response from the assistant is recorded.
                 configuration_updated, updated_attributes_from_response = experiment.parse_agent_response_content(response_content=response_content)
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,

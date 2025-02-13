@@ -15,7 +15,7 @@ from __future__ import annotations  # To enable the annotation that a staticmeth
 from io import BufferedReader
 from flask_login import UserMixin
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Union, Tuple, Callable
+from typing import Any, Dict, List, Union, Tuple, Callable, Literal
 from json import loads, dumps
 from plum import dispatch
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
@@ -84,6 +84,7 @@ class Experiment():
         self.current_assistant_type = kwargs.get("current_assistant_type", 0)  # 0: Question Analyzer; 1: Metrics Planner; 2: Mutant Planner.
         self.thread_ids = kwargs.get("thread_ids", list())
         self.current_thread_id = kwargs.get("current_thread_id", str())
+        self.chat_messages: List[Dict[str, str]] = kwargs.get("thread_messages", list())
         self.summon_next_agent = kwargs.get("summon_next_agent", False)
         self.summon_upload_pdb = kwargs.get("summon_upload_box", False)
     
@@ -659,6 +660,7 @@ class Experiment():
 
     #endregion
 
+    #region OpenAI Assistant Processing.
     def parse_agent_response_content(self, response_content: str) -> Tuple[bool, list]:
         """Update the experiment configuration information according to the response_content from GPT Agents.
         
@@ -690,6 +692,23 @@ class Experiment():
             return True, updated_attrs
         else:
             return False, list()
+        
+    def append_chat_messages(self, role: Literal["user", "assistant"], text_value: str):
+        """Append new chat message to the experiment.
+        
+        Args:
+            role (Literal["user", "assistant"]): Determine if the message is from the `user` or the `assistant`.
+            text_value (str): The message content.
+        """
+        chat_messages = self.chat_messages
+        chat_messages.append({
+            "role": role,
+            "text_value": text_value,
+        })
+        self.update_attributes(mapper={
+            "chat_messages": chat_messages,
+        })
+    #endregion
 
 
 class Result():
