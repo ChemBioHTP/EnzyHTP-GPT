@@ -30,6 +30,7 @@ from context import mongo
 from config import EXPERIMENT_FILE_DIRECTORY, SCRATCH_FOLDER
 from auth.models import User
 from .analysis import METRICS_MAPPER
+from services.openai_service import OpenAIAssistant
 
 # Here put enzy_htp modules.
 from enzy_htp import interface
@@ -82,7 +83,7 @@ class Experiment():
         self._progress = kwargs.get("progress", 0.0)
         self.mutation_pattern = kwargs.get("mutation_pattern", "WT")
         self.current_assistant_type = kwargs.get("current_assistant_type", 0)  # 0: Question Analyzer; 1: Metrics Planner; 2: Mutant Planner.
-        self.thread_ids = kwargs.get("thread_ids", list())
+        self.thread_id_list: List[str] = kwargs.get("thread_id_list", list())
         self.current_thread_id = kwargs.get("current_thread_id", str())
         self.chat_messages: List[Dict[str, str]] = kwargs.get("thread_messages", list())
         self.summon_next_agent = kwargs.get("summon_next_agent", False)
@@ -660,7 +661,7 @@ class Experiment():
 
     #endregion
 
-    #region OpenAI Assistant Processing.
+    #region Experiment Assistant Processing.
     def parse_agent_response_content(self, response_content: str) -> Tuple[bool, list]:
         """Update the experiment configuration information according to the response_content from GPT Agents.
         
@@ -693,6 +694,21 @@ class Experiment():
         else:
             return False, list()
         
+    def append_thread_id_list(self, new_thread_id: str):
+        """Append new chat `thread_id` to the experiment's `thread_ids` attribute, and update the `current_thread_id`.
+        
+        Args:
+            new_thread_id (str): The new `thread_id` of the experiment.
+        """
+        if (new_thread_id != self.current_thread_id):
+            thread_id_list = self.thread_id_list
+            thread_id_list.append(new_thread_id)
+            self.update_attributes(mapper={
+                "thread_id_list": thread_id_list,
+                "current_thread_id": new_thread_id,
+            })
+            return
+
     def append_chat_messages(self, role: Literal["user", "assistant"], text_value: str):
         """Append new chat message to the experiment.
         
@@ -708,6 +724,34 @@ class Experiment():
         self.update_attributes(mapper={
             "chat_messages": chat_messages,
         })
+        return
+    
+    def clear_chat_threads(self, openai_secret_key: str):
+        """Clear the `chat_messages` and `thread_id_list` of current experiment.
+        
+        Args:
+            openai_secret_key (str): API key for accessing OpenAI services.
+            
+        Returns:
+            is_successful (bool): Indidate if the threads are all deleted.
+        """
+        is_successful = OpenAIAssistant.delete_thread(
+            openai_secret_key=openai_secret_key, 
+            thread_id=self.current_thread_id
+        )
+        is_successful, deleted_thread_ids = OpenAIAssistant.delete_threads(
+            openai_secret_key=openai_secret_key, 
+            thread_id=self.thread_id_list
+        )
+        self.update_attributes(
+            mapper={
+                "current_assistant_type": 0,
+                "current_thread_id": "",
+                "thread_id_list": list()
+            }
+        )
+        return is_successful
+
     #endregion
 
 

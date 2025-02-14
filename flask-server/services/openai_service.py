@@ -373,7 +373,10 @@ class OpenAIAssistant(OpenAIChat):
     latest_tool_call_result: Dict[str, bool]
     completion_message: str = str()
 
-    def __init__(self, openai_secret_key: str, assistant_name: str = str(), instructions: str = str(), model: str = "gpt-3.5-turbo", tools: List[dict] = list(), tool_function_mapper: Dict[str, Callable] = dict(), tool_function_callable_kwargs: Dict[str, Any] = dict(), thread_id: str = str(), conversation_mode: bool = False, **kwargs) -> None:
+    def __init__(self, openai_secret_key: str, assistant_name: str = str(), 
+            instructions: str = str(), model: str = "gpt-3.5-turbo", tools: List[dict] = list(), 
+            tool_function_mapper: Dict[str, Callable] = dict(), tool_function_callable_kwargs: Dict[str, Any] = dict(), 
+            thread_id: str = str(), conversation_mode: bool = False, **kwargs) -> None:
         """
         Initializes the service with the OpenAI API key and configuration for using specific GPT models.
 
@@ -523,27 +526,27 @@ class OpenAIAssistant(OpenAIChat):
             return False
         
     @staticmethod
-    def delete_threads(openai_secret_key: str, thread_ids: List[str]):
+    def delete_threads(openai_secret_key: str, thread_id_list: List[str]):
         """Delete a thread with the given ID.
 
         Args:
             openai_secret_key (str): API key for accessing OpenAI services.
-            thread_ids (List[str]): A list of the thread ID of those to be deleted.
+            thread_id_list (List[str]): A list of the thread ID of those to be deleted.
         
         Returns:
             is_successful (bool): Indidate if the threads are all deleted.
-            deleted_thread_ids (List): Indidate if the threads are deleted.
+            deleted_thread_id_list (list): Indidate if the threads are deleted.
         """
         is_successful = True
-        deleted_thread_ids = list()
-        for thread_id in thread_ids:
+        deleted_thread_id_list = list()
+        for thread_id in thread_id_list:
             is_deleted = __class__.delete_thread(openai_secret_key=openai_secret_key, thread_id=thread_id)
             if (is_deleted):
-                deleted_thread_ids.append(thread_id)
+                deleted_thread_id_list.append(thread_id)
             else:
                 is_successful = False
             continue
-        return is_successful, deleted_thread_ids
+        return is_successful, deleted_thread_id_list
     
     def __run_thread(self, prompt: str, thread: Thread = None) -> None:
         """Sends a prompt to GPT assistant and retrieves the response.

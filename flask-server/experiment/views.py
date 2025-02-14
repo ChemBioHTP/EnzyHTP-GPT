@@ -963,10 +963,10 @@ class AssistantsApi(Resource):
         _ = experiment.update_attributes(
             mapper={
                 "current_assistant_type": experiment.current_assistant_type,
-                "current_thread_id": current_assistant.thread.id,
             },
             # editable_attrs=editable_attributes,
         )
+        experiment.append_thread_id_list(new_thread_id=current_assistant.thread.id)
         return Response(response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
@@ -1051,20 +1051,8 @@ class AssistantsApi(Resource):
             return notfound_response(user, experiment_id)
         if (user is None or experiment.user_id != user.id):
             return forbidden_response(user, experiment)
-        
-        is_successful = False
-        if (experiment.current_thread_id):
-            is_successful = OpenAIAssistant.delete_thread(
-                openai_secret_key=user.openai_secret_key, 
-                thread_id=experiment.current_thread_id
-            )
-        if (experiment.thread_ids):
-            is_successful, deleted_thread_ids = OpenAIAssistant.delete_threads(
-                openai_secret_key=user.openai_secret_key, 
-                thread_id=experiment.thread_ids
-            )
-        else:
-            is_successful = True
+
+        is_successful = experiment.clear_chat_threads(user.openai_secret_key)
         
         if (is_successful):
             experiment.update_attributes(
