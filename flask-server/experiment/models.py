@@ -729,7 +729,7 @@ class Experiment():
         Args:
             new_thread_id (str): The new `thread_id` of the experiment.
         """
-        if (new_thread_id != self.current_thread_id):
+        if (new_thread_id not in self.thread_id_list):
             thread_id_list = self.thread_id_list
             thread_id_list.append(new_thread_id)
             self.update_attributes(mapper={

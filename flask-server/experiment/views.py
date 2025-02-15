@@ -893,28 +893,7 @@ class AssistantsApi(Resource):
                 })
 
         _, mutant_string_list, _ = experiment.get_mutants_string_list()
-        configuration_stages = [
-            {
-                "title": "Wild Type",
-                "content": experiment.pdb_filename if experiment.has_pdb_file else str(),
-                "is_completed": experiment.has_pdb_file,
-            },
-            {
-                "title": "Research Question",
-                "content": assistant_messages[0]["text_value"] if len(assistant_messages) else str(),
-                "is_completed": experiment.current_assistant_type > 0,
-            },
-            {
-                "title": "Target Metrics",
-                "content": ", ".join([metric.get("name") for metric in experiment.metrics]),
-                "is_completed": experiment.current_assistant_type > 1,
-            },
-            {
-                "title": "Target Mutants",
-                "content": ", ".join(mutant_string_list),
-                "is_completed": experiment.current_assistant_type > 2,
-            }
-        ]
+        configuration_stages = experiment.configuration_stages
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
             is_successful=True,
             configuration_stages=configuration_stages,
