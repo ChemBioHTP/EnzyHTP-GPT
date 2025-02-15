@@ -661,7 +661,36 @@ class Experiment():
 
     #endregion
 
-    #region Experiment Assistant Processing.
+    #region Experiment Assistant Configuration.
+
+    @property
+    def configuration_stages(self) -> List[Dict[str, Any]]:
+        """A list of dictionary describing the configuration stages of the experiment."""
+        _, mutant_string_list, _ = self.get_mutants_string_list()
+        stages = [
+            {
+                "title": "Wild Type",
+                "content": self.pdb_filename if self.has_pdb_file else str(),
+                "is_completed": self.has_pdb_file,
+            },
+            {
+                "title": "Research Question",
+                "content": self.chat_messages[0]["text_value"] if len(self.chat_messages) else str(),
+                "is_completed": self.current_assistant_type > 0,
+            },
+            {
+                "title": "Target Metrics",
+                "content": ", ".join([metric.get("name") for metric in self.metrics]),
+                "is_completed": self.current_assistant_type > 1,
+            },
+            {
+                "title": "Target Mutants",
+                "content": ", ".join(mutant_string_list),
+                "is_completed": self.current_assistant_type > 2,
+            }
+        ]
+        return stages
+
     def parse_agent_response_content(self, response_content: str) -> Tuple[bool, list]:
         """Update the experiment configuration information according to the response_content from GPT Agents.
         

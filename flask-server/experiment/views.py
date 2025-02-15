@@ -876,11 +876,22 @@ class AssistantsApi(Resource):
         if (user is None or experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        is_successful, assistant_messages = OpenAIAssistant.get_thread_messages(
-            openai_secret_key=user.openai_secret_key,
-            thread_id=experiment.current_thread_id,
-            limit=50
-        )
+        assistant_messages = list()
+        if (experiment.chat_messages):
+            assistant_messages = experiment.chat_messages
+        else:
+            is_successful, assistant_messages = OpenAIAssistant.get_thread_messages(
+                openai_secret_key=user.openai_secret_key,
+                thread_id=experiment.current_thread_id,
+                limit=50
+            )
+            if (is_successful):
+                if (not experiment.thread_id_list):
+                    experiment.append_thread_id_list(experiment.current_thread_id)
+                experiment.update_attributes(mapper={
+                    "chat_messages": assistant_messages
+                })
+
         _, mutant_string_list, _ = experiment.get_mutants_string_list()
         configuration_stages = [
             {
@@ -905,7 +916,7 @@ class AssistantsApi(Resource):
             }
         ]
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
-            is_successful=is_successful,
+            is_successful=True,
             configuration_stages=configuration_stages,
             assistant_messages=assistant_messages,
         )
@@ -944,6 +955,8 @@ class AssistantsApi(Resource):
             return Response(response_info.serialize(), status=status_code, mimetype=JSONIFY_MIMETYPE)
 
         # Append the chat message records.
+        if (not experiment.thread_id_list):
+            experiment.append_thread_id_list(experiment.current_thread_id)
         experiment.append_chat_messages(role="user", text_value=user_prompt)
         experiment.append_chat_messages(role="assistant", text_value=response_content)
 
