@@ -325,6 +325,10 @@ class IndexApi(Resource):
                 openai_secret_key=user.openai_secret_key, 
                 thread_id=experiment.current_thread_id
             )
+            OpenAIAssistant.delete_threads(
+                openai_secret_key=user.openai_secret_key, 
+                thread_id_list=experiment.thread_id_list
+            )
             experiment.clear_folder(remove_folder=True)
             db.experiments.delete_one({"id": experiment.id})
             db.results.delete_many({"experiment_id": experiment_id})
