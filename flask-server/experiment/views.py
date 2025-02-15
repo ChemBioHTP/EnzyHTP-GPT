@@ -884,6 +884,7 @@ class AssistantsApi(Resource):
         if (experiment.chat_messages):
             assistant_messages = experiment.chat_messages
         else:
+            # _LOGGER.info(f"Fetching thread ({experiment.current_thread_id}) messages now.")
             is_successful, assistant_messages = OpenAIAssistant.get_thread_messages(
                 openai_secret_key=user.openai_secret_key,
                 thread_id=experiment.current_thread_id,
@@ -892,6 +893,7 @@ class AssistantsApi(Resource):
             if (is_successful):
                 if (not experiment.thread_id_list):
                     experiment.append_thread_id_list(experiment.current_thread_id)
+                # _LOGGER.info(f"Replacing the chat_messages {experiment.chat_messages} with value {assistant_messages}.")
                 experiment.update_attributes(mapper={
                     "chat_messages": assistant_messages
                 })
@@ -938,8 +940,8 @@ class AssistantsApi(Resource):
             return Response(response_info.serialize(), status=status_code, mimetype=JSONIFY_MIMETYPE)
 
         # Append the chat message records.
-        if (not experiment.thread_id_list):
-            experiment.append_thread_id_list(experiment.current_thread_id)
+        if (experiment.current_thread_id not in experiment.thread_id_list):
+            experiment.append_thread_id_list(new_thread_id=current_assistant.thread.id)
         experiment.append_chat_messages(role="user", text_value=user_prompt)
         experiment.append_chat_messages(role="assistant", text_value=response_content)
 
@@ -962,7 +964,6 @@ class AssistantsApi(Resource):
             },
             # editable_attrs=editable_attributes,
         )
-        experiment.append_thread_id_list(new_thread_id=current_assistant.thread.id)
         return Response(response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
@@ -1013,6 +1014,7 @@ class AssistantsApi(Resource):
                 })
                 is_openai_key_valid, status_code, response_content = current_agent.ask_gpt(prompt=starting_message)
                 if (status_code == 200):
+                    # _LOGGER.info("Message received after changing agent.")
                     experiment.append_thread_id_list(current_agent.thread.id)
                     experiment.append_chat_messages(role="assistant", text_value=response_content)  # Only the response from the assistant is recorded.
                 configuration_updated, updated_attributes_from_response = experiment.parse_agent_response_content(response_content=response_content)

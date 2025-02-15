@@ -85,7 +85,7 @@ class Experiment():
         self.current_assistant_type = kwargs.get("current_assistant_type", 0)  # 0: Question Analyzer; 1: Metrics Planner; 2: Mutant Planner.
         self.thread_id_list: List[str] = kwargs.get("thread_id_list", list())
         self.current_thread_id = kwargs.get("current_thread_id", str())
-        self.chat_messages: List[Dict[str, str]] = kwargs.get("thread_messages", list())
+        self.chat_messages: List[Dict[str, str]] = kwargs.get("chat_messages", list())
         self.summon_next_agent = kwargs.get("summon_next_agent", False)
         self.summon_upload_pdb = kwargs.get("summon_upload_box", False)
     
@@ -729,14 +729,18 @@ class Experiment():
         Args:
             new_thread_id (str): The new `thread_id` of the experiment.
         """
-        if (new_thread_id not in self.thread_id_list):
+        # _LOGGER.info("Appending thread ID.")
+        # _LOGGER.info(f"Current threads: {self.thread_id_list}")
+        if (new_thread_id and (new_thread_id not in self.thread_id_list)):
             thread_id_list = self.thread_id_list
             thread_id_list.append(new_thread_id)
             self.update_attributes(mapper={
                 "thread_id_list": thread_id_list,
                 "current_thread_id": new_thread_id,
             })
-            return
+        
+        # _LOGGER.info(f"Current threads (after appending): {self.thread_id_list}")
+        return
 
     def append_chat_messages(self, role: Literal["user", "assistant"], text_value: str):
         """Append new chat message to the experiment.
@@ -745,6 +749,8 @@ class Experiment():
             role (Literal["user", "assistant"]): Determine if the message is from the `user` or the `assistant`.
             text_value (str): The message content.
         """
+        # _LOGGER.info("Appending chat messages.")
+        # _LOGGER.info(f"Current messages: {self.chat_messages}")
         chat_messages = self.chat_messages
         chat_messages.append({
             "role": role,
@@ -753,6 +759,7 @@ class Experiment():
         self.update_attributes(mapper={
             "chat_messages": chat_messages,
         })
+        # _LOGGER.info(f"Current messages (after appending): {self.chat_messages}")
         return
     
     def clear_chat_threads(self, openai_secret_key: str):
