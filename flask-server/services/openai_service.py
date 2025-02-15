@@ -371,6 +371,7 @@ class OpenAIAssistant(OpenAIChat):
 
     functions: List[AssistantFunction]
     latest_tool_call_result: Dict[str, bool]
+    starting_message_template: str = str()
     completion_message: str = str()
 
     def __init__(self, openai_secret_key: str, assistant_name: str = str(), 
@@ -472,8 +473,9 @@ class OpenAIAssistant(OpenAIChat):
         except:
             return False
 
+
     @staticmethod
-    def get_thread_messages(openai_secret_key: str, thread_id: str, limit: int = 20):
+    def get_thread_messages(openai_secret_key: str, thread_id: str, limit: int = 20) -> Tuple[bool, List[Dict[str, str]]]:
         """Get the messages of a thread with the given ID.
 
         Args:
@@ -502,6 +504,24 @@ class OpenAIAssistant(OpenAIChat):
             return True, simplified_messages[::-1]
         except:
             return False, list()
+        
+    @staticmethod
+    def get_thread_summary(openai_secret_key: str, thread_id: str) -> Tuple[bool, str]:
+        """Summarize the information of a thread and extract key information.
+        TODO (Zhong): Use regular expression to better extracting key information.
+
+        Args:
+            openai_secret_key (str): API key for accessing OpenAI services.
+            thread_id (str): The ID of the thread the messages belong to.
+        
+        Returns:
+            is_successful (bool): Indidate if the messages are successfully retrieved and summarized.
+            summary (str): The summarized message of the thread.
+        """
+        is_successful, messages = __class__.get_thread_messages(openai_secret_key, thread_id)
+        assistant_messages = [message for message in messages if message.get("role", None) == "assistant"]
+        summary = assistant_messages[-1].get("text_value", str())
+        return is_successful, summary
 
     @staticmethod
     def delete_thread(openai_secret_key: str, thread_id: str):

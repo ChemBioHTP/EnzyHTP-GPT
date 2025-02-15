@@ -34,13 +34,12 @@ PROMPTS_DIRECTORY = path.join(BASEDIR, "prompts")
 # MODEL_VERSION = "gpt-4o"
 MODEL_VERSION = "gpt-4o-2024-11-20"
 
-NEXT_AGENT_FIRST_PROMPT = "Please proceed and continue configuration."
-
 class QuestionAnalyzerAssistant(OpenAIAssistant):
     """The agent acting as a Question Analyzer."""
     
     experiment: Experiment
     completion_message: str = "Question Confirmed!"
+    starting_message_template = "Please start to analyze user questions."
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
         """
@@ -84,6 +83,7 @@ class MetricsPlannerAssistant(OpenAIAssistant):
     
     experiment: Experiment
     completion_message: str = "Computational Details Confirmed!"
+    starting_message_template = "Please use the following information to config metrics. \n$summary"
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
         """
@@ -131,6 +131,7 @@ class MutantPlannerAssistant(OpenAIAssistant):
     
     experiment: Experiment
     completion_message: str = "Experiment has been set up successfully!"
+    starting_message_template = "Please use the following information to config mutants. \n$summary"
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
         """

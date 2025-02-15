@@ -856,7 +856,7 @@ class MutationApi(Resource):
 
 #region OpenAI Assistants
 from services import OpenAIChat, OpenAIAssistant
-from .agents import NEXT_AGENT_FIRST_PROMPT, AGENT_MAPPER, DefinedAgent
+from .agents import AGENT_MAPPER, DefinedAgent
 
 class AssistantsApi(Resource):
     """Route: `/<experiment_id>/assistants`"""
@@ -985,9 +985,9 @@ class AssistantsApi(Resource):
             return forbidden_response(user, experiment)
         
         completion_message = str()
-        current_assistant_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
-        if (issubclass(current_assistant_class, OpenAIAssistant)):
-            completion_message = current_assistant_class.completion_message
+        current_agent_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
+        if (issubclass(current_agent_class, OpenAIAssistant)):
+            completion_message = current_agent_class.completion_message
 
         updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
             mapper={
@@ -1003,16 +1003,22 @@ class AssistantsApi(Resource):
             updated_attributes_from_response = list()
 
             if (experiment.current_assistant_type < len(AGENT_MAPPER)): # If there's next agent, correspond with OpenAI.
-                current_assistant_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
-                current_assistant: DefinedAgent = current_assistant_class(
+                current_agent_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
+                current_agent: DefinedAgent = current_agent_class(
                     openai_secret_key=user.openai_secret_key, 
-                    thread_id=experiment.current_thread_id, 
                     conversation_mode=True,
                     experiment=experiment,
                 )
-                is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=NEXT_AGENT_FIRST_PROMPT)
-                
-                experiment.append_chat_messages(role="assistant", text_value=response_content)  # Only the response from the assistant is recorded.
+
+                # Use the summary information of the question analyzer.
+                is_successful, question_analyzer_summary = OpenAIAssistant.get_thread_summary(openai_secret_key=user.openai_secret_key, thread_id=(experiment.thread_id_list[0] if experiment.thread_id_list else experiment.current_thread_id))
+                starting_message = Template(current_agent.starting_message_template).safe_substitute({
+                    "summary": question_analyzer_summary,
+                })
+                is_openai_key_valid, status_code, response_content = current_agent.ask_gpt(prompt=starting_message)
+                if (status_code == 200):
+                    experiment.append_thread_id_list(current_agent.thread.id)
+                    experiment.append_chat_messages(role="assistant", text_value=response_content)  # Only the response from the assistant is recorded.
                 configuration_updated, updated_attributes_from_response = experiment.parse_agent_response_content(response_content=response_content)
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
@@ -1022,7 +1028,7 @@ class AssistantsApi(Resource):
                 response_content=response_content,
                 require_pdb_file=experiment.summon_upload_pdb,
                 confirm_button=experiment.summon_next_agent,
-                tool_call_result=current_assistant.latest_tool_call_result,
+                tool_call_result=current_agent.latest_tool_call_result,
                 configuration_updated=configuration_updated,
                 updated_attributes=(updated_attrs+updated_attributes_from_response),
             )

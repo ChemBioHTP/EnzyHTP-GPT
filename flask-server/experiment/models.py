@@ -746,7 +746,7 @@ class Experiment():
         self.update_attributes(
             mapper={
                 "current_assistant_type": 0,
-                "current_thread_id": "",
+                "current_thread_id": None,
                 "thread_id_list": list()
             }
         )
