@@ -703,12 +703,29 @@ class Experiment():
         """
         editable_attrs = ["metrics", "constraints"]
 
-        match_rule = r"```\n(.*?)\n```"
+        # _LOGGER.info(f"Response content:\n{response_content}\n")
 
-        match_results = re.search(match_rule, response_content, re.DOTALL)
-        if (match_results):
-            json_text = match_results[0].replace("```\n", "").replace("\n```", "")
+        is_matched = False
+        matched_head = str()
+        match_results: List[str] = list()
+
+        match_rule_heads = ["```\n", "```json\n"]
+        match_rule_tail = "\n```"
+        
+        for head in match_rule_heads:
+            match_rule = fr"{head}(.*?){match_rule_tail}"
+            match_results = re.search(match_rule, response_content, re.DOTALL)
+            if (match_results):
+                is_matched = True
+                matched_head = head
+                break
+            continue
+        
+        if (is_matched):
+            json_text = match_results[0].replace(matched_head, "").replace(match_rule_tail, "")
             configuration_mapper: Dict[str, Any] = loads(json_text)
+            
+            # _LOGGER.info(f"Matched results:\n{configuration_mapper}\n")
 
             is_mutation_updated = False
             mutation_field_name = "mutation_pattern"
@@ -721,6 +738,7 @@ class Experiment():
                 updated_attrs.append(mutation_field_name)
             return True, updated_attrs
         else:
+            # _LOGGER.info("Not matched results.")
             return False, list()
         
     def append_thread_id_list(self, new_thread_id: str):

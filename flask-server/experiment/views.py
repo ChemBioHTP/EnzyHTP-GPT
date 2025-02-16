@@ -1025,7 +1025,6 @@ class AssistantsApi(Resource):
                 response_content=response_content,
                 require_pdb_file=experiment.summon_upload_pdb,
                 confirm_button=experiment.summon_next_agent,
-                tool_call_result=current_agent.latest_tool_call_result,
                 configuration_updated=configuration_updated,
                 updated_attributes=(updated_attrs+updated_attributes_from_response),
                 configuration_stages=experiment.configuration_stages,
