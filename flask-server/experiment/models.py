@@ -703,11 +703,11 @@ class Experiment():
         """
         editable_attrs = ["metrics", "constraints"]
 
-        match_rule = r"```json\n(.*?)\n```"
+        match_rule = r"```\n(.*?)\n```"
 
         match_results = re.search(match_rule, response_content, re.DOTALL)
         if (match_results):
-            json_text = match_results[0].replace("```json\n", "").replace("\n```", "")
+            json_text = match_results[0].replace("```\n", "").replace("\n```", "")
             configuration_mapper: Dict[str, Any] = loads(json_text)
 
             is_mutation_updated = False
