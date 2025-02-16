@@ -325,6 +325,10 @@ class IndexApi(Resource):
                 openai_secret_key=user.openai_secret_key, 
                 thread_id=experiment.current_thread_id
             )
+            OpenAIAssistant.delete_threads(
+                openai_secret_key=user.openai_secret_key, 
+                thread_id_list=experiment.thread_id_list
+            )
             experiment.clear_folder(remove_folder=True)
             db.experiments.delete_one({"id": experiment.id})
             db.results.delete_many({"experiment_id": experiment_id})
@@ -856,7 +860,7 @@ class MutationApi(Resource):
 
 #region OpenAI Assistants
 from services import OpenAIChat, OpenAIAssistant
-from .agents import NEXT_AGENT_FIRST_PROMPT, AGENT_MAPPER, DefinedAgent
+from .agents import AGENT_MAPPER, DefinedAgent
 
 class AssistantsApi(Resource):
     """Route: `/<experiment_id>/assistants`"""
@@ -876,37 +880,27 @@ class AssistantsApi(Resource):
         if (user is None or experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        is_successful, assistant_messages = OpenAIAssistant.get_thread_messages(
-            openai_secret_key=user.openai_secret_key,
-            thread_id=experiment.current_thread_id,
-            limit=50
-        )
-        _, mutant_string_list, _ = experiment.get_mutants_string_list()
-        configuration_stages = [
-            {
-                "title": "Wild Type",
-                "content": experiment.pdb_filename if experiment.has_pdb_file else str(),
-                "is_completed": experiment.has_pdb_file,
-            },
-            {
-                "title": "Research Question",
-                "content": assistant_messages[0]["text_value"] if len(assistant_messages) else str(),
-                "is_completed": experiment.current_assistant_type > 0,
-            },
-            {
-                "title": "Target Metrics",
-                "content": ", ".join([metric.get("name") for metric in experiment.metrics]),
-                "is_completed": experiment.current_assistant_type > 1,
-            },
-            {
-                "title": "Target Mutants",
-                "content": ", ".join(mutant_string_list),
-                "is_completed": experiment.current_assistant_type > 2,
-            }
-        ]
+        assistant_messages = list()
+        if (experiment.chat_messages):
+            assistant_messages = experiment.chat_messages
+        else:
+            # _LOGGER.info(f"Fetching thread ({experiment.current_thread_id}) messages now.")
+            is_successful, assistant_messages = OpenAIAssistant.get_thread_messages(
+                openai_secret_key=user.openai_secret_key,
+                thread_id=experiment.current_thread_id,
+                limit=50
+            )
+            if (is_successful):
+                if (not experiment.thread_id_list):
+                    experiment.append_thread_id_list(experiment.current_thread_id)
+                # _LOGGER.info(f"Replacing the chat_messages {experiment.chat_messages} with value {assistant_messages}.")
+                experiment.update_attributes(mapper={
+                    "chat_messages": assistant_messages
+                })
+
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
-            is_successful=is_successful,
-            configuration_stages=configuration_stages,
+            is_successful=True,
+            configuration_stages=experiment.configuration_stages,
             assistant_messages=assistant_messages,
         )
         return Response(response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
@@ -918,9 +912,6 @@ class AssistantsApi(Resource):
         Args:
             experiment_id (str): The identifier of an experiment instance.
         """
-        # When the response_content contains any element in the list, the task of this agent is confirmable.
-        confirm_signals = ["please confirm", "can finalize", "final output", "can proceed", "will proceed", "further", "to review"]
-
         user: User = current_user
         experiment = Experiment.get(experiment_id)
 
@@ -946,6 +937,12 @@ class AssistantsApi(Resource):
             response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False, message=response_content)
             return Response(response_info.serialize(), status=status_code, mimetype=JSONIFY_MIMETYPE)
 
+        # Append the chat message records.
+        if (experiment.current_thread_id not in experiment.thread_id_list):
+            experiment.append_thread_id_list(new_thread_id=current_assistant.thread.id)
+        experiment.append_chat_messages(role="user", text_value=user_prompt)
+        experiment.append_chat_messages(role="assistant", text_value=response_content)
+
         configuration_updated, updated_attributes = experiment.parse_agent_response_content(response_content=response_content)
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
             is_successful=is_openai_key_valid, 
@@ -956,13 +953,13 @@ class AssistantsApi(Resource):
             tool_call_result=current_assistant.latest_tool_call_result,
             configuration_updated=configuration_updated,
             updated_attributes=updated_attributes,
+            configuration_stages=experiment.configuration_stages,
         )
 
         # Update the current_assistant_type and current_thread_id to database.
         _ = experiment.update_attributes(
             mapper={
                 "current_assistant_type": experiment.current_assistant_type,
-                "current_thread_id": current_assistant.thread.id,
             },
             # editable_attrs=editable_attributes,
         )
@@ -984,9 +981,9 @@ class AssistantsApi(Resource):
             return forbidden_response(user, experiment)
         
         completion_message = str()
-        current_assistant_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
-        if (issubclass(current_assistant_class, OpenAIAssistant)):
-            completion_message = current_assistant_class.completion_message
+        current_agent_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
+        if (issubclass(current_agent_class, OpenAIAssistant)):
+            completion_message = current_agent_class.completion_message
 
         updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
             mapper={
@@ -1002,14 +999,23 @@ class AssistantsApi(Resource):
             updated_attributes_from_response = list()
 
             if (experiment.current_assistant_type < len(AGENT_MAPPER)): # If there's next agent, correspond with OpenAI.
-                current_assistant_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
-                current_assistant: DefinedAgent = current_assistant_class(
+                current_agent_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
+                current_agent: DefinedAgent = current_agent_class(
                     openai_secret_key=user.openai_secret_key, 
-                    thread_id=experiment.current_thread_id, 
                     conversation_mode=True,
                     experiment=experiment,
                 )
-                is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=NEXT_AGENT_FIRST_PROMPT)
+
+                # Use the summary information of the question analyzer.
+                is_successful, question_analyzer_summary = OpenAIAssistant.get_thread_summary(openai_secret_key=user.openai_secret_key, thread_id=(experiment.thread_id_list[0] if experiment.thread_id_list else experiment.current_thread_id))
+                starting_message = Template(current_agent.starting_message_template).safe_substitute({
+                    "summary": question_analyzer_summary,
+                })
+                is_openai_key_valid, status_code, response_content = current_agent.ask_gpt(prompt=starting_message)
+                if (status_code == 200):
+                    # _LOGGER.info("Message received after changing agent.")
+                    experiment.append_thread_id_list(current_agent.thread.id)
+                    experiment.append_chat_messages(role="assistant", text_value=response_content)  # Only the response from the assistant is recorded.
                 configuration_updated, updated_attributes_from_response = experiment.parse_agent_response_content(response_content=response_content)
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
@@ -1019,9 +1025,9 @@ class AssistantsApi(Resource):
                 response_content=response_content,
                 require_pdb_file=experiment.summon_upload_pdb,
                 confirm_button=experiment.summon_next_agent,
-                tool_call_result=current_assistant.latest_tool_call_result,
                 configuration_updated=configuration_updated,
                 updated_attributes=(updated_attrs+updated_attributes_from_response),
+                configuration_stages=experiment.configuration_stages,
             )
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
         else:
@@ -1031,6 +1037,7 @@ class AssistantsApi(Resource):
                 message=message,
                 require_pdb_file=experiment.summon_upload_pdb,
                 confirm_button=experiment.summon_next_agent,
+                configuration_stages=experiment.configuration_stages,
             )
             return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
 
@@ -1048,33 +1055,23 @@ class AssistantsApi(Resource):
             return notfound_response(user, experiment_id)
         if (user is None or experiment.user_id != user.id):
             return forbidden_response(user, experiment)
-        
-        is_successful = False
-        if (experiment.current_thread_id):
-            is_successful = OpenAIAssistant.delete_thread(
-                openai_secret_key=user.openai_secret_key, 
-                thread_id=experiment.current_thread_id
-            )
-        else:
-            is_successful = True
-        
+
+        is_successful = experiment.clear_chat_threads(user.openai_secret_key)
         if (is_successful):
-            experiment.update_attributes(
-                mapper={
-                    "current_assistant_type": 0,
-                    "current_thread_id": "",
-                }
-            )
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=is_successful,
-                message="Your conversation is successfully cleared.")
+                message="Your conversation is successfully cleared.",
+                configuration_stages=experiment.configuration_stages,
+            )
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
         else:
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=is_successful,
-                message="Your conversation is unable to be cleared at present.")
+                message="Your conversation is unable to be cleared at present.",
+                configuration_stages=experiment.configuration_stages
+            )
             return Response(response=response_info.serialize(), status=403, mimetype=JSONIFY_MIMETYPE)
 
 #endregion

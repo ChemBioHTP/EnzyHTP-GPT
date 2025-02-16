@@ -15,7 +15,7 @@ from __future__ import annotations  # To enable the annotation that a staticmeth
 from io import BufferedReader
 from flask_login import UserMixin
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Union, Tuple, Callable
+from typing import Any, Dict, List, Union, Tuple, Callable, Literal
 from json import loads, dumps
 from plum import dispatch
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
@@ -30,6 +30,7 @@ from context import mongo
 from config import EXPERIMENT_FILE_DIRECTORY, SCRATCH_FOLDER
 from auth.models import User
 from .analysis import METRICS_MAPPER
+from services.openai_service import OpenAIAssistant
 
 # Here put enzy_htp modules.
 from enzy_htp import interface
@@ -82,7 +83,9 @@ class Experiment():
         self._progress = kwargs.get("progress", 0.0)
         self.mutation_pattern = kwargs.get("mutation_pattern", "WT")
         self.current_assistant_type = kwargs.get("current_assistant_type", 0)  # 0: Question Analyzer; 1: Metrics Planner; 2: Mutant Planner.
+        self.thread_id_list: List[str] = kwargs.get("thread_id_list", list())
         self.current_thread_id = kwargs.get("current_thread_id", str())
+        self.chat_messages: List[Dict[str, str]] = kwargs.get("chat_messages", list())
         self.summon_next_agent = kwargs.get("summon_next_agent", False)
         self.summon_upload_pdb = kwargs.get("summon_upload_box", False)
     
@@ -658,6 +661,36 @@ class Experiment():
 
     #endregion
 
+    #region Experiment Assistant Configuration.
+
+    @property
+    def configuration_stages(self) -> List[Dict[str, Any]]:
+        """A list of dictionary describing the configuration stages of the experiment."""
+        _, mutant_string_list, _ = self.get_mutants_string_list()
+        stages = [
+            {
+                "title": "Wild Type",
+                "content": self.pdb_filename if self.has_pdb_file else str(),
+                "is_completed": self.has_pdb_file,
+            },
+            {
+                "title": "Research Question",
+                "content": self.chat_messages[0]["text_value"] if len(self.chat_messages) else str(),
+                "is_completed": self.current_assistant_type > 0,
+            },
+            {
+                "title": "Target Metrics",
+                "content": ", ".join([metric.get("name") for metric in self.metrics]),
+                "is_completed": self.current_assistant_type > 1,
+            },
+            {
+                "title": "Target Mutants",
+                "content": ", ".join(mutant_string_list),
+                "is_completed": self.current_assistant_type > 2,
+            }
+        ]
+        return stages
+
     def parse_agent_response_content(self, response_content: str) -> Tuple[bool, list]:
         """Update the experiment configuration information according to the response_content from GPT Agents.
         
@@ -670,12 +703,29 @@ class Experiment():
         """
         editable_attrs = ["metrics", "constraints"]
 
-        match_rule = r"```json\n(.*?)\n```"
+        # _LOGGER.info(f"Response content:\n{response_content}\n")
 
-        match_results = re.search(match_rule, response_content, re.DOTALL)
-        if (match_results):
-            json_text = match_results[0].replace("```json\n", "").replace("\n```", "")
+        is_matched = False
+        matched_head = str()
+        match_results: List[str] = list()
+
+        match_rule_heads = ["```\n", "```json\n"]
+        match_rule_tail = "\n```"
+        
+        for head in match_rule_heads:
+            match_rule = fr"{head}(.*?){match_rule_tail}"
+            match_results = re.search(match_rule, response_content, re.DOTALL)
+            if (match_results):
+                is_matched = True
+                matched_head = head
+                break
+            continue
+        
+        if (is_matched):
+            json_text = match_results[0].replace(matched_head, "").replace(match_rule_tail, "")
             configuration_mapper: Dict[str, Any] = loads(json_text)
+            
+            # _LOGGER.info(f"Matched results:\n{configuration_mapper}\n")
 
             is_mutation_updated = False
             mutation_field_name = "mutation_pattern"
@@ -688,7 +738,75 @@ class Experiment():
                 updated_attrs.append(mutation_field_name)
             return True, updated_attrs
         else:
+            # _LOGGER.info("Not matched results.")
             return False, list()
+        
+    def append_thread_id_list(self, new_thread_id: str):
+        """Append new chat `thread_id` to the experiment's `thread_ids` attribute, and update the `current_thread_id`.
+        
+        Args:
+            new_thread_id (str): The new `thread_id` of the experiment.
+        """
+        # _LOGGER.info("Appending thread ID.")
+        # _LOGGER.info(f"Current threads: {self.thread_id_list}")
+        if (new_thread_id and (new_thread_id not in self.thread_id_list)):
+            thread_id_list = self.thread_id_list
+            thread_id_list.append(new_thread_id)
+            self.update_attributes(mapper={
+                "thread_id_list": thread_id_list,
+                "current_thread_id": new_thread_id,
+            })
+        
+        # _LOGGER.info(f"Current threads (after appending): {self.thread_id_list}")
+        return
+
+    def append_chat_messages(self, role: Literal["user", "assistant"], text_value: str):
+        """Append new chat message to the experiment.
+        
+        Args:
+            role (Literal["user", "assistant"]): Determine if the message is from the `user` or the `assistant`.
+            text_value (str): The message content.
+        """
+        # _LOGGER.info("Appending chat messages.")
+        # _LOGGER.info(f"Current messages: {self.chat_messages}")
+        chat_messages = self.chat_messages
+        chat_messages.append({
+            "role": role,
+            "text_value": text_value,
+        })
+        self.update_attributes(mapper={
+            "chat_messages": chat_messages,
+        })
+        # _LOGGER.info(f"Current messages (after appending): {self.chat_messages}")
+        return
+    
+    def clear_chat_threads(self, openai_secret_key: str):
+        """Clear the `chat_messages` and `thread_id_list` of current experiment.
+        
+        Args:
+            openai_secret_key (str): API key for accessing OpenAI services.
+            
+        Returns:
+            is_successful (bool): Indidate if the threads are all deleted.
+        """
+        is_successful = OpenAIAssistant.delete_thread(
+            openai_secret_key=openai_secret_key, 
+            thread_id=self.current_thread_id
+        )
+        is_successful, deleted_thread_ids = OpenAIAssistant.delete_threads(
+            openai_secret_key=openai_secret_key, 
+            thread_id=self.thread_id_list
+        )
+        self.update_attributes(
+            mapper={
+                "current_assistant_type": 0,
+                "current_thread_id": None,
+                "thread_id_list": list()
+            }
+        )
+        return is_successful
+
+    #endregion
 
 
 class Result():
