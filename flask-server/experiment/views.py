@@ -898,11 +898,9 @@ class AssistantsApi(Resource):
                     "chat_messages": assistant_messages
                 })
 
-        _, mutant_string_list, _ = experiment.get_mutants_string_list()
-        configuration_stages = experiment.configuration_stages
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
             is_successful=True,
-            configuration_stages=configuration_stages,
+            configuration_stages=experiment.configuration_stages,
             assistant_messages=assistant_messages,
         )
         return Response(response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
@@ -955,6 +953,7 @@ class AssistantsApi(Resource):
             tool_call_result=current_assistant.latest_tool_call_result,
             configuration_updated=configuration_updated,
             updated_attributes=updated_attributes,
+            configuration_stages=experiment.configuration_stages,
         )
 
         # Update the current_assistant_type and current_thread_id to database.
@@ -1029,6 +1028,7 @@ class AssistantsApi(Resource):
                 tool_call_result=current_agent.latest_tool_call_result,
                 configuration_updated=configuration_updated,
                 updated_attributes=(updated_attrs+updated_attributes_from_response),
+                configuration_stages=experiment.configuration_stages,
             )
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
         else:
@@ -1038,6 +1038,7 @@ class AssistantsApi(Resource):
                 message=message,
                 require_pdb_file=experiment.summon_upload_pdb,
                 confirm_button=experiment.summon_next_agent,
+                configuration_stages=experiment.configuration_stages,
             )
             return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
 
@@ -1057,24 +1058,21 @@ class AssistantsApi(Resource):
             return forbidden_response(user, experiment)
 
         is_successful = experiment.clear_chat_threads(user.openai_secret_key)
-        
         if (is_successful):
-            experiment.update_attributes(
-                mapper={
-                    "current_assistant_type": 0,
-                    "current_thread_id": "",
-                }
-            )
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=is_successful,
-                message="Your conversation is successfully cleared.")
+                message="Your conversation is successfully cleared.",
+                configuration_stages=experiment.configuration_stages,
+            )
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
         else:
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=is_successful,
-                message="Your conversation is unable to be cleared at present.")
+                message="Your conversation is unable to be cleared at present.",
+                configuration_stages=experiment.configuration_stages
+            )
             return Response(response=response_info.serialize(), status=403, mimetype=JSONIFY_MIMETYPE)
 
 #endregion
