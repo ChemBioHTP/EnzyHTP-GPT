@@ -14,6 +14,7 @@ Three OpenAI Assistant Agents:
 
 # Here put the import lib.
 from os import path
+import re
 from string import Template
 from json import load
 from typing import List, Tuple, Union
@@ -176,9 +177,18 @@ class MutantPlannerAssistant(OpenAIAssistant):
         
         Returns:
             response_content, response_content_user_see"""
-        # here convert Output: xxx to the JSON you need in parse_agent_response_content
         # remember we want to be able to hide output from user
-        
+        pattern = "Output: *\"(.+)\""
+
+        response_content = response_content.strip("`")
+        if is_finishing or response_content.startswith("Output"):
+            mutation_pattern = re.match(pattern, response_content).group(1)
+            result = xxx# TODO make the format you need
+            return result
+        else:
+            self.detect_vicious_output(response_content) # this is about detect potential attach, we will finish this when need it.
+            result = response_content # by default result as is after stripping
+            return result
 
 class TimezoneConsultantAssistant(OpenAIAssistant):
     """The agent acting as a Time Zone Consultant.

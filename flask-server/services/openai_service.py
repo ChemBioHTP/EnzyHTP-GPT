@@ -685,6 +685,9 @@ class OpenAIAssistant(OpenAIChat):
 
         return response_content, response_content
 
+    def detect_vicious_output():
+        pass
+
     def __repr__(self):
         return f"OpenAIAssistant('{self.assistant.name}', '{self.assistant.model}')"
 
