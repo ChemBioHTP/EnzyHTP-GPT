@@ -674,6 +674,17 @@ class OpenAIAssistant(OpenAIChat):
         except Exception as e:
             return (False, 500, "An unexpected error occurred: " + str(e))
     
+    def post_process(self, response_content: str, is_finishing: bool) -> Tuple[str, str]:
+        """this function process the response of ask_gpt based on given information
+    
+        Returns:
+            response_content, response_content_user_see"""
+        # remember we want to be able to hide output from user
+        response_content = response_content.strip("```")
+        response_content = response_content.strip("\"\"\"")
+
+        return response_content, response_content
+
     def __repr__(self):
         return f"OpenAIAssistant('{self.assistant.name}', '{self.assistant.model}')"
 

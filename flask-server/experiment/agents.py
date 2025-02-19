@@ -16,7 +16,7 @@ Three OpenAI Assistant Agents:
 from os import path
 from string import Template
 from json import load
-from typing import List, Union
+from typing import List, Tuple, Union
 from typing_extensions import Annotated
 
 from config import BASEDIR
@@ -168,6 +168,17 @@ class MutantPlannerAssistant(OpenAIAssistant):
                 "experiment": experiment
             },
         )
+    
+    def post_process(self, response_content: str, is_finishing: bool) -> Tuple[str, str]:
+        """post process every message of agent based on
+        - response pattern
+        - is_finishing
+        
+        Returns:
+            response_content, response_content_user_see"""
+        # here convert Output: xxx to the JSON you need in parse_agent_response_content
+        # remember we want to be able to hide output from user
+        
 
 class TimezoneConsultantAssistant(OpenAIAssistant):
     """The agent acting as a Time Zone Consultant.

@@ -932,6 +932,7 @@ class AssistantsApi(Resource):
         # print(f"Current Assistant: {current_assistant.assistant.name}")
         
         is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=user_prompt)
+        response_content, response_content_user_see = current_assistant.post_process(response_content, experiment.summon_next_agent)
         
         if (status_code != 200):
             response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False, message=response_content)
