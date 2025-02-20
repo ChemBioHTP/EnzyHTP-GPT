@@ -14,9 +14,10 @@ Three OpenAI Assistant Agents:
 
 # Here put the import lib.
 from os import path
+import re
 from string import Template
 from json import load
-from typing import List, Union
+from typing import List, Tuple, Union
 from typing_extensions import Annotated
 
 from config import BASEDIR
@@ -168,6 +169,26 @@ class MutantPlannerAssistant(OpenAIAssistant):
                 "experiment": experiment
             },
         )
+    
+    def post_process(self, response_content: str, is_finishing: bool) -> Tuple[str, str]:
+        """post process every message of agent based on
+        - response pattern
+        - is_finishing
+        
+        Returns:
+            response_content, response_content_user_see"""
+        # remember we want to be able to hide output from user
+        pattern = "Output: *\"(.+)\""
+
+        response_content = response_content.strip("`")
+        if is_finishing or response_content.startswith("Output"):
+            mutation_pattern = re.match(pattern, response_content).group(1)
+            result = xxx# TODO make the format you need
+            return result
+        else:
+            self.detect_vicious_output(response_content) # this is about detect potential attach, we will finish this when need it.
+            result = response_content # by default result as is after stripping
+            return result
 
 class TimezoneConsultantAssistant(OpenAIAssistant):
     """The agent acting as a Time Zone Consultant.
