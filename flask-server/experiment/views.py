@@ -1018,14 +1018,14 @@ class AssistantsApi(Resource):
                     # _LOGGER.info("Message received after changing agent.")
                     experiment.append_thread_id_list(current_assistant.thread.id)
                     experiment.append_chat_messages(role="assistant", text_value=response_content)  # Only the response from the assistant is recorded.
-                    processed_response_content = current_assistant.post_process(response_content, experiment.summon_next_agent)
+                    response_content = current_assistant.post_process(response_content, experiment.summon_next_agent)
                 configuration_updated, updated_attributes_from_response = experiment.parse_agent_response_content(response_content=response_content)
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=True,
                 completion_message=completion_message,
                 message=f"{message} Received response from OpenAI.",
-                response_content=processed_response_content,
+                response_content=response_content,
                 require_pdb_file=experiment.summon_upload_pdb,
                 confirm_button=experiment.summon_next_agent,
                 configuration_updated=configuration_updated,
