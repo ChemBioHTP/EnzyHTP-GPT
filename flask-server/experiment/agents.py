@@ -84,7 +84,7 @@ class MetricsPlannerAssistant(OpenAIAssistant):
     
     experiment: Experiment
     completion_message: str = "Computational Details Confirmed!"
-    starting_message_template = "Please use the following information to config metrics. \n$summary"
+    starting_message_template = "Please use the following information to config metrics, and print the compiled information in json format. \n$summary"
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
         """
@@ -132,7 +132,7 @@ class MutantPlannerAssistant(OpenAIAssistant):
     
     experiment: Experiment
     completion_message: str = "Experiment has been set up successfully!"
-    starting_message_template = "Please use the following information to config mutants, and print the compiled information in json format. \n$summary"
+    starting_message_template = "Please use the following information to config mutants. \n$summary"
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
         """
