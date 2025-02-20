@@ -687,10 +687,9 @@ class OpenAIAssistant(OpenAIChat):
         # remember we want to be able to hide output from user
         # response_content = response_content.strip("```")
         # response_content = response_content.strip("\"\"\"")
-        processed_response_content = response_content.strip("\"")
         pass
 
-        return processed_response_content
+        return response_content
 
     def detect_vicious_output():
         pass
