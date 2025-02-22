@@ -932,23 +932,24 @@ class AssistantsApi(Resource):
         # print(f"Current Assistant: {current_assistant.assistant.name}")
         
         is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=user_prompt)
-        response_content, response_content_user_see = current_assistant.post_process(response_content, experiment.summon_next_agent)
         
         if (status_code != 200):
             response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False, message=response_content)
             return Response(response_info.serialize(), status=status_code, mimetype=JSONIFY_MIMETYPE)
 
+        processed_response_content = current_assistant.post_process(response_content, experiment.summon_next_agent)
+        
         # Append the chat message records.
         if (experiment.current_thread_id not in experiment.thread_id_list):
             experiment.append_thread_id_list(new_thread_id=current_assistant.thread.id)
         experiment.append_chat_messages(role="user", text_value=user_prompt)
-        experiment.append_chat_messages(role="assistant", text_value=response_content)
+        experiment.append_chat_messages(role="assistant", text_value=processed_response_content)
 
-        configuration_updated, updated_attributes = experiment.parse_agent_response_content(response_content=response_content)
+        configuration_updated, updated_attributes = experiment.parse_agent_response_content(response_content=processed_response_content)
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
             is_successful=is_openai_key_valid, 
             message=f"Received response from OpenAI. Updates to the experiment configuration may be triggered.",
-            response_content=response_content,
+            response_content=processed_response_content,
             require_pdb_file=experiment.summon_upload_pdb,
             confirm_button=experiment.summon_next_agent,
             tool_call_result=current_assistant.latest_tool_call_result,
@@ -982,9 +983,9 @@ class AssistantsApi(Resource):
             return forbidden_response(user, experiment)
         
         completion_message = str()
-        current_agent_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
-        if (issubclass(current_agent_class, OpenAIAssistant)):
-            completion_message = current_agent_class.completion_message
+        current_assistant_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
+        if (issubclass(current_assistant_class, OpenAIAssistant)):
+            completion_message = current_assistant_class.completion_message
 
         updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
             mapper={
@@ -1000,8 +1001,8 @@ class AssistantsApi(Resource):
             updated_attributes_from_response = list()
 
             if (experiment.current_assistant_type < len(AGENT_MAPPER)): # If there's next agent, correspond with OpenAI.
-                current_agent_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
-                current_agent: DefinedAgent = current_agent_class(
+                current_assistant_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
+                current_assistant: DefinedAgent = current_assistant_class(
                     openai_secret_key=user.openai_secret_key, 
                     conversation_mode=True,
                     experiment=experiment,
@@ -1009,13 +1010,14 @@ class AssistantsApi(Resource):
 
                 # Use the summary information of the question analyzer.
                 is_successful, question_analyzer_summary = OpenAIAssistant.get_thread_summary(openai_secret_key=user.openai_secret_key, thread_id=(experiment.thread_id_list[0] if experiment.thread_id_list else experiment.current_thread_id))
-                starting_message = Template(current_agent.starting_message_template).safe_substitute({
+                starting_message = Template(current_assistant.starting_message_template).safe_substitute({
                     "summary": question_analyzer_summary,
                 })
-                is_openai_key_valid, status_code, response_content = current_agent.ask_gpt(prompt=starting_message)
+                is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=starting_message)
                 if (status_code == 200):
                     # _LOGGER.info("Message received after changing agent.")
-                    experiment.append_thread_id_list(current_agent.thread.id)
+                    response_content = current_assistant.post_process(response_content, experiment.summon_next_agent)
+                    experiment.append_thread_id_list(current_assistant.thread.id)
                     experiment.append_chat_messages(role="assistant", text_value=response_content)  # Only the response from the assistant is recorded.
                 configuration_updated, updated_attributes_from_response = experiment.parse_agent_response_content(response_content=response_content)
             response_info = ExperimentBehaviourResponseInfo(
