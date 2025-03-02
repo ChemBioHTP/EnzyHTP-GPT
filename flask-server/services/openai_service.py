@@ -674,6 +674,26 @@ class OpenAIAssistant(OpenAIChat):
         except Exception as e:
             return (False, 500, "An unexpected error occurred: " + str(e))
     
+    def post_process(self, response_content: str, is_finishing: bool) -> str:
+        """Process the `response_content` from the agent.
+
+        Args:
+            response_content (str): The response from GPT.
+            is_finishing (bool): A flag indicating if the job of current agent can be completed.
+        
+        Returns:
+            processed_response_content (str): The response content after process.
+        """
+        # remember we want to be able to hide output from user
+        # response_content = response_content.strip("```")
+        # response_content = response_content.strip("\"\"\"")
+        pass
+
+        return response_content
+
+    def detect_vicious_output():
+        pass
+
     def __repr__(self):
         return f"OpenAIAssistant('{self.assistant.name}', '{self.assistant.model}')"
 

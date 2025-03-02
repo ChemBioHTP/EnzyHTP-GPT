@@ -14,9 +14,10 @@ Three OpenAI Assistant Agents:
 
 # Here put the import lib.
 from os import path
+import re
 from string import Template
-from json import load
-from typing import List, Union
+from json import load, dumps
+from typing import List, Tuple, Union
 from typing_extensions import Annotated
 
 from config import BASEDIR
@@ -83,7 +84,7 @@ class MetricsPlannerAssistant(OpenAIAssistant):
     
     experiment: Experiment
     completion_message: str = "Computational Details Confirmed!"
-    starting_message_template = "Please use the following information to config metrics. \n$summary"
+    starting_message_template = "Please use the following information to config metrics, and print the compiled information in json format. \n$summary"
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
         """
@@ -173,6 +174,37 @@ class MutantPlannerAssistant(OpenAIAssistant):
                 "experiment": experiment
             },
         )
+    
+    def post_process(self, response_content: str, is_finishing: bool) -> str:
+        """Process the `response_content` from the agent.
+
+        Args:
+            response_content (str): The response from GPT.
+            is_finishing (bool): A flag indicating if the job of current agent can be completed.
+        
+        Returns:
+            processed_response_content (str): The response content after process.
+        """
+        # remember we want to be able to hide output from user
+        initial_processed_response_content = super().post_process(response_content, is_finishing)
+        
+        pattern = "Output: *\"(.+)\""
+        initial_processed_response_content = initial_processed_response_content.strip("`")
+        if is_finishing or initial_processed_response_content.startswith("Output"):
+            try:
+                mutation_pattern = re.match(pattern, initial_processed_response_content).group(1)
+                result_dict = {
+                    "mutation_pattern": mutation_pattern
+                }
+                processed_response_content = f"```json\n{dumps(result_dict)}\n```"
+                return processed_response_content
+            except Exception as exc:
+                _LOGGER.error(f"Failed to process `response_content`: {exc}")
+                return response_content
+        else:
+            self.detect_vicious_output(initial_processed_response_content)  # This is about detecting potential attach, we will finish this when need it.
+            processed_response_content = initial_processed_response_content   # by default result as is after stripping
+            return processed_response_content
 
 class TimezoneConsultantAssistant(OpenAIAssistant):
     """The agent acting as a Time Zone Consultant.
