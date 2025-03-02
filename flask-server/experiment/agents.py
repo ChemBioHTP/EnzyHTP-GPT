@@ -55,7 +55,7 @@ class QuestionAnalyzerAssistant(OpenAIAssistant):
         instructions = str()
         tools = list()
 
-        with open(path.join(PROMPTS_DIRECTORY, "question_analyzer-v4.txt")) as fobj:
+        with open(path.join(PROMPTS_DIRECTORY, "question_analyzer-v5.txt")) as fobj:
             instructions = fobj.read()
         with open(path.join(PROMPTS_DIRECTORY, "question_analyzer_functions.json")) as json_fobj:
             tool_functions: List[dict] = load(json_fobj)
