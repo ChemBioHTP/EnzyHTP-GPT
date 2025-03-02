@@ -102,8 +102,13 @@ class MetricsPlannerAssistant(OpenAIAssistant):
         with open(path.join(PROMPTS_DIRECTORY, "metrics_planner-v3.txt")) as txt_fobj:
             instructions = txt_fobj.read()
             with open(path.join(PROMPTS_DIRECTORY, "supported_metrics_reference.txt")) as ref_fobj:
+                metrics_reference_text = ref_fobj.read().replace(
+                    "substrate_selection_pattern", "ligand"
+                ).replace(
+                    "pocket_selection_pattern", "pocket_pattern"
+                )
                 instructions = Template(instructions).safe_substitute({
-                    "REPLACEMARK": ref_fobj.read(),
+                    "REPLACEMARK": metrics_reference_text,
                 }) 
         with open(path.join(PROMPTS_DIRECTORY, "metrics_planner_functions.json")) as json_fobj:
             tool_functions: List[dict] = load(json_fobj)
