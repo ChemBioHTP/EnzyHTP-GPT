@@ -50,17 +50,21 @@ sp = PDBParser()
 
 db = mongo.db
 
-
-EXPERIMENT_TYPE_MAPPER = {
-    0: "Single",
-    1: "Multiple",
-}
-
 class Experiment():
     """Experiment Model: Experiment information."""
 
     __tablename__ = "experiments"
     mutant_pdb_filename = "ref_stru.pdb"
+
+    INDIVIDUAL_TYPE = 0
+    GROUP_TYPE = 1
+    SUBORDINATE_TYPE = -1
+
+    EXPERIMENT_TYPE_MAPPER = {
+        INDIVIDUAL_TYPE: "Individual",
+        GROUP_TYPE: "Group",
+        SUBORDINATE_TYPE: "Subordinate",
+    }
 
     def __init__(self, user_id: str, name: str, type: int = 0, metrics: List[Dict[str, Any]] = list(), description: str = None, **kwargs):
         """Initializes an instance of Experiment with the provided parameters.
@@ -94,7 +98,9 @@ class Experiment():
         self.chat_messages: List[Dict[str, str]] = kwargs.get("chat_messages", list())
         self.summon_next_agent = kwargs.get("summon_next_agent", False)
         self.summon_upload_pdb = kwargs.get("summon_upload_box", False)
-        self.sub_experiments = kwargs.get("sub_experiments", list() if self.type else None)
+
+        self.group_experiment_id = kwargs.get("group_experiment_id", None)
+        self.sub_experiment_ids = kwargs.get("sub_experiment_ids", list() if self.type == __class__.GROUP_TYPE else None)
     
     @staticmethod
     def get(id: str) -> Experiment | None:
@@ -115,14 +121,15 @@ class Experiment():
 
     # @overload
     @staticmethod
-    def get_user_experiments(user: User) -> List[Experiment]:
+    def get_user_experiments(user: User, include_subordinate: bool = False) -> List[Experiment]:
         """Get a list of Experiment instance of the certain user by `user_id`.
         
         Args:
             user: A `User` instance.
         """
         if hasattr(user, 'id'):
-            experiment_query_result = db.experiments.find({"user_id": user.id})
+            query = {"user_id": user.id} if include_subordinate else {"user_id": user.id, "type": {"$gte": __class__.INDIVIDUAL_TYPE}}
+            experiment_query_result = db.experiments.find(query)
             experiments = [Experiment.from_dict(experiment_dict) for experiment_dict in experiment_query_result]
             # experiment_query_result = Experiment.query.filter_by(user_id=user.id).order_by(Experiment.created_time).all()
             # experiments = [experiment for experiment in experiment_query_result]
@@ -147,21 +154,26 @@ class Experiment():
         updated_attrs = list()
         blocked_attrs = list()
         nonexistent_attrs = list()
+        update_data = {}
+        
+        if editable_attrs is None:
+            editable_attrs = []
 
         for field_name, field_value in mapper.items():
-            if (hasattr(self, field_name)):
-                if (not editable_attrs) or (field_name in editable_attrs):
-                    if (field_value != None):
+            if hasattr(self, field_name):
+                if field_name in editable_attrs:
+                    if field_value is not None:
                         setattr(self, field_name, field_value)
-                        db.experiments.update_one({"id": self.id}, {"$set": {field_name: field_value, "updated_time": datetime.now()}})
-                        updated_attrs.append(field_name)
-                    continue
+                        update_data[field_name] = field_value
                 else:
                     blocked_attrs.append(field_name)
-                    continue
             else:
                 nonexistent_attrs.append(field_name)
-                continue
+        
+        if update_data:
+            update_data["updated_time"] = datetime.now()
+            db.experiments.update_one({"id": self.id}, {"$set": update_data})
+            updated_attrs = list(update_data.keys())
 
         message = str()
         if (updated_attrs):
@@ -220,11 +232,28 @@ class Experiment():
 
     @property
     def type_text(self):
-        return EXPERIMENT_TYPE_MAPPER.get(self.type, "Uncategorized")
+        return __class__.EXPERIMENT_TYPE_MAPPER.get(self.type, "Uncategorized")
+
+    @property
+    def group_experiment(self) -> Experiment | None:
+        """Get the group experiment instance that current subordinate experiment belongs to."""
+        if (self.type == __class__.SUBORDINATE_TYPE and self.group_experiment_id):
+            experiment = __class__.get(self.group_experiment_id)
+            return experiment
+        else:
+            return None
+        
+    @property
+    def subordinate_experiments(self) -> List[Experiment]:
+        """Get the subordinate experiments of the current group experiment instance."""
+        if (self.type == __class__.GROUP_TYPE):
+            return [__class__.get(id) for id in self.sub_experiment_ids]
+        else:
+            return list()
 
     @property
     def pdb_filepath(self):
-        if (self.pdb_filename):
+        if (self.type != __class__.GROUP_TYPE and self.pdb_filename):
             return path.join(self.directory, self.pdb_filename)
         else:
             return None
@@ -666,7 +695,10 @@ class Experiment():
         if (is_successful):
             if (freeze):
                 self.mutation_pattern = ",".join(["{}{}{}".format("{", mutant.replace(" ", ","), "}") for mutant in mutant_string_list])
-            db.experiments.update_one({"id": self.id}, {"$set": {"mutation_pattern": self.mutation_pattern, "updated_time": datetime.now()}})
+            # db.experiments.update_one({"id": self.id}, {"$set": {"mutation_pattern": self.mutation_pattern, "updated_time": datetime.now()}})
+            updated_attrs, _, _, _ = self.update_attributes({"mutation_pattern": self.mutation_pattern})
+            for sub_experiment in self.subordinate_experiments:
+                sub_experiment.update_mutation_pattern(mutation_pattern, freeze)
         message = message.replace("parsing", "update")
         return is_successful, mutant_string_list, message
 
