@@ -50,6 +50,12 @@ sp = PDBParser()
 
 db = mongo.db
 
+
+EXPERIMENT_TYPE_MAPPER = {
+    0: "Single",
+    1: "Multiple",
+}
+
 class Experiment():
     """Experiment Model: Experiment information."""
 
@@ -88,6 +94,7 @@ class Experiment():
         self.chat_messages: List[Dict[str, str]] = kwargs.get("chat_messages", list())
         self.summon_next_agent = kwargs.get("summon_next_agent", False)
         self.summon_upload_pdb = kwargs.get("summon_upload_box", False)
+        self.sub_experiments = kwargs.get("sub_experiments", list() if self.type else None)
     
     @staticmethod
     def get(id: str) -> Experiment | None:
@@ -210,6 +217,10 @@ class Experiment():
     
     def __repr__(self):
         return f"Experiment(Id: '{self.id}', Name: '{self.name}', PDB file: {self.pdb_filename if self.has_pdb_file else 'None'})"
+
+    @property
+    def type_text(self):
+        return EXPERIMENT_TYPE_MAPPER.get(self.type, "Uncategorized")
 
     @property
     def pdb_filepath(self):
