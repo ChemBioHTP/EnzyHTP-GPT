@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=mutexa_mmpbsa_${username}
+#SBATCH --job-name=mutexa_analysis_${username}
 #SBATCH --account=yang_lab_csb
 #SBATCH --partition=production
 #SBATCH --nodes=1
@@ -9,6 +9,7 @@
 #SBATCH --no-requeue
 #SBATCH --export=NONE
 
+source ~/.bashrc
 source ~/bin/enzyhtp_env.sh
 source activate enzyhtp
 

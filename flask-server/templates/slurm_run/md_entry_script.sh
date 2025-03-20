@@ -9,6 +9,7 @@
 #SBATCH --no-requeue
 #SBATCH --export=NONE
 
+source ~/.bashrc
 source ~/bin/enzyhtp_env.sh
 source activate enzyhtp
 
