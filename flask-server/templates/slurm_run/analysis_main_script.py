@@ -20,7 +20,7 @@ from json import loads
 # Here put enzy_htp modules.
 from enzy_htp import interface, _LOGGER
 from enzy_htp.analysis import binding_energy, rmsd, spi_metric
-from enzy_htp.core.clusters.accre import Accre
+from enzy_htp.core.clusters.accre_r9 import AccreR9
 from enzy_htp.structure import PDBParser, StructureEnsemble, Ligand
 from enzy_htp.structure.structure_selection import select_stru
 from enzy_htp.workflow.config import StatusCode
@@ -33,13 +33,13 @@ DATA_DIR = f"{path.dirname(path.abspath(__file__))}/data/"
 WORK_DIR = f"{path.dirname(path.abspath(__file__))}/work_dir/"
 RESULT_POST_URL = f"https://{app_host}/api/experiment/{experiment_id}/result"
 
-cluster = Accre()
+cluster = AccreR9()
 cpu_job_config = {
     "cluster" : cluster,
     "res_keywords" : {
         "account" : "yang_lab_csb",
-        "partition" : "production",
-        "walltime" : "5-00:00:00",
+        "partition" : "batch",
+        "walltime" : "10-00:00:00",
     }
 }
 

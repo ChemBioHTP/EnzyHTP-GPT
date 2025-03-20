@@ -19,7 +19,7 @@ from json import loads
 
 # Here put enzy_htp modules.
 from enzy_htp import interface, _LOGGER
-from enzy_htp.core.clusters.accre import Accre
+from enzy_htp.core.clusters.accre_r9 import AccreR9
 from enzy_htp.structure import PDBParser, StructureEnsemble, StructureConstraint
 from enzy_htp.structure.structure_constraint import create_distance_constraint, create_angle_constraint, create_dihedral_constraint
 from enzy_htp.structure.structure_selection import select_stru
@@ -47,20 +47,20 @@ ph = float(environ.get("ph", 7.4))
 pocket_range = int(environ.get("pocket_range", 5))
 metrics = loads(environ.get("mertics"))
 
-cluster = Accre()
+cluster = AccreR9()
 gpu_job_config = {
     "cluster" : cluster,
     "res_keywords" : {
         "account" : "csb_gpu_acc",
-        "partition" : "a100x4"
+        "partition" : "batch_gpu"
     }
 }
 cpu_job_config = {
     "cluster" : cluster,
     "res_keywords" : {
         "account" : "yang_lab_csb",
-        "partition" : "production",
-        'walltime' : '1-00:00:00',
+        "partition" : "batch",
+        'walltime' : '10-00:00:00',
     }
 }
 
