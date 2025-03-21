@@ -136,7 +136,7 @@ METRICS_MAPPER: Dict[str, Callable] = {
     "spi": spi,
 }
 
-def main(stru_esm: StructureEnsemble, metrics: List[Dict[str, Any]], mutant: str, replica_id: str, ligand_pattern: str = str(), region_pattern: str = str()):
+def main(stru_esm: StructureEnsemble, metrics: List[Dict[str, Any]], mutant: str, replica_id: str):
     """
     The main function running the analysis script.
 
@@ -162,14 +162,6 @@ def main(stru_esm: StructureEnsemble, metrics: List[Dict[str, Any]], mutant: str
                     analysis_params.update({    # Compose analysis arguments.
                         "stru_esm": stru_esm,
                     })
-                    if (ligand_pattern):
-                        analysis_params.update({
-                            "ligand_pattern": ligand_pattern,
-                        })
-                    if (region_pattern):
-                        analysis_params.update({
-                            "region_pattern": region_pattern,
-                        })
                     analysis_result_dict[analysis_tag] = analysis_callable(**analysis_params)    # Perform analysis and record result.
                     analysis_record_dict[analysis_tag] = True
         except Exception as e:

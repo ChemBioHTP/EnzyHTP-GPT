@@ -188,8 +188,8 @@ try:
         mutant_dir = path.join(WORK_DIR, f"mutant_{i}")
         mutant_stru = mutate_stru(wt_stru, mutant, engine="pymol")
 
-        ligand_pattern = str()
-        region_pattern = str()
+        # ligand_pattern = str()
+        # region_pattern = str()
 
         ligand_chrg_spin_mapper = dict()
         pocket = list()
@@ -198,8 +198,8 @@ try:
                 # Set charge-Spin to default value: (0, 1)
                 ligand_chrg_spin_mapper[ligand.name] = (0, 1)
             # Set pocket region pattern.
-            ligand_pattern = "+".join([(f"(resi {ligand.idx} and chain {ligand.chain.name})") for ligand in mutant_stru.ligands])
-            region_pattern = f"br. ({ligand_pattern}) around {pocket_range} and not ({ligand_pattern})"
+            # ligand_pattern = "+".join([(f"(resi {ligand.idx} and chain {ligand.chain.name})") for ligand in mutant_stru.ligands])
+            # region_pattern = f"br. ({ligand_pattern}) around {pocket_range} and not ({ligand_pattern})"
 
         mutant_stru.assign_ncaa_chargespin(ligand_chrg_spin_mapper)
         remove_hydrogens(mutant_stru, polypeptide_only=True)
@@ -235,7 +235,6 @@ try:
             analysis_main(
                 stru_esm=stru_esm, metrics=metrics,
                 mutant=mutant_name, replica_id=replica_id,
-                ligand_pattern=ligand_pattern, region_pattern=region_pattern,
             )
 
         # Send a request to the backend of Web Application to update status and progress.
