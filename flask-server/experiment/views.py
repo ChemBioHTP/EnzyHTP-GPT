@@ -403,8 +403,8 @@ class ExperimentApi(Resource):
                 message=make_mutant_message)
             return Response(response=response_info.serialize(), status=501, mimetype=JSONIFY_MIMETYPE)
         else:
-            md_entry_script_path = os.path.join(experiment.directory, "md_entry_script.sh")
-            with open(md_entry_script_path, "r") as fobj:
+            analysis_entry_script_path = os.path.join(experiment.directory, "analysis_entry_script.sh")
+            with open(analysis_entry_script_path, "r") as fobj:
                 fobj.write(Template(SLURM_ANALYSIS_JOB_ENTRY_CONTENT).safe_substitute({
                     "app_host": APP_HOST,
                     "experiment_id": experiment.id,
@@ -418,7 +418,7 @@ class ExperimentApi(Resource):
                 fobj.close()
             
             file_list = [
-                md_entry_script_path,
+                analysis_entry_script_path,
                 SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
                 mutant_pdb_filepath,
                 trajectory_file,
@@ -1171,34 +1171,25 @@ class SlurmCorrespondenceApi(Resource):
 
             slurm_request = SlurmJobRequest()
 
-            entry_script_str_io = StringIO()
-            entry_script_str_io.write(Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute({
-                "username": user.username,
-                "app_host": APP_HOST,
-                "experiment_id": experiment.id,
-                "pdb_filename": experiment.pdb_filename,
-                "metrics": dumps(experiment.metrics),
-                "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
-                "mutation_pattern": experiment.mutation_pattern,
-                "constraints_str": dumps(experiment.constraints)
-            }))
-            entry_script_str_io.name = SLURM_MD_JOB_ENTRY_SCRIPT
-            entry_script_str_io.mode = "r"
-            entry_script_str_io.seek(0)
-
-            pdb_file_io = open(experiment.pdb_filepath)
-            pdb_file_io.seek(0)
-
-            md_main_script_io = open(SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH)
-            md_main_script_io.seek(0)
-            analysis_main_script_io = open(SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH)
-            analysis_main_script_io.seek(0)
+            entry_script_path = os.path.join(experiment.directory, "md_entry_script.sh")
+            with open(entry_script_path, mode="r") as fobj:
+                fobj.write(Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute({
+                    "username": user.username,
+                    "app_host": APP_HOST,
+                    "experiment_id": experiment.id,
+                    "pdb_filename": experiment.pdb_filename,
+                    "metrics": dumps(experiment.metrics),
+                    "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
+                    "mutation_pattern": experiment.mutation_pattern,
+                    "constraints_str": dumps(experiment.constraints)
+                }))
+                fobj.close()
 
             files = [
-                entry_script_str_io,
-                md_main_script_io,
-                analysis_main_script_io,
-                pdb_file_io,
+                entry_script_path,
+                SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH,
+                SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
+                experiment.pdb_filepath,
             ]
             status, message, job_uuid = SlurmJobData.post(slurm_request=slurm_request, file_list=files)
             

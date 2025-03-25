@@ -45,7 +45,7 @@ constraints_str = environ.get("constraints_str")
 md_length = float(environ.get("md_length", 30.0))
 ph = float(environ.get("ph", 7.4))
 pocket_range = int(environ.get("pocket_range", 5))
-metrics = loads(environ.get("mertics"))
+metrics = loads(environ.get("mertics", "[]"))
 
 cluster = AccreR9()
 gpu_job_config = {
