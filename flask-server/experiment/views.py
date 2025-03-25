@@ -372,7 +372,7 @@ class ExperimentApi(Resource):
 
     @jwt_required()
     def post(self, experiment_id: str):
-        """Post the result of the experiment back to the database.
+        """Post the trajectory of MD simulation back into the website and send for analysis.
         
         Args:
             experiment_id (str): The identifier of an experiment instance.
@@ -409,7 +409,7 @@ class ExperimentApi(Resource):
                 "experiment_id": experiment.id,
                 "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
                 "pdb_filename": experiment.pdb_filename,
-                # TODO (Zhong): "ref_pdb_filename"
+                "ref_pdb_filename": basename(mutant_pdb_filepath),
                 "metrics": dumps(experiment.metrics),
                 "topology_filename": topology_file.filename,
                 "trajectory_filename": trajectory_file.filename,
