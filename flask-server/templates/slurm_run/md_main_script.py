@@ -30,7 +30,7 @@ from enzy_htp.geometry import equi_md_sampling
 from enzy_htp.workflow.config import StatusCode
 
 # Here put local modules.
-from .analysis_main_script import main as analysis_main
+from analysis_main_script import main as analysis_main
 
 DATA_DIR = f"{path.dirname(path.abspath(__file__))}/data/"
 WORK_DIR = f"{path.dirname(path.abspath(__file__))}/work_dir/"

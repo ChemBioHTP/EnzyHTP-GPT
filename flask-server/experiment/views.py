@@ -425,7 +425,10 @@ class ExperimentApi(Resource):
                 topology_file,
             ]
             slurm_request = SlurmJobRequest()
-            status, message, job_uuid = SlurmJobData.post(slurm_request=slurm_request, file_list=file_list)
+            status, message, job_uuid = SlurmJobData.post(
+                slurm_request=slurm_request, file_list=file_list, 
+                entry_script_filename=analysis_entry_script_path
+            )
             
             if (job_uuid):
                 result = Result(
@@ -1171,8 +1174,8 @@ class SlurmCorrespondenceApi(Resource):
 
             slurm_request = SlurmJobRequest()
 
-            entry_script_path = os.path.join(experiment.directory, "md_entry_script.sh")
-            with open(entry_script_path, mode="w") as fobj:
+            md_entry_script_path = os.path.join(experiment.directory, "md_entry_script.sh")
+            with open(md_entry_script_path, mode="w") as fobj:
                 fobj.write(Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute({
                     "username": user.username,
                     "app_host": APP_HOST,
@@ -1186,12 +1189,15 @@ class SlurmCorrespondenceApi(Resource):
                 fobj.close()
 
             files = [
-                entry_script_path,
+                md_entry_script_path,
                 SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH,
                 SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
                 experiment.pdb_filepath,
             ]
-            status, message, job_uuid = SlurmJobData.post(slurm_request=slurm_request, file_list=files)
+            status, message, job_uuid = SlurmJobData.post(
+                slurm_request=slurm_request, file_list=files,
+                entry_script_filename=md_entry_script_path
+            )
             
             if (job_uuid):
                 experiment.slurm_job_uuid = job_uuid
