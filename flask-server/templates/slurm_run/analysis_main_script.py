@@ -136,7 +136,7 @@ METRICS_MAPPER: Dict[str, Callable] = {
     "spi": spi,
 }
 
-def main(stru_esm: StructureEnsemble, metrics: List[Dict[str, Any]], mutant: str, replica_id: str):
+def main(stru_esm: StructureEnsemble, metrics: List[Dict[str, Any]], mutant: str, replica_id: str, **kwargs):
     """
     The main function running the analysis script.
 
@@ -182,10 +182,7 @@ if __name__ == "__main__":
     trajectory_filename = environ.get("trajectory_filename")
     ref_pdb_filename = environ.get("ref_pdb_filename")
 
-    ligand_pattern = environ.get("ligand_pattern")
-    region_pattern = environ.get("region_pattern")
-
     stru_esm: StructureEnsemble = interface.amber.load_traj(prmtop_path=topology_filename, traj_path=trajectory_filename, ref_pdb=ref_pdb_filename)
-    main(stru_esm=stru_esm, metrics=metrics, mutant=mutant, replica_id=replica_id, ligand_pattern=ligand_pattern, region_pattern=region_pattern)
+    main(stru_esm=stru_esm, metrics=metrics, mutant=mutant, replica_id=replica_id)
 
     pass

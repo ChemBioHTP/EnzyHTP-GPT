@@ -11,9 +11,9 @@
 
 source ~/.bashrc
 source ~/bin/enzyhtp_env.sh
-source activate enzyhtp
+conda activate enzyhtp
 
-export file_dir=$(dirname "$0")
+export file_dir=$(cd "$(dirname "$0")";pwd)
 
 export app_host="${app_host}"
 export experiment_id="${experiment_id}"
@@ -26,7 +26,4 @@ export topology_filename="${topology_filename}"
 export trajectory_filename="${trajectory_filename}"
 export ref_pdb_filename="${ref_pdb_filename}"
 
-export ligand_pattern="${ligand_pattern}"
-export region_pattern="${region_pattern}"
-
-python -u analysis_main_script.py
+python -u "${file_dir}/analysis_main_script.py" 2>&1

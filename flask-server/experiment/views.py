@@ -409,6 +409,7 @@ class ExperimentApi(Resource):
                 "experiment_id": experiment.id,
                 "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
                 "pdb_filename": experiment.pdb_filename,
+                # TODO (Zhong): "ref_pdb_filename"
                 "metrics": dumps(experiment.metrics),
                 "topology_filename": topology_file.filename,
                 "trajectory_filename": trajectory_file.filename,
