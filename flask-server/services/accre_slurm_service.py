@@ -11,22 +11,22 @@ Vanderbilt University ACCRE Slurm correspondence.
 
 # Here put the import lib.
 from __future__ import annotations  # To enable the annotation that a staticmethod of a class returns an instance of the class.
-from io import BufferedReader
+from io import TextIOWrapper
 from json import dumps
-from os.path import basename
+from os.path import basename, isfile
 from datetime import datetime, timedelta
-from typing import List, Union, Tuple
+from typing import Any, List, Union, Tuple
+from werkzeug.datastructures import FileStorage
 from json import loads, dumps
-from plum import dispatch
 from requests import (
     get as req_get, 
     post as req_post, 
     delete as req_delete,
 )
+import jwt
 
 from config import ACCRE_SLURM_API_URL, ACCRE_SLURM_HOST, SLURM_ACCOUNT, SLURM_PARTITION, SLURM_MD_JOB_ENTRY_SCRIPT
 from context import mongo
-import jwt
 
 db = mongo.db
 
@@ -315,12 +315,47 @@ class SlurmJobData:
             return response.status_code, None
     
     @staticmethod
-    def post(slurm_request: SlurmJobRequest, files: List[BufferedReader]) -> Tuple[int, str, str]:
+    def post_files_pack(file_list: List[Union[str, TextIOWrapper, FileStorage]]) -> List[Tuple]:
+        """Pack files or filepaths as a list of tuples required for POST request.
+        
+        Args:
+            file_list (List[str | TextIOWrapper | FileStorage]): A list of files or filepaths or their mixture.
+
+        Returns:
+            file_data (List[Tuple]): A list of tuple containing: "files" str, filename, buffered file content and mimetype.
+        """
+        file_data: List[tuple] = list()
+        for file in file_list:
+            if (isinstance(file, str) and isfile(file)):
+                file_io = open(file=file, mode="r")
+                file_io.seek(0)
+                file_data.append(
+                    ("files", (basename(file), file_io, "application/octet-stream"))
+                )
+                continue
+            elif (isinstance(file, TextIOWrapper)):
+                file.seek(0)
+                file_data.append(
+                    ("files", (basename(file.name), file, "application/octet-stream"))
+                )
+                continue
+            elif (isinstance(file, FileStorage)):
+                file.stream.seek(0)
+                file_data.append(
+                    ("files", (basename(file.filename), file.stream, "application/octet-stream"))
+                )
+                continue
+            else:
+                continue
+        return file_data
+
+    @staticmethod
+    def post(slurm_request: SlurmJobRequest, file_list: List[Union[str, TextIOWrapper, FileStorage]]) -> Tuple[int, str, str]:
         """Submit a slurm job to the Vanderbilt ACCRE Slurm.
         
         Args:
             slurm_request (SlurmJobRequest): The configuration of the slurm request.
-            files (list): A list of files to be sent to the working directory on Vanderbilt ACCRE.
+            file_list (list): A list of files to be sent to the working directory on Vanderbilt ACCRE.
 
         Returns:
             status (int): The status from the response.
@@ -336,9 +371,9 @@ class SlurmJobData:
                 "slurm_request": slurm_request.serialize(),
                 "entry_script": f"bash input/{SLURM_MD_JOB_ENTRY_SCRIPT}",
             }
-            files = [("files", (basename(fobj.name), fobj, "application/octet-stream")) for fobj in files]
+            file_data = __class__.post_files_pack(file_list=file_list)
 
-            response = req_post(f"{ACCRE_SLURM_API_URL}", headers=headers, data=payload, files=files)
+            response = req_post(f"{ACCRE_SLURM_API_URL}", headers=headers, data=payload, files=file_data)
             if (response.ok):
                 response_dict: dict = loads(response.text)
                 message = response_dict.get("message", str())

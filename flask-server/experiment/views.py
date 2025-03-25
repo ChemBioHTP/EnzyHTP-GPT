@@ -403,48 +403,29 @@ class ExperimentApi(Resource):
                 message=make_mutant_message)
             return Response(response=response_info.serialize(), status=501, mimetype=JSONIFY_MIMETYPE)
         else:
-            entry_script_str_io = StringIO()
-            entry_script_str_io.write(Template(SLURM_ANALYSIS_JOB_ENTRY_CONTENT).safe_substitute({
-                "app_host": APP_HOST,
-                "experiment_id": experiment.id,
-                "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
-                "pdb_filename": experiment.pdb_filename,
-                "ref_pdb_filename": basename(mutant_pdb_filepath),
-                "metrics": dumps(experiment.metrics),
-                "topology_filename": topology_file.filename,
-                "trajectory_filename": trajectory_file.filename,
-            }))
-            entry_script_str_io.name = SLURM_MD_JOB_ENTRY_SCRIPT
-            entry_script_str_io.mode = "r"
-            entry_script_str_io.seek(0)
-
-            analysis_main_script_io = open(SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH)
-            analysis_main_script_io.seek(0)
-
-            mutant_pdb_io = open(mutant_pdb_filepath)
-            mutant_pdb_io.seek(0)
-
-            trajectory_file_io = BytesIO()
-            trajectory_file.save(trajectory_file_io)
-            trajectory_file_io.name = trajectory_file.filename
-            trajectory_file_io.mode = "r"
-            trajectory_file_io.seek(0)
-
-            topology_file_io = BytesIO()
-            topology_file.save(topology_file_io)
-            topology_file_io.name = topology_file.filename
-            topology_file_io.mode = "r"
-            topology_file_io.seek(0)
+            md_entry_script_path = os.path.join(experiment.directory, "md_entry_script.sh")
+            with open(md_entry_script_path, "r") as fobj:
+                fobj.write(Template(SLURM_ANALYSIS_JOB_ENTRY_CONTENT).safe_substitute({
+                    "app_host": APP_HOST,
+                    "experiment_id": experiment.id,
+                    "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
+                    "pdb_filename": experiment.pdb_filename,
+                    "ref_pdb_filename": basename(mutant_pdb_filepath),
+                    "metrics": dumps(experiment.metrics),
+                    "topology_filename": topology_file.filename,
+                    "trajectory_filename": trajectory_file.filename,
+                }))
+                fobj.close()
             
-            files = [
-                entry_script_str_io,
-                analysis_main_script_io,
-                mutant_pdb_io,
-                trajectory_file_io,
-                topology_file_io,
+            file_list = [
+                md_entry_script_path,
+                SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
+                mutant_pdb_filepath,
+                trajectory_file,
+                topology_file,
             ]
             slurm_request = SlurmJobRequest()
-            status, message, job_uuid = SlurmJobData.post(slurm_request=slurm_request, files=files)
+            status, message, job_uuid = SlurmJobData.post(slurm_request=slurm_request, file_list=file_list)
             
             if (job_uuid):
                 result = Result(
@@ -1219,7 +1200,7 @@ class SlurmCorrespondenceApi(Resource):
                 analysis_main_script_io,
                 pdb_file_io,
             ]
-            status, message, job_uuid = SlurmJobData.post(slurm_request=slurm_request, files=files)
+            status, message, job_uuid = SlurmJobData.post(slurm_request=slurm_request, file_list=files)
             
             if (job_uuid):
                 experiment.slurm_job_uuid = job_uuid
