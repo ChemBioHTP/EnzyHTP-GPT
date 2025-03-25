@@ -404,7 +404,7 @@ class ExperimentApi(Resource):
             return Response(response=response_info.serialize(), status=501, mimetype=JSONIFY_MIMETYPE)
         else:
             analysis_entry_script_path = os.path.join(experiment.directory, "analysis_entry_script.sh")
-            with open(analysis_entry_script_path, "r") as fobj:
+            with open(analysis_entry_script_path, "w") as fobj:
                 fobj.write(Template(SLURM_ANALYSIS_JOB_ENTRY_CONTENT).safe_substitute({
                     "app_host": APP_HOST,
                     "experiment_id": experiment.id,
@@ -1172,7 +1172,7 @@ class SlurmCorrespondenceApi(Resource):
             slurm_request = SlurmJobRequest()
 
             entry_script_path = os.path.join(experiment.directory, "md_entry_script.sh")
-            with open(entry_script_path, mode="r") as fobj:
+            with open(entry_script_path, mode="w") as fobj:
                 fobj.write(Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute({
                     "username": user.username,
                     "app_host": APP_HOST,
