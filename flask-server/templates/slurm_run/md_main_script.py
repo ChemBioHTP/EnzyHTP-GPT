@@ -170,7 +170,7 @@ if __name__ == "__main__":
     has_ligand = False
     mut_constraints = create_constraints(constraints_str=constraints_str)
 
-    wt_stru = PDBParser().get_structure(pdb_filename)
+    wt_stru = PDBParser().get_structure(path.join(file_dir, pdb_filename))
     remove_solvent(wt_stru)
     remove_hydrogens(stru=wt_stru, polypeptide_only=True)
     protonate_stru(stru=wt_stru, ph=ph, protonate_ligand=True)

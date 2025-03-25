@@ -350,7 +350,7 @@ class SlurmJobData:
         return file_data
 
     @staticmethod
-    def post(slurm_request: SlurmJobRequest, file_list: List[Union[str, TextIOWrapper, FileStorage]]) -> Tuple[int, str, str]:
+    def post(slurm_request: SlurmJobRequest, file_list: List[Union[str, TextIOWrapper, FileStorage]], entry_script_filename: str = SLURM_MD_JOB_ENTRY_SCRIPT) -> Tuple[int, str, str]:
         """Submit a slurm job to the Vanderbilt ACCRE Slurm.
         
         Args:
@@ -369,7 +369,7 @@ class SlurmJobData:
             }
             payload = {
                 "slurm_request": slurm_request.serialize(),
-                "entry_script": f"bash input/{SLURM_MD_JOB_ENTRY_SCRIPT}",
+                "entry_script": f"bash input/{basename(entry_script_filename)}",
             }
             file_data = __class__.post_files_pack(file_list=file_list)
 
