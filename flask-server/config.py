@@ -64,8 +64,8 @@ MAIL_PASSWORD_RESET_HTML_TEMPLATE = open(os.path.join(BASEDIR, "templates", "pas
 # Vanderbilt ACCRE Slurm
 ACCRE_SLURM_HOST = "https://ssam.accre.vanderbilt.edu"
 ACCRE_SLURM_API_URL = f"{ACCRE_SLURM_HOST}/api/slurm"
-SLURM_ACCOUNT = "yang_lab"
-SLURM_PARTITION = "production"
+SLURM_ACCOUNT = "yang_lab_csb"
+SLURM_PARTITION = "batch"
 
 SLURM_MD_JOB_ENTRY_SCRIPT = "md_entry_script.sh"
 SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT = open(os.path.join(BASEDIR, "templates", "slurm_run", SLURM_MD_JOB_ENTRY_SCRIPT)).read()
