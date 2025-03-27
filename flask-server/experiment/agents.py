@@ -143,7 +143,7 @@ class MetricsPlannerAssistant(OpenAIAssistant):
         processed_response_content = initial_processed_response_content.replace(
             "substrate_selection_pattern", "ligand"
         ).replace(
-            "pocket_selection_pattern", "pocket_pattern"
+            "pocket_selection_pattern", "region_pattern"
         )
         return processed_response_content
 
