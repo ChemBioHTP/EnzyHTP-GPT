@@ -103,11 +103,7 @@ class MetricsPlannerAssistant(OpenAIAssistant):
         with open(path.join(PROMPTS_DIRECTORY, "metrics_planner-v3.txt")) as txt_fobj:
             instructions = txt_fobj.read()
             with open(path.join(PROMPTS_DIRECTORY, "supported_metrics_reference.txt")) as ref_fobj:
-                metrics_reference_text = ref_fobj.read().replace(
-                    "substrate_selection_pattern", "ligand"
-                ).replace(
-                    "pocket_selection_pattern", "pocket_pattern"
-                )
+                metrics_reference_text = ref_fobj.read()
                 instructions = Template(instructions).safe_substitute({
                     "REPLACEMARK": metrics_reference_text,
                 }) 
@@ -131,6 +127,25 @@ class MetricsPlannerAssistant(OpenAIAssistant):
                 "experiment": experiment
             },
         )
+        
+    def post_process(self, response_content: str, is_finishing: bool) -> str:
+        """Process the `response_content` from the agent.
+
+        Args:
+            response_content (str): The response from GPT.
+            is_finishing (bool): A flag indicating if the job of current agent can be completed.
+        
+        Returns:
+            processed_response_content (str): The response content after process.
+        """
+        initial_processed_response_content = super().post_process(response_content, is_finishing)
+
+        processed_response_content = initial_processed_response_content.replace(
+            "substrate_selection_pattern", "ligand"
+        ).replace(
+            "pocket_selection_pattern", "region_pattern"
+        )
+        return processed_response_content
 
 class MutantPlannerAssistant(OpenAIAssistant):
     """The agent acting as a Mutant Planner."""

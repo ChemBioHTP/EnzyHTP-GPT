@@ -13,7 +13,7 @@ The main script of the MD Slurm Job. This script is currently for test use.
 from os import environ, path
 from typing import List, Union, Dict, Callable
 from time import sleep
-from requests import post, put
+from requests import post, put, patch
 from statistics import mean
 from json import loads
 
@@ -75,7 +75,7 @@ def synchronize_job_status(status: int = None, progress: float = None) -> None:
         progress (float): The progress of current job (Float value from 0 to 1).
     """    
     try:
-        response = put(PROGRESS_UPDATE_URL,
+        response = patch(PROGRESS_UPDATE_URL,
             headers={
                 "Authorization": f"Bearer {access_token}"
             },
@@ -85,7 +85,7 @@ def synchronize_job_status(status: int = None, progress: float = None) -> None:
             },
             timeout=30)
         if (response.ok):
-            return
+            _LOGGER.info(f"Updated Job status and progress.")
         else:
             _LOGGER.warning(f"Synchronization failed with status code: {response.status_code}")
     except Exception as e:
