@@ -530,10 +530,28 @@ class ExperimentApi(Resource):
         if (user is None or experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        editable_attrs = ["status", "progress"] # Only fields in the list are editable.        
-        updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
-            mapper=request.form, editable_attrs=editable_attrs
-        )
+        editable_attrs = ["status", "progress"] # Only fields in the list are editable.
+        info_dict = dict()
+        for key, value in request.form.items():
+            if key in editable_attrs:
+                try:
+                    int_value = int(value)
+                    info_dict[key] = int_value
+                    continue
+                except (ValueError):
+                    pass
+                try:
+                    float_value = float(value)
+                    info_dict[key] = float_value
+                    continue
+                except (ValueError):
+                    pass
+                info_dict[key] = value
+            else:
+                pass
+            continue
+        
+        updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(mapper=info_dict, editable_attrs=editable_attrs)
 
         if (not (updated_attrs or blocked_attrs or nonexistent_attrs)):
             response_info = ExperimentBehaviourResponseInfo(

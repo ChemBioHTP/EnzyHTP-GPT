@@ -79,8 +79,8 @@ class Experiment():
         self.pdb_filename = kwargs.get("pdb_filename", None)
         # self.results: List[dict] = kwargs.get("results", list())
         self.slurm_job_uuid = kwargs.get("slurm_job_uuid", None)
-        self._status = kwargs.get("status", StatusCode.CREATED)
-        self._progress = kwargs.get("progress", 0.0)
+        self._status: int = kwargs.get("status", StatusCode.CREATED)
+        self._progress: float = kwargs.get("progress", 0.0)
         self.mutation_pattern = kwargs.get("mutation_pattern", "WT")
         self.current_assistant_type = kwargs.get("current_assistant_type", 0)  # 0: Question Analyzer; 1: Metrics Planner; 2: Mutant Planner.
         self.thread_id_list: List[str] = kwargs.get("thread_id_list", list())
@@ -219,7 +219,7 @@ class Experiment():
             return None
 
     @property
-    def status(self):
+    def status(self) -> int:
         return self._status
     
     @status.setter
@@ -239,7 +239,7 @@ class Experiment():
             return False
     
     @property
-    def progress(self):
+    def progress(self) -> float:
         return self._progress
     
     @progress.setter
