@@ -530,28 +530,21 @@ class ExperimentApi(Resource):
         if (user is None or experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        editable_attrs = ["status", "progress"] # Only fields in the list are editable.
-        info_dict = dict()
-        for key, value in request.form.items():
-            if key in editable_attrs:
-                try:
-                    int_value = int(value)
-                    info_dict[key] = int_value
-                    continue
-                except (ValueError):
-                    pass
-                try:
-                    float_value = float(value)
-                    info_dict[key] = float_value
-                    continue
-                except (ValueError):
-                    pass
-                info_dict[key] = value
-            else:
-                pass
-            continue
+        try:
+            experiment.status = int(request.form.get("status", experiment.status))
+        except (ValueError):
+            pass
+        try:
+            experiment.progress = float(request.form.get("progress", experiment.progress))
+        except (ValueError):
+            pass
         
-        updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(mapper=info_dict, editable_attrs=editable_attrs)
+        updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
+            mapper={
+                "status": experiment.status,
+                "progress": experiment.progress,
+            }
+        )
 
         if (not (updated_attrs or blocked_attrs or nonexistent_attrs)):
             response_info = ExperimentBehaviourResponseInfo(
@@ -1164,73 +1157,92 @@ class SlurmCorrespondenceApi(Resource):
             return forbidden_response(user, experiment)
         
         if (experiment.slurm_job_uuid):
-            response_info = ExperimentBehaviourResponseInfo(
-                experiment=experiment,
-                user=user,
-                message="Slurm job is already submitted. You cannot submit another job unless you delete the current one.",
-                is_authenticated=True,
-                is_successful=False,
-            )
-            return Response(response=response_info.serialize(), status=409, mimetype=JSONIFY_MIMETYPE)
-        elif not experiment.has_pdb_file:
-            return no_pdb_response()
-        else:
-            experiment_mutant_count = experiment.mutant_count
-            if (experiment_mutant_count > MAX_MUTANT_COUNT):
+            if (experiment.status not in StatusCode.error_including_pause_statuses):
                 response_info = ExperimentBehaviourResponseInfo(
                     experiment=experiment,
                     user=user,
-                    message=f"The experiment contains {experiment_mutant_count} mutants, which exceeds the number that our server can support (no more than {MAX_MUTANT_COUNT}). Please deploy it to your or your institution's own cluster for computation.",
+                    message="Slurm job is already submitted. You cannot submit another job unless you delete the current one.",
                     is_authenticated=True,
                     is_successful=False,
                 )
-                return Response(response=response_info.serialize(), status=429, mimetype=JSONIFY_MIMETYPE)
-            else:
-                # is_successful, mutant_count, message = experiment.make_mutants_pdb_files()
-                pass
-
-            slurm_request = SlurmJobRequest()
-
-            md_entry_script_path = os.path.join(experiment.directory, "md_entry_script.sh")
-            with open(md_entry_script_path, mode="w") as fobj:
-                fobj.write(Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute({
-                    "username": user.username,
-                    "app_host": APP_HOST,
-                    "experiment_id": experiment.id,
-                    "pdb_filename": experiment.pdb_filename,
-                    "metrics": dumps(experiment.metrics),
-                    "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
-                    "mutation_pattern": experiment.mutation_pattern,
-                    "constraints_str": dumps(experiment.constraints)
-                }))
-                fobj.close()
-
-            files = [
-                md_entry_script_path,
-                SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH,
-                SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
-                experiment.pdb_filepath,
-            ]
-            status, message, job_uuid = SlurmJobData.post(
-                slurm_request=slurm_request, file_list=files,
-                entry_script_filename=md_entry_script_path
-            )
-            
-            if (job_uuid):
-                experiment.slurm_job_uuid = job_uuid
-                experiment.status = StatusCode.PENDING
-            db.experiments.update_one({"id": experiment.id}, {"$set": {"status": experiment.status, "slurm_job_uuid": experiment.slurm_job_uuid}})
-            # db.session.commit()
-
+                return Response(response=response_info.serialize(), status=409, mimetype=JSONIFY_MIMETYPE)
+            else:   # When the existing slurm job is exited with error, delete the current one.
+                _, _ = SlurmJobData.delete(experiment.slurm_job_uuid)
+                experiment.slurm_job_uuid = None
+                experiment.status = StatusCode.CANCELLED
+                experiment.progress = 0.0
+                experiment.update_attributes(
+                    mapper={
+                        "status": experiment.status, 
+                        "slurm_job_uuid": experiment.slurm_job_uuid,
+                        "progress": experiment.progress,
+                    }
+                )
+        elif not experiment.has_pdb_file:
+            return no_pdb_response()
+        else:
+            pass
+        
+        experiment_mutant_count = experiment.mutant_count
+        if (experiment_mutant_count > MAX_MUTANT_COUNT):
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,
                 user=user,
-                message=message,
+                message=f"The experiment contains {experiment_mutant_count} mutants, which exceeds the number that our server can support (no more than {MAX_MUTANT_COUNT}). Please deploy it to your or your institution's own cluster for computation.",
                 is_authenticated=True,
-                is_successful=True if job_uuid else False,
-                slurm_job_uuid=job_uuid
+                is_successful=False,
             )
-            return Response(response=response_info.serialize(), status=status, mimetype=JSONIFY_MIMETYPE)
+            return Response(response=response_info.serialize(), status=429, mimetype=JSONIFY_MIMETYPE)
+        else:
+            # is_successful, mutant_count, message = experiment.make_mutants_pdb_files()
+            pass
+
+        slurm_request = SlurmJobRequest()
+
+        md_entry_script_path = os.path.join(experiment.directory, "md_entry_script.sh")
+        with open(md_entry_script_path, mode="w") as fobj:
+            fobj.write(Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute({
+                "username": user.username,
+                "app_host": APP_HOST,
+                "experiment_id": experiment.id,
+                "pdb_filename": experiment.pdb_filename,
+                "metrics": dumps(experiment.metrics),
+                "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
+                "mutation_pattern": experiment.mutation_pattern,
+                "constraints_str": dumps(experiment.constraints)
+            }))
+            fobj.close()
+
+        files = [
+            md_entry_script_path,
+            SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH,
+            SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
+            experiment.pdb_filepath,
+        ]
+        status, message, job_uuid = SlurmJobData.post(
+            slurm_request=slurm_request, file_list=files,
+            entry_script_filename=md_entry_script_path
+        )
+        
+        if (job_uuid):
+            experiment.slurm_job_uuid = job_uuid
+            experiment.status = StatusCode.PENDING
+        experiment.update_attributes(
+            mapper={
+                "status": experiment.status, 
+                "slurm_job_uuid": experiment.slurm_job_uuid
+            }
+        )
+
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment,
+            user=user,
+            message=message,
+            is_authenticated=True,
+            is_successful=True if job_uuid else False,
+            slurm_job_uuid=job_uuid
+        )
+        return Response(response=response_info.serialize(), status=status, mimetype=JSONIFY_MIMETYPE)
 
     @login_required
     def delete(self, experiment_id: str):
@@ -1259,7 +1271,12 @@ class SlurmCorrespondenceApi(Resource):
                 )
                 experiment.slurm_job_uuid = None
                 experiment.status = StatusCode.CANCELLED
-                db.experiments.update_one({"id": experiment.id}, {"$set": {"status": experiment.status, "slurm_job_uuid": experiment.slurm_job_uuid}})
+                experiment.update_attributes(
+                    mapper={
+                        "status": experiment.status, 
+                        "slurm_job_uuid": experiment.slurm_job_uuid
+                    }
+                )
                 # db.session.commit()
             elif (status == 404):
                 response_info = ExperimentBehaviourResponseInfo(
