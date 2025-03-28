@@ -173,7 +173,6 @@ if __name__ == "__main__":
     wt_stru = PDBParser().get_structure(path.join(file_dir, pdb_filename))
     remove_solvent(wt_stru)
     remove_hydrogens(stru=wt_stru, polypeptide_only=True)
-    protonate_stru(stru=wt_stru, ph=ph, protonate_ligand=True)
 
     if (wt_stru.ligands):
         has_ligand = True
