@@ -530,17 +530,24 @@ class ExperimentApi(Resource):
         if (user is None or experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        editable_attrs = ['status', 'progress'] # Only fields in the list are editable.
+        editable_attrs = ["status", "progress"] # Only fields in the list are editable.
+        info_dict = dict()
+        for key, value in request.form.items():
+            if key in editable_attrs:
+                info_dict[key] = value
+            else:
+                pass
+            continue
         
         updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
-            experiment, mapper=request.form, editable_attrs=editable_attrs
+            experiment, mapper=info_dict
         )
 
         if (not (updated_attrs or blocked_attrs or nonexistent_attrs)):
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=True,
-                message='Nothing to be updated.',
+                message="Nothing to be updated.",
                 updated_attrs=updated_attrs,
                 blocked_attrs=blocked_attrs,
                 nonexistent_attrs=nonexistent_attrs,

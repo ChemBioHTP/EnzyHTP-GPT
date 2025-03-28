@@ -81,7 +81,7 @@ def synchronize_job_status(status: int = None, progress: float = None) -> None:
             },
             data={
                 "status": status,
-                "progress": progress
+                "progress": progress,
             },
             timeout=30)
         if (response.ok):
