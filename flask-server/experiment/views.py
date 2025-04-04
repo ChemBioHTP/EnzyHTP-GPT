@@ -279,7 +279,7 @@ class IndexApi(Resource):
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user)
 
         file = request.files.get("file", None)
-        force_update = False if request.form.get("force", "").lower() in ["false", "0", "no", ""] else True # Whether to skip verification and force update of PDB files.
+        force_update = True # Whether to skip verification and force update of PDB files.
 
         if (file is not None):
             has_pdb_file, is_supported, pdb_file_description = experiment.update_pdb(file, force_update=force_update)

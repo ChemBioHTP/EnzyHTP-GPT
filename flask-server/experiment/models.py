@@ -338,7 +338,7 @@ class Experiment():
         
         return is_valid, is_supported, message
 
-    def update_pdb(self, pdb_file: FileStorage, force_update: bool = False) -> Tuple[bool, bool, str]:
+    def update_pdb(self, pdb_file: FileStorage, force_update: bool = True) -> Tuple[bool, bool, str]:
         """Update PDB file. Invalid PDB file will not be updated.
 
         Args:
