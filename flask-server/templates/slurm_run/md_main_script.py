@@ -42,7 +42,7 @@ access_token = environ.get("access_token")
 pdb_filename = environ.get("pdb_filename")
 mutation_pattern = environ.get("mutation_pattern")
 constraints_str = environ.get("constraints_str")
-md_length = float(environ.get("md_length", 30.0))
+md_length = float(environ.get("md_length", 0.05))
 ph = float(environ.get("ph", 7.4))
 pocket_range = int(environ.get("pocket_range", 5))
 metrics = loads(environ.get("mertics", "[]"))
@@ -52,7 +52,9 @@ gpu_job_config = {
     "cluster" : cluster,
     "res_keywords" : {
         "account" : "csb_gpu_acc",
-        "partition" : "batch_gpu"
+        "partition" : "batch_gpu",
+        "nodes": "1",
+        "node_cores" : "nvidia_rtx_a6000:2",
     }
 }
 cpu_job_config = {
