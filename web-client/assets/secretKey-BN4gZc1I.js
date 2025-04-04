@@ -110,7 +110,7 @@ const K = {
                                     {
                                       value: n.openai_secret_key,
                                       "onUpdate:value":
-                                        e[0] || (e[0] = (L) => (n.key = L)),
+                                        e[0] || (e[0] = (L) => (n.openai_secret_key = L)),
                                       bordered: !0,
                                       size: "large",
                                     },
