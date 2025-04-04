@@ -102,13 +102,13 @@ const K = {
                           default: o(() => [
                             t(
                               d,
-                              { label: "API key", name: "key" },
+                              { label: "API key", name: "openai_secret_key" },
                               {
                                 default: o(() => [
                                   t(
                                     b,
                                     {
-                                      value: n.key,
+                                      value: n.openai_secret_key,
                                       "onUpdate:value":
                                         e[0] || (e[0] = (L) => (n.key = L)),
                                       bordered: !0,
