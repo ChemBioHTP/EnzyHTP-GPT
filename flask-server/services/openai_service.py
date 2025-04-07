@@ -268,7 +268,14 @@ class EventHandler(AssistantEventHandler):
             # print("Require action!")
             run_id = event.data.id  # Retrieve the run ID from the event data
             self.handle_requires_action(event.data, run_id)
-        pass
+        else:
+            return super().on_event(event)
+
+    def on_exception(self, exception: Exception):
+        raise exception
+    
+    def on_timeout(self):
+        raise APITimeoutError()
     
     @override
     def on_text_created(self, text: Text) -> None:
@@ -663,8 +670,10 @@ class OpenAIAssistant(OpenAIChat):
         except RateLimitError as e:
             return (True, 429, "Rate Limit Error: You exceeded your current OpenAI API quota or Rate Limit, please check your plan and billing details.")
         except BadRequestError as e:
-            return (True, 400, "Bad Request: Your OpenAI Secret Key is valid, but you sent a bad request.")
+            return (True, 400, "Bad Request: Your OpenAI API Key is valid, but you sent a bad request.")
             # raise e
+        except APITimeoutError as e:
+            return (False, 500, "OpenAI Assistant API Timeout.")
         except AuthenticationError as e:
             return (False, 401, "Authentication Failed: Invalid OpenAI Secret Key.")
         except InternalServerError as e:
