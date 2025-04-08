@@ -271,9 +271,11 @@ class EventHandler(AssistantEventHandler):
         else:
             return super().on_event(event)
 
+    @override
     def on_exception(self, exception: Exception):
         raise exception
     
+    @override
     def on_timeout(self):
         raise APITimeoutError()
     
