@@ -13,7 +13,7 @@ source ~/.bashrc
 source ~/bin/enzyhtp_env.sh
 conda activate enzyhtp
 
-export file_dir=$(cd "$(dirname "$0")";pwd)
+export file_dir=$(cd "$(dirname "$0")/input";pwd)
 
 export app_host="${app_host}"
 export experiment_id="${experiment_id}"

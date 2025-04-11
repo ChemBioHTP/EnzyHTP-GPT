@@ -314,8 +314,8 @@ class SlurmJobData:
         else:
             return response.status_code, None
     
-    @staticmethod
-    def post_files_pack(file_list: List[Union[str, TextIOWrapper, FileStorage]]) -> List[Tuple]:
+    @classmethod
+    def post_files_pack(cls, file_list: List[Union[str, TextIOWrapper, FileStorage]]) -> List[Tuple]:
         """Pack files or filepaths as a list of tuples required for POST request.
         
         Args:
@@ -349,13 +349,18 @@ class SlurmJobData:
                 continue
         return file_data
 
-    @staticmethod
-    def post(slurm_request: SlurmJobRequest, file_list: List[Union[str, TextIOWrapper, FileStorage]], entry_script_filename: str = SLURM_MD_JOB_ENTRY_SCRIPT) -> Tuple[int, str, str]:
+    @classmethod
+    def post(cls, slurm_request: SlurmJobRequest, 
+        file_list: List[Union[str, TextIOWrapper, FileStorage]], 
+        entry_script_content: str, 
+        # entry_script_filename: str = SLURM_MD_JOB_ENTRY_SCRIPT
+    ) -> Tuple[int, str, str]:
         """Submit a slurm job to the Vanderbilt ACCRE Slurm.
         
         Args:
             slurm_request (SlurmJobRequest): The configuration of the slurm request.
             file_list (list): A list of files to be sent to the working directory on Vanderbilt ACCRE.
+            entry_script_content (str): The content of the `entry_script` to be placed as a .
 
         Returns:
             status (int): The status from the response.
@@ -369,9 +374,10 @@ class SlurmJobData:
             }
             payload = {
                 "slurm_request": slurm_request.serialize(),
-                "entry_script": f"bash input/{basename(entry_script_filename)}",
+                # "entry_script": f"bash input/{basename(entry_script_filename)}",
+                "entry_script": entry_script_content,
             }
-            file_data = __class__.post_files_pack(file_list=file_list)
+            file_data = cls.post_files_pack(file_list=file_list)
 
             response = req_post(f"{ACCRE_SLURM_API_URL}", headers=headers, data=payload, files=file_data)
             if (response.ok):
