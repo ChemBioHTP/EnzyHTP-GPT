@@ -144,10 +144,9 @@ class Experiment():
         for field_name, field_value in mapper.items():
             if (hasattr(self, field_name)):
                 if (not editable_attrs) or (field_name in editable_attrs):
-                    if (field_value != None):
-                        setattr(self, field_name, field_value)
-                        db.experiments.update_one({"id": self.id}, {"$set": {field_name: field_value, "updated_time": datetime.now()}})
-                        updated_attrs.append(field_name)
+                    setattr(self, field_name, field_value)
+                    db.experiments.update_one({"id": self.id}, {"$set": {field_name: field_value, "updated_time": datetime.now()}})
+                    updated_attrs.append(field_name)
                     continue
                 else:
                     blocked_attrs.append(field_name)

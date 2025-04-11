@@ -1313,7 +1313,12 @@ class SlurmCorrespondenceApi(Resource):
                 status = 200
                 experiment.slurm_job_uuid = None
                 experiment.status = StatusCode.CANCELLED
-                db.experiments.update_one({"id": experiment.id}, {"$set": {"status": experiment.status, "slurm_job_uuid": experiment.slurm_job_uuid}})
+                experiment.update_attributes(
+                    mapper={
+                        "status": experiment.status, 
+                        "slurm_job_uuid": experiment.slurm_job_uuid
+                    }
+                )
                 # db.session.commit()
             else:
                 response_info = ExperimentBehaviourResponseInfo(
