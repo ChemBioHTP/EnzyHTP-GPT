@@ -25,7 +25,7 @@ from requests import (
 )
 import jwt
 
-from config import ACCRE_SLURM_API_URL, ACCRE_SLURM_HOST, SLURM_ACCOUNT, SLURM_PARTITION, SLURM_MD_JOB_ENTRY_SCRIPT
+from config import SLURM_API_URL, SLURM_HOST, SLURM_ACCOUNT, SLURM_PARTITION
 from context import mongo
 
 db = mongo.db
@@ -230,7 +230,7 @@ class SlurmJobRequest:
             status_code (int): Status code from the Slurm API.
             message (str): Message describing the result.
         """
-        refresh_token_url = f"{ACCRE_SLURM_HOST}/auth/token/refresh"
+        refresh_token_url = f"{SLURM_HOST}/auth/token/refresh"
         _, old_token, old_refresh_token = __class__.get_slurm_token()
         if (not old_token or not old_refresh_token):
             return False, 403, "Empty token or refresh_token."
@@ -305,7 +305,7 @@ class SlurmJobData:
         headers = {
             "Authorization": f"Bearer {token}"
         }
-        response = req_get(f"{ACCRE_SLURM_API_URL}/{id}", headers=headers)
+        response = req_get(f"{SLURM_API_URL}/{id}", headers=headers)
         if (response.ok):
             response_dict: dict = loads(response.text)
             slurm_job_data_dict = response_dict.get("data", dict())
@@ -379,7 +379,7 @@ class SlurmJobData:
             }
             file_data = cls.post_files_pack(file_list=file_list)
 
-            response = req_post(f"{ACCRE_SLURM_API_URL}", headers=headers, data=payload, files=file_data)
+            response = req_post(f"{SLURM_API_URL}", headers=headers, data=payload, files=file_data)
             if (response.ok):
                 response_dict: dict = loads(response.text)
                 message = response_dict.get("message", str())
@@ -420,8 +420,8 @@ class SlurmJobData:
         if (status != 200):
             return status, "Unable to delete the Slurm Job. The target job doesn't exist."
 
-        cancel_response = req_post(f"{ACCRE_SLURM_API_URL}/{id}/cancel", headers=headers)
-        delete_response = req_delete(f"{ACCRE_SLURM_API_URL}/{id}", headers=headers)
+        cancel_response = req_post(f"{SLURM_API_URL}/{id}/cancel", headers=headers)
+        delete_response = req_delete(f"{SLURM_API_URL}/{id}", headers=headers)
         if (delete_response.status_code == 200):
             return 200, "The Slurm Job has successfully be deleted."
         else:

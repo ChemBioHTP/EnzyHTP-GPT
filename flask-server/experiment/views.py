@@ -36,7 +36,20 @@ from config import (
     TOKEN_EXPIRES_DELTA,
     WORKSHEET_MUTATION_COLUMN_NAME,
     APP_HOST,
-    JSONIFY_MIMETYPE
+    JSONIFY_MIMETYPE,
+
+    # Slurm API.
+    SLURM_USER,
+
+    SLURM_MD_JOB_ENTRY_SCRIPT,
+    SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT,
+    SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH,
+    SLURM_ANALYSIS_JOB_ENTRY_CONTENT,
+    SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
+    
+    SLURM_DEPLOY_SCRIPT_FILENAME, 
+    SLURM_DEPLOY_SCRIPT, 
+    MAX_MUTANT_COUNT
 )
 
 # Here put enzy_htp modules.
@@ -338,18 +351,6 @@ class IndexApi(Resource):
                 is_successful=True, message=f"The experiment instance '{experiment.id}' is successfully deleted.")
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
-from config import (
-    SLURM_MD_JOB_ENTRY_SCRIPT,
-    SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT,
-    SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH,
-    SLURM_ANALYSIS_JOB_ENTRY_CONTENT,
-    SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
-    
-    SLURM_DEPLOY_SCRIPT_FILENAME, 
-    SLURM_DEPLOY_SCRIPT, 
-    MAX_MUTANT_COUNT
-)
-
 class ExperimentApi(Resource):
     """Route: `/<experiment_id>`"""
 
@@ -418,6 +419,7 @@ class ExperimentApi(Resource):
             #     fobj.close()
 
             entry_script_content = Template(SLURM_ANALYSIS_JOB_ENTRY_CONTENT).safe_substitute({
+                "slurm_user": SLURM_USER,
                 "app_host": APP_HOST,
                 "experiment_id": experiment.id,
                 "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
@@ -644,7 +646,7 @@ class ResultApi(Resource):
 class PdbFileApi(Resource):
     """Route: `/<experiment_id>/pdb_file`"""
 
-    @login_required
+    # @login_required
     def get(self, experiment_id: str):
         """Download the PDB file attached to the experiment.
         If the desired experiment doesn't exist or the selected experiment instance does not have PDB file attached, 404 NOT FOUND will be the response.
@@ -652,13 +654,13 @@ class PdbFileApi(Resource):
         Args:
             experiment_id (str): The identifier of an experiment instance.
         """
-        user: User = current_user
+        # user: User = current_user
         experiment = Experiment.get(experiment_id)
 
-        if (experiment is None):
-            return notfound_response(user, experiment_id)
-        if (experiment.user_id != user.id):
-            return forbidden_response(user, experiment)    
+        # if (experiment is None):
+        #     return notfound_response(user, experiment_id)
+        # if (experiment.user_id != user.id):
+        #     return forbidden_response(user, experiment)    
         if not experiment.has_pdb_file:
             return no_pdb_response()
         else:
@@ -1226,6 +1228,7 @@ class SlurmCorrespondenceApi(Resource):
         #     fobj.close()
 
         entry_script_content = Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute({
+            "slurm_user": SLURM_USER,
             "username": user.username,
             "app_host": APP_HOST,
             "experiment_id": experiment.id,
