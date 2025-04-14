@@ -418,7 +418,7 @@ class SlurmJobData:
         }
         status, job_data = __class__.get(id)
         if (status != 200):
-            return status, "Unable to delete the Slurm Job. The target job doesn't exist."
+            return 404, "Unable to delete the Slurm Job. The target job doesn't exist."
 
         cancel_response = req_post(f"{SLURM_API_URL}/{id}/cancel", headers=headers)
         delete_response = req_delete(f"{SLURM_API_URL}/{id}", headers=headers)

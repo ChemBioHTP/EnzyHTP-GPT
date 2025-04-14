@@ -1304,7 +1304,6 @@ class SlurmCorrespondenceApi(Resource):
                         "slurm_job_uuid": experiment.slurm_job_uuid
                     }
                 )
-                # db.session.commit()
             elif (status == 404):
                 response_info = ExperimentBehaviourResponseInfo(
                     experiment=experiment,
