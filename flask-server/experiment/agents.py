@@ -142,7 +142,11 @@ class MetricsPlannerAssistant(OpenAIAssistant):
 
         processed_response_content = initial_processed_response_content.replace(
             "substrate_selection_pattern", "ligand"
-        ).replace(
+        )
+        processed_response_content = processed_response_content.replace(
+            "ligand_selection_pattern", "ligand"
+        )
+        processed_response_content = processed_response_content.replace(
             "pocket_selection_pattern", "region_pattern"
         )
         return processed_response_content
@@ -203,11 +207,11 @@ class MutantPlannerAssistant(OpenAIAssistant):
         # remember we want to be able to hide output from user
         initial_processed_response_content = super().post_process(response_content, is_finishing)
         
-        pattern = "Output: *\"(.+)\""
+        pattern = "Output: *(.+)"
         initial_processed_response_content = initial_processed_response_content.strip("`")
         if is_finishing or initial_processed_response_content.startswith("Output"):
             try:
-                mutation_pattern = re.match(pattern, initial_processed_response_content).group(1)
+                mutation_pattern = re.match(pattern, initial_processed_response_content).group(1).strip("\"")
                 result_dict = {
                     "mutation_pattern": mutation_pattern
                 }
