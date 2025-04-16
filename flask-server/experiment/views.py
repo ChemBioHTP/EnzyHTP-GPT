@@ -49,8 +49,12 @@ from config import (
     
     SLURM_DEPLOY_SCRIPT_FILENAME, 
     SLURM_DEPLOY_SCRIPT, 
-    MAX_MUTANT_COUNT
+    MAX_MUTANT_COUNT,
+
+    PLHD_RESULT_IMG_PATHS,
+    PLHD_RESULT_INTERPRETATION,
 )
+from services import image_path_to_src
 
 # Here put enzy_htp modules.
 from enzy_htp.workflow.config import StatusCode
@@ -612,13 +616,16 @@ class ResultApi(Resource):
             return forbidden_response(user, experiment)
         
         experiment_results = Result.get_experiment_results(experiment_id=experiment_id)
+        result_images = [image_path_to_src(path) for path in PLHD_RESULT_IMG_PATHS]
 
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
             user=user,
             message="The experiment results are fetched.",
             is_successful=(True if experiment_results else False),
-            experiment_results=experiment_results
+            experiment_results=experiment_results,
+            result_images=result_images,
+            result_interpretation=PLHD_RESULT_INTERPRETATION,
         )
         return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 

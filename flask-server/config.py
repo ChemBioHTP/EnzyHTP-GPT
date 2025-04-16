@@ -93,3 +93,12 @@ TOKEN_EXPIRES_DELTA = timedelta(days=5)
 
 # OpenAI Service
 DEFAULT_OPENAI_API_KEY = "5111321231135666"
+
+# Placeholder Result Images
+PLHD_RESULT_IMG_DIR = os.path.join(BASEDIR, "templates", "result_images")
+PLHD_RESULT_IMG_PATHS = [
+    os.path.join(PLHD_RESULT_IMG_DIR, "workflow.prep.png"),
+    os.path.join(PLHD_RESULT_IMG_DIR, "workflow.sim.png"),
+    os.path.join(PLHD_RESULT_IMG_DIR, "workflow.analysis.png"),
+]
+PLHD_RESULT_INTERPRETATION = """Based on the simulation data for SARS-CoV-2 main protease (Mpro) in complex with nirmatrelvir, the EA166I mutant exhibits markedly enhanced binding affinity compared to the wild-type (WT), as indicated by a significantly more negative average MM/PBGBSA value (−12.3 kcal/mol vs. −1.96 kcal/mol). Although the EA166I mutant shows slightly higher active site RMSD and lower SPI values, suggesting minor structural perturbations and reduced active site packing, these changes appear to facilitate stronger ligand interactions. This finding implies that the EA166I substitution may confer increased inhibitor binding strength, potentially impacting resistance mechanisms or drug efficacy."""

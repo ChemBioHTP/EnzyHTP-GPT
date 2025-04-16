@@ -13,3 +13,5 @@ This directory provides the application with services corresponding to external 
 from .openai_service import OpenAIChat, OpenAIAssistant
 
 from .accre_slurm_service import SlurmJobData, SlurmJobRequest
+
+from .image_service import image_path_to_src
