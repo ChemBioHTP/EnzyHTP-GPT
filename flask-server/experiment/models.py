@@ -371,6 +371,19 @@ class Experiment():
 
         return is_updated, is_supported, message
     
+    def downloadable_files(self) -> Dict[str, str]:
+        """Return the downloadable files of the experiment result.
+        
+        Returns:
+            Dict[str, str]: A dictionary with file name and file format.
+        """
+        file_dict = {
+            "Fixed wild type": ".pdb",
+            "Parameter files": ".in",
+            "Constraint files": ".rs",
+        }
+        return file_dict
+
     #endregion
 
     #region Experiment - Analysis
