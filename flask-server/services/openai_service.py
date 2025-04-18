@@ -702,7 +702,7 @@ class OpenAIAssistant(OpenAIChat):
 
         return response_content
 
-    def detect_vicious_output():
+    def detect_vicious_output(initial_processed_response_content: str):
         pass
 
     def __repr__(self):
