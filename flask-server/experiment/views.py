@@ -559,8 +559,8 @@ class ExperimentApi(Resource):
         
         updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
             mapper={
-                "status": experiment.status,
-                "progress": experiment.progress,
+                "_status": experiment.status,
+                "_progress": experiment.progress,
             }
         )
 
@@ -1164,7 +1164,7 @@ class SlurmCorrespondenceApi(Resource):
         if (slurm_job_data):
             if (slurm_job_data.job_state == "FAILED"):
                 experiment.status = StatusCode.EXIT_WITH_ERROR
-                db.experiments.update_one({"id": experiment.id}, {"$set": {"status": experiment.status}})
+                db.experiments.update_one({"id": experiment.id}, {"$set": {"_status": experiment.status}})
                 # db.session.commit()
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,
@@ -1223,9 +1223,9 @@ class SlurmCorrespondenceApi(Resource):
                 experiment.progress = 0.0
                 experiment.update_attributes(
                     mapper={
-                        "status": experiment.status, 
+                        "_status": experiment.status, 
                         "slurm_job_uuid": experiment.slurm_job_uuid,
-                        "progress": experiment.progress,
+                        "_progress": experiment.progress,
                     }
                 )
         elif not experiment.has_pdb_file:
@@ -1292,7 +1292,7 @@ class SlurmCorrespondenceApi(Resource):
             experiment.status = StatusCode.PENDING
         experiment.update_attributes(
             mapper={
-                "status": experiment.status, 
+                "_status": experiment.status, 
                 "slurm_job_uuid": experiment.slurm_job_uuid
             }
         )
@@ -1336,7 +1336,7 @@ class SlurmCorrespondenceApi(Resource):
                 experiment.status = StatusCode.CANCELLED
                 experiment.update_attributes(
                     mapper={
-                        "status": experiment.status, 
+                        "_status": experiment.status, 
                         "slurm_job_uuid": experiment.slurm_job_uuid
                     }
                 )
@@ -1353,7 +1353,7 @@ class SlurmCorrespondenceApi(Resource):
                 experiment.status = StatusCode.CANCELLED
                 experiment.update_attributes(
                     mapper={
-                        "status": experiment.status, 
+                        "_status": experiment.status, 
                         "slurm_job_uuid": experiment.slurm_job_uuid
                     }
                 )

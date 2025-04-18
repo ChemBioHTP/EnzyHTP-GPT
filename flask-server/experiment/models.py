@@ -911,6 +911,9 @@ class Result():
         results_cursor = db.results.find({"experiment_id": experiment_id})
         result_df = DataFrame([result for result in results_cursor])
 
+        if (not len(result_df)):
+            return list()
+
         keep_columns = list(METRICS_MAPPER.keys())
         keep_columns.append("mutant")
 
