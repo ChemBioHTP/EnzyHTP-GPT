@@ -1,0 +1,1 @@
+const l=(n,t="downloaded-file.zip")=>{const c=new Blob([n],{type:"application/zip"}),o=URL.createObjectURL(c),e=document.createElement("a");e.href=o,e.download=t,e.click(),window.URL.revokeObjectURL(o)};export{l as d};
