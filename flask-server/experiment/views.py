@@ -1055,9 +1055,7 @@ class AssistantsApi(Resource):
 
                 # Use the summary information of the question analyzer.
                 is_successful, question_analyzer_summary = OpenAIAssistant.get_thread_summary(openai_secret_key=user.openai_secret_key, thread_id=(experiment.thread_id_list[0] if experiment.thread_id_list else experiment.current_thread_id))
-                starting_message = Template(current_assistant.starting_message_template).safe_substitute({
-                    "summary": question_analyzer_summary,
-                })
+                starting_message = current_assistant.pre_process(input_prompt=question_analyzer_summary)
                 is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=starting_message)
                 if (status_code == 200):
                     # _LOGGER.info("Message received after changing agent.")

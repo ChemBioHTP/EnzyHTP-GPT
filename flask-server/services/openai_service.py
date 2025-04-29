@@ -380,7 +380,6 @@ class OpenAIAssistant(OpenAIChat):
 
     functions: List[AssistantFunction]
     latest_tool_call_result: Dict[str, bool]
-    starting_message_template: str = str()
     completion_message: str = str()
 
     def __init__(self, openai_secret_key: str, assistant_name: str = str(), 
@@ -685,6 +684,18 @@ class OpenAIAssistant(OpenAIChat):
         except Exception as e:
             return (False, 500, "An unexpected error occurred: " + str(e))
     
+    def pre_process(self, input_prompt: str) -> str:
+        """Process the input prompt before sending to OpenAI.
+        
+        Args:
+            input_prompt (str): The input prompt to be processed.
+
+        Returns:
+            str: The processed prompt text.
+        """
+        pass
+        return input_prompt
+
     def post_process(self, response_content: str, is_finishing: bool) -> str:
         """Process the `response_content` from the agent.
 
@@ -699,7 +710,6 @@ class OpenAIAssistant(OpenAIChat):
         # response_content = response_content.strip("```")
         # response_content = response_content.strip("\"\"\"")
         pass
-
         return response_content
 
     def detect_vicious_output(initial_processed_response_content: str):
