@@ -559,8 +559,8 @@ class ExperimentApi(Resource):
         
         updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
             mapper={
-                "_status": experiment.status,
-                "_progress": experiment.progress,
+                "status": experiment.status,
+                "progress": experiment.progress,
             }
         )
 
@@ -1162,7 +1162,7 @@ class SlurmCorrespondenceApi(Resource):
         if (slurm_job_data):
             if (slurm_job_data.job_state == "FAILED"):
                 experiment.status = StatusCode.EXIT_WITH_ERROR
-                db.experiments.update_one({"id": experiment.id}, {"$set": {"_status": experiment.status}})
+                db.experiments.update_one({"id": experiment.id}, {"$set": {"status": experiment.status}})
                 # db.session.commit()
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,
@@ -1221,9 +1221,9 @@ class SlurmCorrespondenceApi(Resource):
                 experiment.progress = 0.0
                 experiment.update_attributes(
                     mapper={
-                        "_status": experiment.status, 
+                        "status": experiment.status, 
                         "slurm_job_uuid": experiment.slurm_job_uuid,
-                        "_progress": experiment.progress,
+                        "progress": experiment.progress,
                     }
                 )
         elif not experiment.has_pdb_file:
@@ -1246,20 +1246,6 @@ class SlurmCorrespondenceApi(Resource):
             pass
 
         slurm_request = SlurmJobRequest()
-
-        # md_entry_script_path = os.path.join(experiment.directory, "md_entry_script.sh")
-        # with open(md_entry_script_path, mode="w") as fobj:
-        #     fobj.write(Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute({
-        #         "username": user.username,
-        #         "app_host": APP_HOST,
-        #         "experiment_id": experiment.id,
-        #         "pdb_filename": experiment.pdb_filename,
-        #         "metrics": dumps(experiment.metrics),
-        #         "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
-        #         "mutation_pattern": experiment.mutation_pattern,
-        #         "constraints_str": dumps(experiment.constraints)
-        #     }))
-        #     fobj.close()
 
         entry_script_content = Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute({
             "slurm_user": SLURM_USER,
@@ -1290,7 +1276,7 @@ class SlurmCorrespondenceApi(Resource):
             experiment.status = StatusCode.PENDING
         experiment.update_attributes(
             mapper={
-                "_status": experiment.status, 
+                "status": experiment.status, 
                 "slurm_job_uuid": experiment.slurm_job_uuid
             }
         )
@@ -1334,7 +1320,7 @@ class SlurmCorrespondenceApi(Resource):
                 experiment.status = StatusCode.CANCELLED
                 experiment.update_attributes(
                     mapper={
-                        "_status": experiment.status, 
+                        "status": experiment.status, 
                         "slurm_job_uuid": experiment.slurm_job_uuid
                     }
                 )
@@ -1351,7 +1337,7 @@ class SlurmCorrespondenceApi(Resource):
                 experiment.status = StatusCode.CANCELLED
                 experiment.update_attributes(
                     mapper={
-                        "_status": experiment.status, 
+                        "status": experiment.status, 
                         "slurm_job_uuid": experiment.slurm_job_uuid
                     }
                 )

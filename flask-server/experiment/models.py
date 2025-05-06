@@ -79,8 +79,8 @@ class Experiment():
         self.pdb_filename = kwargs.get("pdb_filename", None)
         # self.results: List[dict] = kwargs.get("results", list())
         self.slurm_job_uuid = kwargs.get("slurm_job_uuid", None)
-        self._status: int = kwargs.get("status", StatusCode.CREATED)
-        self._progress: float = kwargs.get("progress", 0.0)
+        self.status: int = kwargs.get("status", StatusCode.CREATED)
+        self.progress: float = kwargs.get("progress", 0.0)
         self.mutation_pattern = kwargs.get("mutation_pattern", "WT")
         self.current_assistant_type = kwargs.get("current_assistant_type", 0)  # 0: Question Analyzer; 1: Metrics Planner; 2: Mutant Planner.
         self.thread_id_list: List[str] = kwargs.get("thread_id_list", list())
@@ -193,12 +193,10 @@ class Experiment():
         """Serialize the current instance to json string."""
 
         dict_data = self.as_dict()
-        fields_to_delete = ["_sa_instance_state", "_status", "_progress"]
+        fields_to_delete = ["_sa_instance_state", "status", "progress"]
 
         dict_data["created_time"] = str(self.created_time)
         dict_data["updated_time"] = str(self.updated_time)
-        dict_data["status"] = str(self._status)
-        dict_data["progress"] = str(self._progress)
         dict_data["status_text"] = StatusCode.status_text_mapper.get(self.status, self.status)
         dict_data["assistant_conversation_completed"] = self.assistant_conversation_completed
 
@@ -216,18 +214,6 @@ class Experiment():
             return path.join(self.directory, self.pdb_filename)
         else:
             return None
-
-    @property
-    def status(self) -> int:
-        return self._status
-    
-    @status.setter
-    def status(self, value):
-        # if (value == StatusCode.CANCELLED):
-        #     self.results.clear()
-        self._status = value
-        self.updated_time = datetime.now()
-        return
     
     @property
     def assistant_conversation_completed(self) -> bool:
@@ -236,16 +222,6 @@ class Experiment():
             return True
         else:
             return False
-    
-    @property
-    def progress(self) -> float:
-        return self._progress
-    
-    @progress.setter
-    def progress(self, value):
-        self._progress = value
-        self.updated_time = datetime.now()
-        return
     
     @property
     def mutant_count(self) -> int:
