@@ -13,7 +13,7 @@ The main script of the Analysis Slurm Job. This script is currently for test use
 from os import environ, path
 from typing import Callable, Dict, List, Any
 from time import sleep
-from requests import post, put
+from requests import post
 from statistics import mean
 from json import loads
 
@@ -61,7 +61,7 @@ def post_result(experiment_id: str, mutant: str, replica_id: str, pdb_filename: 
     }
     payload.update(kwargs)
     try:
-        response = put(RESULT_POST_URL,
+        response = post(RESULT_POST_URL,
             headers={
                 "Authorization": f"Bearer {access_token}"
             },

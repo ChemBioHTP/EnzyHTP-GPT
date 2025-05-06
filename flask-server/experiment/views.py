@@ -650,6 +650,7 @@ class ResultApi(Resource):
             result_record[key] = value
             continue
         experiment.post_result(result_record=result_record)
+        return
 
 class DownloadableApi(Resource):
     """Route: `/<experiment_id>/downloadable`"""
