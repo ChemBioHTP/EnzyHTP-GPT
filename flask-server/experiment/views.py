@@ -645,10 +645,8 @@ class ResultApi(Resource):
         if (user is None or experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        result_record = dict()
-        for key, value in request.form.items():
-            result_record[key] = value
-            continue
+        result_record = request.form.copy()
+        result_record["slurm_job_uuid"] = experiment.slurm_job_uuid
         experiment.post_result(result_record=result_record)
         return
 

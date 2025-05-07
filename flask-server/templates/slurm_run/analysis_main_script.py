@@ -43,44 +43,7 @@ cpu_job_config = {
     }
 }
 
-def post_result(experiment_id: str, mutant: str, replica_id: str, pdb_filename: str = None, **kwargs):
-    """Post the result to the mutexa.
-
-    Args:
-        experiment_id (int): The experiment ID associated with this result.
-        pdb_filename (str): The name of the PDB file of the result.
-        mutant (str): The name of the mutant protein. e.g.: 'A##B C##D'
-        replica_id (str): The ID of the MD simulation relica of one mutant.
-        kwargs: Keyword arguments containing metrics and other attributes.
-    """
-    payload = {
-        "experiment_id": experiment_id,
-        "pdb_filename": pdb_filename,
-        "mutant": mutant,
-        "replica_id": replica_id,
-    }
-    payload.update(kwargs)
-    try:
-        response = post(RESULT_POST_URL,
-            headers={
-                "Authorization": f"Bearer {access_token}"
-            },
-            data=payload,
-            timeout=30)
-        if (response.ok):
-            return
-        else:
-            _LOGGER.warning(f"Result POST failed with error: {response.status_code}")
-    except Exception as e:
-        _LOGGER.warning(f"Unable to access the Web Server. {e}")
-    finally:
-        _LOGGER.info(f"Job result record:")
-        _LOGGER.info(f"\texperiment_id: {experiment_id};")
-        _LOGGER.info(f"\tmutant: {mutant};")
-        _LOGGER.info(f"\treplica_id: {replica_id};")
-        for key, value in kwargs.items():
-            _LOGGER.info(f"\t{key}: {value};")
-        return
+# region Analysis Functions.
 
 def active_site_rmsd(stru_esm: StructureEnsemble, region_pattern: str, **kwargs) -> float:
     """Calculate the RMSD value of a StructureEnsemble instance with specified region pattern.
@@ -135,6 +98,50 @@ METRICS_MAPPER: Dict[str, Callable] = {
     "mmpbgbsa": mmpbgbsa,
     "spi": spi,
 }
+
+# endregion
+
+def post_result(experiment_id: str, mutant: str, replica_id: str, pdb_filename: str = None, **kwargs):
+    """Post the result to the mutexa.
+
+    Args:
+        experiment_id (int): The experiment ID associated with this result.
+        pdb_filename (str): The name of the PDB file of the result.
+        mutant (str): The name of the mutant protein. e.g.: 'A##B C##D'
+        replica_id (str): The ID of the MD simulation relica of one mutant.
+        kwargs: Keyword arguments containing metrics and other attributes.
+    """
+    payload = {
+        "pdb_filename": pdb_filename,
+        "mutant": mutant,
+        "replica_id": replica_id,
+    }
+    for metric in METRICS_MAPPER.keys():
+        payload[metric] = None
+        continue
+    payload.update(kwargs)
+
+    try:
+        response = post(RESULT_POST_URL,
+            headers={
+                "Authorization": f"Bearer {access_token}"
+            },
+            data=payload,
+            timeout=30)
+        if (response.ok):
+            return
+        else:
+            _LOGGER.warning(f"Result POST failed with error: {response.status_code}")
+    except Exception as e:
+        _LOGGER.warning(f"Unable to access the Web Server. {e}")
+    finally:
+        _LOGGER.info(f"Job result record:")
+        _LOGGER.info(f"\texperiment_id: {experiment_id};")
+        _LOGGER.info(f"\tmutant: {mutant};")
+        _LOGGER.info(f"\treplica_id: {replica_id};")
+        for key, value in kwargs.items():
+            _LOGGER.info(f"\t{key}: {value};")
+        return
 
 def main(stru_esm: StructureEnsemble, metrics: List[Dict[str, Any]], mutant: str, replica_id: str, **kwargs):
     """
