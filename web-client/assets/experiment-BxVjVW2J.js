@@ -1,1 +1,0 @@
-import{N as t}from"./index-xLKVu1ND.js";const r=t("experiment",{state:()=>({experiment:null,experiments:[],experimentType:null}),actions:{setExperiment(e){this.experiment=e},setExperiments(e){this.experiments=e},setExperimentType(e){this.experimentType=e}},persist:!0});export{r as u};
