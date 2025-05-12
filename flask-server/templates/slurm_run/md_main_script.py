@@ -242,7 +242,7 @@ if __name__ == "__main__":
                 )
 
             # Send a request to the backend of Web Application to update status and progress.
-            synchronize_job_status(status=StatusCode.RUNNING, progress=i/mutants_count)
+            synchronize_job_status(status=StatusCode.RUNNING, progress=(i+1.0)/mutants_count)
 
         synchronize_job_status(status=StatusCode.EXIT_OK, progress=1.0)
     except Exception as e:
