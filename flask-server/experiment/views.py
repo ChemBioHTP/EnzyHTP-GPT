@@ -265,7 +265,7 @@ def no_pdb_response(user: User, experiment: Experiment) -> Response:
 class IndexApi(Resource):
     """Route: `/`"""
     
-    @login_required()
+    @login_required
     def get(self):
         """Get the experiment list belonging to `current_user`."""
         page_index = int(request.args.get("page", 1))   # Which page to get?
@@ -467,7 +467,7 @@ class ExperimentApi(Resource):
             )
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
-    @login_required()
+    @login_required
     def put(self, experiment_id: str):
         """Update experiment information and configuration.
         
@@ -600,7 +600,7 @@ class ExperimentApi(Resource):
 class ResultApi(Resource):
     """Route: `/<experiment_id>/result`."""
     
-    @login_required()
+    @login_required
     def get(self, experiment_id: str):
         """Get the analysis result of a selected experiment instance.
 
@@ -1363,7 +1363,7 @@ class SlurmCorrespondenceApi(Resource):
 class SlurmTokenApi(Resource):
     """Route: `/slurm/token`."""
 
-    @login_required()
+    @login_required
     def get(self):
         """Get the current `token` and `refresh_token` for Vanderbilt ACCRE Slurm API."""
         user: User = current_user
@@ -1383,7 +1383,7 @@ class SlurmTokenApi(Resource):
         )
         return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
-    @login_required()
+    @login_required
     def post(self):
         """Update the `token` and/or `refresh_token` for Vanderbilt ACCRE Slurm API."""
         user: User = current_user
@@ -1402,7 +1402,7 @@ class SlurmTokenApi(Resource):
         )
         return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
-    @login_required()
+    @login_required
     def put(self):
         """Refresh the `token` and/or `refresh_token` for Vanderbilt ACCRE Slurm API."""
         user: User = current_user
@@ -1422,7 +1422,7 @@ class SlurmTokenApi(Resource):
 class SlurmDeployApi(Resource):
     """Route: `/<experiment_id>/deploy`."""
 
-    @login_required()
+    @login_required
     def get(self, experiment_id: str):
         """Download the MD simulation script to run MD by the users themselves.
         
