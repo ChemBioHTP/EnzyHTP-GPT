@@ -9,10 +9,12 @@
 #SBATCH --no-requeue
 #SBATCH --export=NONE
 
+source ~/.bashrc
 source ~/bin/enzyhtp_env.sh
-source activate enzyhtp
+conda activate enzyhtp
 
-export file_dir=$(dirname "$0")
+export USER="${slurm_user}"
+export file_dir=$(cd "$(dirname "$0")/input";pwd)
 
 export app_host="${app_host}"
 export access_token="${access_token}"
@@ -27,4 +29,4 @@ echo "The PDB file is $pdb_filename"
 ls -l $file_dir
 cd $file_dir
 
-python -u md_main_script.py
+python -u "${file_dir}/md_main_script.py" 2>&1

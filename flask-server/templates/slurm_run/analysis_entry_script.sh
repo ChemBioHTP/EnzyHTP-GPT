@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=mutexa_mmpbsa_${username}
+#SBATCH --job-name=mutexa_analysis_${username}
 #SBATCH --account=yang_lab_csb
 #SBATCH --partition=production
 #SBATCH --nodes=1
@@ -9,10 +9,12 @@
 #SBATCH --no-requeue
 #SBATCH --export=NONE
 
+source ~/.bashrc
 source ~/bin/enzyhtp_env.sh
-source activate enzyhtp
+conda activate enzyhtp
 
-export file_dir=$(dirname "$0")
+export USER="${slurm_user}"
+export file_dir=$(cd "$(dirname "$0")/input";pwd)
 
 export app_host="${app_host}"
 export experiment_id="${experiment_id}"
@@ -25,7 +27,4 @@ export topology_filename="${topology_filename}"
 export trajectory_filename="${trajectory_filename}"
 export ref_pdb_filename="${ref_pdb_filename}"
 
-export ligand_pattern="${ligand_pattern}"
-export region_pattern="${region_pattern}"
-
-python -u analysis_main_script.py
+python -u "${file_dir}/analysis_main_script.py" 2>&1

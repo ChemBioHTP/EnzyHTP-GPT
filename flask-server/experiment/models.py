@@ -79,8 +79,8 @@ class Experiment():
         self.pdb_filename = kwargs.get("pdb_filename", None)
         # self.results: List[dict] = kwargs.get("results", list())
         self.slurm_job_uuid = kwargs.get("slurm_job_uuid", None)
-        self._status = kwargs.get("status", StatusCode.CREATED)
-        self._progress = kwargs.get("progress", 0.0)
+        self.status: int = kwargs.get("status", StatusCode.CREATED)
+        self.progress: float = kwargs.get("progress", 0.0)
         self.mutation_pattern = kwargs.get("mutation_pattern", "WT")
         self.current_assistant_type = kwargs.get("current_assistant_type", 0)  # 0: Question Analyzer; 1: Metrics Planner; 2: Mutant Planner.
         self.thread_id_list: List[str] = kwargs.get("thread_id_list", list())
@@ -144,10 +144,9 @@ class Experiment():
         for field_name, field_value in mapper.items():
             if (hasattr(self, field_name)):
                 if (not editable_attrs) or (field_name in editable_attrs):
-                    if (field_value != None):
-                        setattr(self, field_name, field_value)
-                        db.experiments.update_one({"id": self.id}, {"$set": {field_name: field_value, "updated_time": datetime.now()}})
-                        updated_attrs.append(field_name)
+                    setattr(self, field_name, field_value)
+                    db.experiments.update_one({"id": self.id}, {"$set": {field_name: field_value, "updated_time": datetime.now()}})
+                    updated_attrs.append(field_name)
                     continue
                 else:
                     blocked_attrs.append(field_name)
@@ -194,12 +193,10 @@ class Experiment():
         """Serialize the current instance to json string."""
 
         dict_data = self.as_dict()
-        fields_to_delete = ["_sa_instance_state", "_status", "_progress"]
+        fields_to_delete = ["_sa_instance_state", "status", "progress"]
 
         dict_data["created_time"] = str(self.created_time)
         dict_data["updated_time"] = str(self.updated_time)
-        dict_data["status"] = str(self._status)
-        dict_data["progress"] = str(self._progress)
         dict_data["status_text"] = StatusCode.status_text_mapper.get(self.status, self.status)
         dict_data["assistant_conversation_completed"] = self.assistant_conversation_completed
 
@@ -217,18 +214,6 @@ class Experiment():
             return path.join(self.directory, self.pdb_filename)
         else:
             return None
-
-    @property
-    def status(self):
-        return self._status
-    
-    @status.setter
-    def status(self, value):
-        # if (value == StatusCode.CANCELLED):
-        #     self.results.clear()
-        self._status = value
-        self.updated_time = datetime.now()
-        return
     
     @property
     def assistant_conversation_completed(self) -> bool:
@@ -237,16 +222,6 @@ class Experiment():
             return True
         else:
             return False
-    
-    @property
-    def progress(self):
-        return self._progress
-    
-    @progress.setter
-    def progress(self, value):
-        self._progress = value
-        self.updated_time = datetime.now()
-        return
     
     @property
     def mutant_count(self) -> int:
@@ -338,7 +313,7 @@ class Experiment():
         
         return is_valid, is_supported, message
 
-    def update_pdb(self, pdb_file: FileStorage, force_update: bool = False) -> Tuple[bool, bool, str]:
+    def update_pdb(self, pdb_file: FileStorage, force_update: bool = True) -> Tuple[bool, bool, str]:
         """Update PDB file. Invalid PDB file will not be updated.
 
         Args:
@@ -372,6 +347,19 @@ class Experiment():
 
         return is_updated, is_supported, message
     
+    def downloadable_files(self) -> Dict[str, str]:
+        """Return the downloadable files of the experiment result.
+        
+        Returns:
+            Dict[str, str]: A dictionary with file name and file format.
+        """
+        file_dict = {
+            "Fixed wild type": ".pdb",
+            "Parameter files": ".in",
+            "Constraint files": ".rs",
+        }
+        return file_dict
+
     #endregion
 
     #region Experiment - Analysis
@@ -898,6 +886,9 @@ class Result():
         """
         results_cursor = db.results.find({"experiment_id": experiment_id})
         result_df = DataFrame([result for result in results_cursor])
+
+        if (not len(result_df)):
+            return list()
 
         keep_columns = list(METRICS_MAPPER.keys())
         keep_columns.append("mutant")

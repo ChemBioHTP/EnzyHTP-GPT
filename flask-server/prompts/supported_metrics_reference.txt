@@ -103,3 +103,22 @@
                 + Related property: None
             - MD Model: apo-protein without constraint
                 + Related property: Cavity Size
+
+    - Domain Seperation Index (DSI)
+        + JSON Name:
+            dsi
+        + Description:
+            The domain seperation index of the two domains of a bidomain enzyme. This index describes how seperate the two domains are in the dynamic motion of the enzyme.
+            A study by Ning et al showed it is predictive for the cold-adaption ability (the ability to maintain activity at lower temperature) of bidomain enzymes. 
+        + Required argument:
+            - linker_sequence: the sequence of the linker. (use to define the sequence range of the two domains)
+        + Optional argument:
+            - None
+        + Related Properties 
+            (NOTE: The related properties are different under different MD models)
+            - MD Model: protein-ligand complex without constraint
+                + Related property: None
+            - MD Model: pre-reaction complex (protein-ligand complex with a constraint applied to the "forming bond")
+                + Related property: None
+            - MD Model: apo-protein without constraint
+                + Related property: Enzyme Activity Change as Temperature Change, Cold-adaption Ability, Enzyme Activity at a lower temperature relative to a higher temperature

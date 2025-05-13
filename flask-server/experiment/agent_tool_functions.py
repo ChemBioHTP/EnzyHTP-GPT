@@ -1,6 +1,10 @@
 #! python3
 # -*- encoding: utf-8 -*-
 '''
+Functions here are expected to be called by OpenAI Assistants.
+
+Each function has two return values: is_successful (bool) & output (str).
+
 @File    :   assistant_functions.py
 @Created :   2024/10/28 15:11
 @Author  :   Zhong, Yinjie
