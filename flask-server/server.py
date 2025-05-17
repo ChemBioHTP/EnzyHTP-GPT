@@ -42,10 +42,10 @@ def api_key():
 if __name__ == "__main__":
 
     # Set SSL Context and run server. For development only.
-    app.run(host=config.APP_HOST,
+    app.run(host="127.0.0.1",
         port=5000,
-        debug=True,
-        ssl_context=ssl_context,
+        debug=False,
+        # ssl_context=ssl_context,
     )
 
 # RESTful API referring https://www.geeksforgeeks.org/python-build-a-rest-api-using-flask/

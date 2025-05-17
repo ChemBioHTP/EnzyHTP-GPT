@@ -11,22 +11,22 @@ Vanderbilt University ACCRE Slurm correspondence.
 
 # Here put the import lib.
 from __future__ import annotations  # To enable the annotation that a staticmethod of a class returns an instance of the class.
-from io import BufferedReader
+from io import TextIOWrapper
 from json import dumps
-from os.path import basename
+from os.path import basename, isfile
 from datetime import datetime, timedelta
-from typing import List, Union, Tuple
+from typing import Any, List, Union, Tuple
+from werkzeug.datastructures import FileStorage
 from json import loads, dumps
-from plum import dispatch
 from requests import (
     get as req_get, 
     post as req_post, 
     delete as req_delete,
 )
-
-from config import ACCRE_SLURM_API_URL, ACCRE_SLURM_HOST, SLURM_ACCOUNT, SLURM_PARTITION, SLURM_MD_JOB_ENTRY_SCRIPT
-from context import mongo
 import jwt
+
+from config import SLURM_API_URL, SLURM_HOST, SLURM_ACCOUNT, SLURM_PARTITION
+from context import mongo
 
 db = mongo.db
 
@@ -230,7 +230,7 @@ class SlurmJobRequest:
             status_code (int): Status code from the Slurm API.
             message (str): Message describing the result.
         """
-        refresh_token_url = f"{ACCRE_SLURM_HOST}/auth/token/refresh"
+        refresh_token_url = f"{SLURM_HOST}/auth/token/refresh"
         _, old_token, old_refresh_token = __class__.get_slurm_token()
         if (not old_token or not old_refresh_token):
             return False, 403, "Empty token or refresh_token."
@@ -305,7 +305,7 @@ class SlurmJobData:
         headers = {
             "Authorization": f"Bearer {token}"
         }
-        response = req_get(f"{ACCRE_SLURM_API_URL}/{id}", headers=headers)
+        response = req_get(f"{SLURM_API_URL}/{id}", headers=headers)
         if (response.ok):
             response_dict: dict = loads(response.text)
             slurm_job_data_dict = response_dict.get("data", dict())
@@ -314,13 +314,53 @@ class SlurmJobData:
         else:
             return response.status_code, None
     
-    @staticmethod
-    def post(slurm_request: SlurmJobRequest, files: List[BufferedReader]) -> Tuple[int, str, str]:
+    @classmethod
+    def post_files_pack(cls, file_list: List[Union[str, TextIOWrapper, FileStorage]]) -> List[Tuple]:
+        """Pack files or filepaths as a list of tuples required for POST request.
+        
+        Args:
+            file_list (List[str | TextIOWrapper | FileStorage]): A list of files or filepaths or their mixture.
+
+        Returns:
+            file_data (List[Tuple]): A list of tuple containing: "files" str, filename, buffered file content and mimetype.
+        """
+        file_data: List[tuple] = list()
+        for file in file_list:
+            if (isinstance(file, str) and isfile(file)):
+                file_io = open(file=file, mode="r")
+                file_io.seek(0)
+                file_data.append(
+                    ("files", (basename(file), file_io, "application/octet-stream"))
+                )
+                continue
+            elif (isinstance(file, TextIOWrapper)):
+                file.seek(0)
+                file_data.append(
+                    ("files", (basename(file.name), file, "application/octet-stream"))
+                )
+                continue
+            elif (isinstance(file, FileStorage)):
+                file.stream.seek(0)
+                file_data.append(
+                    ("files", (basename(file.filename), file.stream, "application/octet-stream"))
+                )
+                continue
+            else:
+                continue
+        return file_data
+
+    @classmethod
+    def post(cls, slurm_request: SlurmJobRequest, 
+        file_list: List[Union[str, TextIOWrapper, FileStorage]], 
+        entry_script_content: str, 
+        # entry_script_filename: str = SLURM_MD_JOB_ENTRY_SCRIPT
+    ) -> Tuple[int, str, str]:
         """Submit a slurm job to the Vanderbilt ACCRE Slurm.
         
         Args:
             slurm_request (SlurmJobRequest): The configuration of the slurm request.
-            files (list): A list of files to be sent to the working directory on Vanderbilt ACCRE.
+            file_list (list): A list of files to be sent to the working directory on Vanderbilt ACCRE.
+            entry_script_content (str): The content of the `entry_script` to be placed as a .
 
         Returns:
             status (int): The status from the response.
@@ -334,11 +374,12 @@ class SlurmJobData:
             }
             payload = {
                 "slurm_request": slurm_request.serialize(),
-                "entry_script": f"bash input/{SLURM_MD_JOB_ENTRY_SCRIPT}",
+                # "entry_script": f"bash input/{basename(entry_script_filename)}",
+                "entry_script": entry_script_content,
             }
-            files = [("files", (basename(fobj.name), fobj, "application/octet-stream")) for fobj in files]
+            file_data = cls.post_files_pack(file_list=file_list)
 
-            response = req_post(f"{ACCRE_SLURM_API_URL}", headers=headers, data=payload, files=files)
+            response = req_post(f"{SLURM_API_URL}", headers=headers, data=payload, files=file_data)
             if (response.ok):
                 response_dict: dict = loads(response.text)
                 message = response_dict.get("message", str())
@@ -377,10 +418,10 @@ class SlurmJobData:
         }
         status, job_data = __class__.get(id)
         if (status != 200):
-            return status, "Unable to delete the Slurm Job. The target job doesn't exist."
+            return 404, "Unable to delete the Slurm Job. The target job doesn't exist."
 
-        cancel_response = req_post(f"{ACCRE_SLURM_API_URL}/{id}/cancel", headers=headers)
-        delete_response = req_delete(f"{ACCRE_SLURM_API_URL}/{id}", headers=headers)
+        cancel_response = req_post(f"{SLURM_API_URL}/{id}/cancel", headers=headers)
+        delete_response = req_delete(f"{SLURM_API_URL}/{id}", headers=headers)
         if (delete_response.status_code == 200):
             return 200, "The Slurm Job has successfully be deleted."
         else:

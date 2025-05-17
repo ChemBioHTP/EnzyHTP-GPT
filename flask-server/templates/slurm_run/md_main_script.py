@@ -13,13 +13,13 @@ The main script of the MD Slurm Job. This script is currently for test use.
 from os import environ, path
 from typing import List, Union, Dict, Callable
 from time import sleep
-from requests import post, put
+from requests import post, put, patch
 from statistics import mean
 from json import loads
 
 # Here put enzy_htp modules.
 from enzy_htp import interface, _LOGGER
-from enzy_htp.core.clusters.accre import Accre
+from enzy_htp.core.clusters.accre_r9 import AccreR9
 from enzy_htp.structure import PDBParser, StructureEnsemble, StructureConstraint
 from enzy_htp.structure.structure_constraint import create_distance_constraint, create_angle_constraint, create_dihedral_constraint
 from enzy_htp.structure.structure_selection import select_stru
@@ -30,7 +30,7 @@ from enzy_htp.geometry import equi_md_sampling
 from enzy_htp.workflow.config import StatusCode
 
 # Here put local modules.
-from .analysis_main_script import main as analysis_main
+from analysis_main_script import main as analysis_main
 
 DATA_DIR = f"{path.dirname(path.abspath(__file__))}/data/"
 WORK_DIR = f"{path.dirname(path.abspath(__file__))}/work_dir/"
@@ -42,31 +42,32 @@ access_token = environ.get("access_token")
 pdb_filename = environ.get("pdb_filename")
 mutation_pattern = environ.get("mutation_pattern")
 constraints_str = environ.get("constraints_str")
-md_length = float(environ.get("md_length", 30.0))
+md_length = float(environ.get("md_length", 0.05))
 ph = float(environ.get("ph", 7.4))
 pocket_range = int(environ.get("pocket_range", 5))
-metrics = loads(environ.get("mertics"))
+metrics = loads(environ.get("mertics", "[]"))
 
-cluster = Accre()
+cluster = AccreR9()
 gpu_job_config = {
     "cluster" : cluster,
     "res_keywords" : {
         "account" : "csb_gpu_acc",
-        "partition" : "a100x4"
+        "partition" : "batch_gpu",
+        "nodes": "1",
+        "node_cores" : "nvidia_rtx_a6000:2",
     }
 }
 cpu_job_config = {
     "cluster" : cluster,
     "res_keywords" : {
         "account" : "yang_lab_csb",
-        "partition" : "production",
-        'walltime' : '1-00:00:00',
+        "partition" : "batch",
+        'walltime' : '10-00:00:00',
     }
 }
 
 PROGRESS_UPDATE_URL = f"https://{app_host}/api/experiment/{experiment_id}"
 TRAJ_UPLOAD_URL = f"https://{app_host}/api/experiment/{experiment_id}"
-print(f"Send PATCH request to {PROGRESS_UPDATE_URL} so as to update the status and progress.")
 
 def synchronize_job_status(status: int = None, progress: float = None) -> None:
     """Synchronize the Job Status to the Web Server. If the web server is not accessible, log the status and error information.
@@ -76,17 +77,17 @@ def synchronize_job_status(status: int = None, progress: float = None) -> None:
         progress (float): The progress of current job (Float value from 0 to 1).
     """    
     try:
-        response = put(PROGRESS_UPDATE_URL,
+        response = patch(PROGRESS_UPDATE_URL,
             headers={
                 "Authorization": f"Bearer {access_token}"
             },
             data={
                 "status": status,
-                "progress": progress
+                "progress": progress,
             },
             timeout=30)
         if (response.ok):
-            return
+            _LOGGER.info(f"Updated Job status and progress.")
         else:
             _LOGGER.warning(f"Synchronization failed with status code: {response.status_code}")
     except Exception as e:
@@ -163,85 +164,87 @@ def create_constraints(constraints_str: str) -> List[StructureConstraint]:
         continue
     return mutant_constraints
 
-synchronize_job_status(status=StatusCode.INITIALIZING, progress=0.0)
+if __name__ == "__main__":
+    print(f"Send PATCH request to {PROGRESS_UPDATE_URL} so as to update the status and progress.")
+    
+    synchronize_job_status(status=StatusCode.INITIALIZING, progress=0.0)
 
-has_ligand = False
-mut_constraints = create_constraints(constraints_str=constraints_str)
+    has_ligand = False
+    mut_constraints = create_constraints(constraints_str=constraints_str)
 
-try:
-    wt_stru = PDBParser().get_structure(pdb_filename)
+    wt_stru = PDBParser().get_structure(path.join(file_dir, pdb_filename))
     remove_solvent(wt_stru)
     remove_hydrogens(stru=wt_stru, polypeptide_only=True)
     protonate_stru(stru=wt_stru, ph=ph, protonate_ligand=True)
 
     if (wt_stru.ligands):
         has_ligand = True
+    
+    try:
+        mutants = assign_mutant(stru=wt_stru, pattern=mutation_pattern)
+        mutants_count = len(mutants)
 
-    mutants = assign_mutant(stru=wt_stru, pattern=mutation_pattern)
-    mutants_count = len(mutants)
+        synchronize_job_status(status=StatusCode.RUNNING, progress=0.0)
 
-    synchronize_job_status(status=StatusCode.RUNNING, progress=0.0)
+        # mutation
+        for i, mutant in enumerate(mutants):
+            mutant_result = []
+            mutant_dir = path.join(WORK_DIR, f"mutant_{i}")
+            mutant_stru = mutate_stru(wt_stru, mutant, engine="pymol")
 
-    # mutation
-    for i, mutant in enumerate(mutants):
-        mutant_result = []
-        mutant_dir = path.join(WORK_DIR, f"mutant_{i}")
-        mutant_stru = mutate_stru(wt_stru, mutant, engine="pymol")
+            # ligand_pattern = str()
+            # region_pattern = str()
 
-        ligand_pattern = str()
-        region_pattern = str()
+            ligand_chrg_spin_mapper = dict()
+            pocket = list()
+            if (has_ligand):
+                for i, ligand in enumerate(mutant_stru.ligands):
+                    # Set charge-Spin to default value: (0, 1)
+                    ligand_chrg_spin_mapper[ligand.name] = (0, 1)
+                # Set pocket region pattern.
+                # ligand_pattern = "+".join([(f"(resi {ligand.idx} and chain {ligand.chain.name})") for ligand in mutant_stru.ligands])
+                # region_pattern = f"br. ({ligand_pattern}) around {pocket_range} and not ({ligand_pattern})"
 
-        ligand_chrg_spin_mapper = dict()
-        pocket = list()
-        if (has_ligand):
-            for i, ligand in enumerate(mutant_stru.ligands):
-                # Set charge-Spin to default value: (0, 1)
-                ligand_chrg_spin_mapper[ligand.name] = (0, 1)
-            # Set pocket region pattern.
-            ligand_pattern = "+".join([(f"(resi {ligand.idx} and chain {ligand.chain.name})") for ligand in mutant_stru.ligands])
-            region_pattern = f"br. ({ligand_pattern}) around {pocket_range} and not ({ligand_pattern})"
+            mutant_stru.assign_ncaa_chargespin(ligand_chrg_spin_mapper)
+            remove_hydrogens(mutant_stru, polypeptide_only=True)
+            protonate_stru(mutant_stru, protonate_ligand=False)
 
-        mutant_stru.assign_ncaa_chargespin(ligand_chrg_spin_mapper)
-        remove_hydrogens(mutant_stru, polypeptide_only=True)
-        protonate_stru(mutant_stru, protonate_ligand=False)
-
-        param_method = interface.amber.build_md_parameterizer()
-        
-        md_result: List[StructureEnsemble] = equi_md_sampling(
-            stru=mutant_stru,
-            param_method=param_method,
-            prod_constrain=mut_constraints,
-            prod_time=md_length,
-            record_period=md_length*0.01,
-            work_dir=f"{mutant_dir}/MD/",
-            cluster_job_config=gpu_job_config,
-            cpu_equi_step=True,
-            cpu_equi_job_config=cpu_job_config,
-            job_check_period=10,
-        )
-
-        result_record_dict = {
-            "mutant": get_mutant_name_str(mutant),
-        }
-
-        for replica_id, stru_esm in enumerate(md_result):
-            mutant_name = get_mutant_name_str(mutant=mutant)
-
-            # post_trajectory_and_topology_file(
-            #     mutant=mutant_name, replica_id=replica_id,
-            #     trajectory_filepath = stru_esm.coordinate_list,
-            #     topology_filepath = stru_esm.topology_source_file
-            # )
-            analysis_main(
-                stru_esm=stru_esm, metrics=metrics,
-                mutant=mutant_name, replica_id=replica_id,
-                ligand_pattern=ligand_pattern, region_pattern=region_pattern,
+            param_method = interface.amber.build_md_parameterizer()
+            
+            md_result: List[StructureEnsemble] = equi_md_sampling(
+                stru=mutant_stru,
+                param_method=param_method,
+                prod_constrain=mut_constraints,
+                prod_time=md_length,
+                record_period=md_length*0.01,
+                work_dir=f"{mutant_dir}/MD/",
+                cluster_job_config=gpu_job_config,
+                cpu_equi_step=True,
+                cpu_equi_job_config=cpu_job_config,
+                job_check_period=10,
             )
 
-        # Send a request to the backend of Web Application to update status and progress.
-        synchronize_job_status(status=StatusCode.RUNNING, progress=i/mutants_count)
+            result_record_dict = {
+                "mutant": get_mutant_name_str(mutant),
+            }
 
-    synchronize_job_status(status=StatusCode.EXIT_OK, progress=1.0)
-except Exception as e:
-    _LOGGER.error(e)
-    synchronize_job_status(status=StatusCode.EXIT_WITH_ERROR)
+            for replica_id, stru_esm in enumerate(md_result):
+                mutant_name = get_mutant_name_str(mutant=mutant)
+
+                # post_trajectory_and_topology_file(
+                #     mutant=mutant_name, replica_id=replica_id,
+                #     trajectory_filepath = stru_esm.coordinate_list,
+                #     topology_filepath = stru_esm.topology_source_file
+                # )
+                analysis_main(
+                    stru_esm=stru_esm, metrics=metrics,
+                    mutant=mutant_name, replica_id=replica_id,
+                )
+
+            # Send a request to the backend of Web Application to update status and progress.
+            synchronize_job_status(status=StatusCode.RUNNING, progress=(i+1.0)/mutants_count)
+
+        synchronize_job_status(status=StatusCode.EXIT_OK, progress=1.0)
+    except Exception as e:
+        _LOGGER.error(e)
+        synchronize_job_status(status=StatusCode.EXIT_WITH_ERROR)

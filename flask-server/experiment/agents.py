@@ -40,7 +40,6 @@ class QuestionAnalyzerAssistant(OpenAIAssistant):
     
     experiment: Experiment
     completion_message: str = "Question Confirmed!"
-    starting_message_template = "Please start to analyze user questions."
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
         """
@@ -84,7 +83,6 @@ class MetricsPlannerAssistant(OpenAIAssistant):
     
     experiment: Experiment
     completion_message: str = "Computational Details Confirmed!"
-    starting_message_template = "Please use the following information to config metrics, and print the compiled information in json format. \n$summary"
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
         """
@@ -148,12 +146,49 @@ class MetricsPlannerAssistant(OpenAIAssistant):
         return processed_response_content
 
 
+    def pre_process(self, input_prompt: str):
+        """Process the input prompt before sending to Metrics Planner Agent.
+        
+        Args:
+            input_prompt (str): The input prompt to be processed.
+
+        Returns:
+            str: The processed prompt text.
+        """
+        pre_process_template = "Please use the following information to config metrics, and print the compiled information in json format. \n$summary"
+        processed_prompt = Template(pre_process_template).safe_substitute({
+            "summary": input_prompt,
+        })
+        return processed_prompt
+        
+    def post_process(self, response_content: str, is_finishing: bool) -> str:
+        """Process the `response_content` from the agent.
+
+        Args:
+            response_content (str): The response from GPT.
+            is_finishing (bool): A flag indicating if the job of current agent can be completed.
+        
+        Returns:
+            processed_response_content (str): The response content after process.
+        """
+        initial_processed_response_content = super().post_process(response_content, is_finishing)
+
+        processed_response_content = initial_processed_response_content.replace(
+            "substrate_selection_pattern", "ligand"
+        )
+        processed_response_content = processed_response_content.replace(
+            "ligand_selection_pattern", "ligand"
+        )
+        processed_response_content = processed_response_content.replace(
+            "pocket_selection_pattern", "region_pattern"
+        )
+        return processed_response_content
+
 class MutantPlannerAssistant(OpenAIAssistant):
     """The agent acting as a Mutant Planner."""
     
     experiment: Experiment
     completion_message: str = "Experiment has been set up successfully!"
-    starting_message_template = "Please use the following information to config mutants. \n$summary"
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
         """
@@ -191,6 +226,24 @@ class MutantPlannerAssistant(OpenAIAssistant):
             },
         )
     
+    def pre_process(self, input_prompt: str):
+        """Process the input prompt before sending to Mutant Planner Agent.
+        
+        Args:
+            input_prompt (str): The input prompt to be processed.
+
+        Returns:
+            str: The processed prompt text.
+        """
+        input_prompt = super().pre_process(input_prompt)
+        pattern = "Mutations: (.+)\n"
+        mutation_request = re.search(pattern, input_prompt, re.DOTALL)
+        if (mutation_request is not None):
+            return mutation_request[0].replace("Mutations:", "Input:").replace("\n", "")
+        else:
+            return input_prompt
+        
+
     def post_process(self, response_content: str, is_finishing: bool) -> str:
         """Process the `response_content` from the agent.
 
@@ -204,11 +257,11 @@ class MutantPlannerAssistant(OpenAIAssistant):
         # remember we want to be able to hide output from user
         initial_processed_response_content = super().post_process(response_content, is_finishing)
         
-        pattern = "Output: *\"(.+)\""
+        pattern = "Output: *(.+)"
         initial_processed_response_content = initial_processed_response_content.strip("`")
         if is_finishing or initial_processed_response_content.startswith("Output"):
             try:
-                mutation_pattern = re.match(pattern, initial_processed_response_content).group(1)
+                mutation_pattern = re.match(pattern, initial_processed_response_content).group(1).strip("\"")
                 result_dict = {
                     "mutation_pattern": mutation_pattern
                 }
