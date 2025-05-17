@@ -236,8 +236,8 @@ class Experiment():
     @property
     def group_experiment(self) -> Experiment | None:
         """Get the group experiment instance that current subordinate experiment belongs to."""
-        if (self.type == __class__.SUBORDINATE_TYPE and self.group_experiment_id):
-            experiment = __class__.get(self.group_experiment_id)
+        if (self.type == Experiment.SUBORDINATE_TYPE and self.group_experiment_id):
+            experiment = Experiment.get(self.group_experiment_id)
             return experiment
         else:
             return None
@@ -245,8 +245,8 @@ class Experiment():
     @property
     def subordinate_experiments(self) -> List[Experiment]:
         """Get the subordinate experiments of the current group experiment instance."""
-        if (self.type == __class__.GROUP_TYPE):
-            return [__class__.get(id) for id in self.sub_experiment_ids]
+        if (self.type == Experiment.GROUP_TYPE):
+            return [Experiment.get(id) for id in self.sub_experiment_ids]
         else:
             return list()
 
@@ -380,7 +380,7 @@ class Experiment():
         """Update PDB file. Invalid PDB file will not be updated.
 
         Args:
-            pdb_file (FileStorage): The FileStorage instance of the new PDB file.
+            pdb_file (FileStorage): The FileStorage instance of the new PDB file or compressed PDB files.
             force_update (bool): Whether to skip verification and force update of PDB files.
                 If True, PDB file will be updated even if the PDB file is not supported (but the PDB file must be valid).
         
@@ -390,25 +390,30 @@ class Experiment():
             message (str): The message describing the updating.
         """
         is_updated = False
-        if (fs.get_file_ext(pdb_file.filename).lower() != ".pdb"):
-            return False, "This is not a PDB file."
-        fs.safe_mkdir(self.directory)
+        file_ext = fs.get_file_ext(pdb_file.filename).lower()
+        if (file_ext == ".pdb"):
+            fs.safe_mkdir(self.directory)
 
-        is_valid, is_supported, message = Experiment.__validate_pdb(pdb_file)
-        if (is_valid and force_update):
-            message = f"Force the update of PDB file. {message}"
+            is_valid, is_supported, message = Experiment.__validate_pdb(pdb_file)
+            if (is_valid and force_update):
+                message = f"Force the update of PDB file. {message}"
 
-        if (is_supported or force_update):
-            is_updated = True
-            if (self.pdb_filepath and path.isfile(self.pdb_filepath)):
-                fs.safe_rm(self.pdb_filepath) # Delete existing file.
-            self.pdb_filename = pdb_file.filename
-            self.summon_upload_pdb = False
-            pdb_file.save(self.pdb_filepath)
-            message = f"The PDB file of the experiment {self.id} is updated. " + message
-            db.experiments.update_one({"id": self.id}, {"$set": {"pdb_filename": self.pdb_filename, "summon_upload_pdb": self.summon_upload_pdb}})
+            if (is_supported or force_update):
+                is_updated = True
+                if (self.pdb_filepath and path.isfile(self.pdb_filepath)):
+                    fs.safe_rm(self.pdb_filepath) # Delete existing file.
+                self.pdb_filename = pdb_file.filename
+                self.summon_upload_pdb = False
+                pdb_file.save(self.pdb_filepath)
+                message = f"The PDB file of the experiment {self.id} is updated. " + message
+                db.experiments.update_one({"id": self.id}, {"$set": {"pdb_filename": self.pdb_filename, "summon_upload_pdb": self.summon_upload_pdb}})
 
-        return is_updated, is_supported, message
+            return is_updated, is_supported, message
+        elif (file_ext == ".zip"):
+            # TODO (Zhong): Decompress zip file and create multiple subordinate experiments.
+            pass
+        else:
+            return False, False, "This is not a PDB file or Compressed file."
     
     def downloadable_files(self) -> Dict[str, str]:
         """Return the downloadable files of the experiment result.

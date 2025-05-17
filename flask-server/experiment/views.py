@@ -712,7 +712,7 @@ class PdbFileApi(Resource):
             experiment_id (str): The identifier of an experiment instance.
         """
         user: User = current_user
-        experiment = Experiment.get(experiment_id)
+        experiment: Experiment = Experiment.get(experiment_id)
         message = str()
         is_updated = False
 
@@ -725,9 +725,11 @@ class PdbFileApi(Resource):
         force_update = request.form.get("force", True) # Whether to skip verification and force update of PDB files.
         is_updated, is_supported, message = experiment.update_pdb(pdb_file=pdb_file, force_update=force_update)
 
-        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment, user=user,
             is_successful=is_updated,
-            message=message)
+            message=message,
+        )
         return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
 class MutationApi(Resource):
