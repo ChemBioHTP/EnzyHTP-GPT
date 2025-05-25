@@ -61,7 +61,8 @@ class AuthResponseInfo():
             message: str = str(),
             timestamp = datetime.__new__(datetime, 1970, 1, 1),
             is_authenticated: bool = False,
-            verify_openai_secret_key: bool = False
+            verify_openai_secret_key: bool = False,
+            **kwargs
             ) -> None:
         """Authentication Response Information.
         
@@ -91,12 +92,17 @@ class AuthResponseInfo():
             self.has_openai_secret_key = user.has_openai_secret_key
         if (verify_openai_secret_key):
             self.is_openai_secret_key_valid, self.openai_status_code, self.openai_response_description = user.get_openai_secret_key_status()
+            
+        self.kwargs = kwargs
         return
     
     def serialize(self) -> str:
         """Serialize the current instance to json string."""
         from json import dumps
         serialized_data = self.__dict__
+        for key, value in self.kwargs.items():
+            serialized_data[key] = value
+        del serialized_data["kwargs"]
         return dumps(serialized_data)
 
 @login_manager.user_loader

@@ -10,12 +10,6 @@ api = Api(app=app)
 import config
 app.config.from_object(config)
 
-# Import and define your routes and views
-from auth import auth as auth_blueprint
-app.register_blueprint(auth_blueprint, url_prefix="/api/auth")
-from experiment import experiment as experiment_blueprint
-app.register_blueprint(experiment_blueprint, url_prefix="/api/experiment")
-
 from context import mongo, login_manager, jwt, mail, ssl_context, scheduler
 login_manager.login_message_category = "info"  # Set login message category to info.
 
@@ -30,6 +24,12 @@ login_manager.init_app(app=app)
 
 # Initialize JWTManager
 jwt.init_app(app=app)
+
+# Import and define your routes and views
+from auth import auth as auth_blueprint
+app.register_blueprint(auth_blueprint, url_prefix="/api/auth")
+from experiment import experiment as experiment_blueprint
+app.register_blueprint(experiment_blueprint, url_prefix="/api/experiment")
 
 # Initialize APScheduler
 scheduler.init_app(app)
