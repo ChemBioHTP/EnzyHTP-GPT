@@ -10,6 +10,7 @@
 
 # Here put the import lib.
 from flask import Response, jsonify, request, redirect
+from flask_jwt_extended import create_access_token
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
 from uuid import uuid4
@@ -23,6 +24,7 @@ from config import (
     DEVELOPMENT,
     OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI,
     JSONIFY_MIMETYPE,
+    TOKEN_EXPIRES_DELTA,
 )
 from . import auth
 from .models import User, OAuthUser, VerificationCode
@@ -348,6 +350,20 @@ def profile_update() -> Response:
             is_authenticated=True
         )
         return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
+
+@auth.route("/profile/jwt", methods=["GET"])
+@login_required
+def profile_jwt() -> Response:
+    """Generate the JWT token."""
+    user: User = current_user
+    response_info = AuthResponseInfo(
+        id=user.id,
+        email=user.email,
+        username=user.username,
+        is_authenticated=True,
+        access_token=create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
+    )
+    return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
 #endregion
 
