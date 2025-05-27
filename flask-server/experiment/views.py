@@ -97,6 +97,8 @@ class ExperimentIndexResponse():
         for exp in experiments:
             exp_dict = exp.as_dict(stringfy_time=True)
             del exp_dict["user_id"]
+            if ("chat_messages") in exp_dict.keys():
+                del exp_dict["chat_messages"]
             exp_dict["status_text"] = StatusCode.status_text_mapper.get(exp.status)
             self.experiments.append(exp_dict)
             continue
@@ -288,7 +290,7 @@ class IndexApi(Resource):
         user: User = current_user
         
         name = request.form.get("name", f"{user.username}'s experiment")
-        experiment_type = int(request.form.get("type", -1))
+        experiment_type = int(request.form.get("type", Experiment.INDIVIDUAL_TYPE))
         description = request.form.get("description")
 
         experiment = Experiment(user_id=user.id, name=name, type=experiment_type, description=description)
