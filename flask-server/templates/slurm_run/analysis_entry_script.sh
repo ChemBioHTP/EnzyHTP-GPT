@@ -21,7 +21,7 @@ export experiment_id="${experiment_id}"
 export access_token="${access_token}"
 export mutant="${mutant}"
 export replica_id="${replica_id}"
-export metrics="${metrics}"
+export metrics='${metrics}'
 
 export topology_filename="${topology_filename}"
 export trajectory_filename="${trajectory_filename}"

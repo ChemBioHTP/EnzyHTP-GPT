@@ -20,7 +20,7 @@ export app_host="${app_host}"
 export access_token="${access_token}"
 export experiment_id="${experiment_id}"
 export pdb_filename="${pdb_filename}"
-export metrics="${metrics}"
+export metrics='${metrics}'
 export mutation_pattern="${mutation_pattern}"
 export constraints_str="${constraints_str}"
 
