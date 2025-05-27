@@ -129,6 +129,7 @@ def post_result(experiment_id: str, mutant: str, replica_id: str, pdb_filename: 
             data=payload,
             timeout=30)
         if (response.ok):
+            _LOGGER.info(f"Result POST succeeded: {response.status_code}")
             return
         else:
             _LOGGER.warning(f"Result POST failed with error: {response.status_code}")

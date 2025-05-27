@@ -45,7 +45,7 @@ constraints_str = environ.get("constraints_str")
 md_length = float(environ.get("md_length", 0.05))
 ph = float(environ.get("ph", 7.4))
 pocket_range = int(environ.get("pocket_range", 5))
-metrics = loads(environ.get("mertics", "[]"))
+metrics = loads(environ.get("metrics", "[]"))
 
 cluster = AccreR9()
 gpu_job_config = {
@@ -242,6 +242,7 @@ if __name__ == "__main__":
                 )
 
             # Send a request to the backend of Web Application to update status and progress.
+            progress = (i + 1.0) / mutants_count
             synchronize_job_status(status=StatusCode.RUNNING, progress=(i+1.0)/mutants_count)
 
         synchronize_job_status(status=StatusCode.EXIT_OK, progress=1.0)
