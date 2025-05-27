@@ -1,7 +1,6 @@
 # Here put the import lib.
 from flask import Flask, jsonify, render_template
 
-from services.accre_slurm_service import SlurmJobRequest
 app = Flask(__name__)
 
 from flask_restful import Api
@@ -36,6 +35,7 @@ scheduler.init_app(app)
 scheduler.start()
 
 # Schedule token update task to run daily at 2:00 AM
+from services.accre_slurm_service import SlurmJobRequest
 @scheduler.task('cron', id='update_slurm_tokens', hour=2, minute=0)
 def update_slurm_tokens_task():
     try:
