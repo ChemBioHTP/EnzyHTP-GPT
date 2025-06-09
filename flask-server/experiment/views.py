@@ -671,14 +671,12 @@ class DownloadableApi(Resource):
             return forbidden_response(user, experiment)
         
         deploy_pack_io = BytesIO()
-        deploy_pack_zip = ZipFile(deploy_pack_io, "w")
-
-        deploy_pack_zip.write(experiment.pdb_filepath, arcname=experiment.pdb_filename, compress_type=ZIP_DEFLATED)   # Add PDB file into zip.
+        with ZipFile(deploy_pack_io, "w") as deploy_pack_zip:
+            deploy_pack_zip.write(experiment.pdb_filepath, arcname=experiment.pdb_filename, compress_type=ZIP_DEFLATED)   # Add PDB file into zip.
         
-        deploy_pack_zip.close()
         deploy_pack_io.seek(0)
         zipfile_prefix = re.sub(r'[\\/:"*?<>|]', "", experiment.name)
-        return send_file(deploy_pack_io, mimetype="application/zip", as_attachment=True, download_name=f"{zipfile_prefix} Downloadable Files.zip")
+        return send_file(deploy_pack_io, mimetype="application/zip", as_attachment=True, download_name=f"{zipfile_prefix} Downloadables.zip")
 
 class PdbFileApi(Resource):
     """Route: `/<experiment_id>/pdb_file`"""
