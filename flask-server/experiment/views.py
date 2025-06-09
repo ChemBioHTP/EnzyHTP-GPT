@@ -103,12 +103,12 @@ class ExperimentIndexResponse():
             self.experiments.append(exp_dict)
             continue
 
-        items_on_page = items_on_page if (items_on_page > 0) else __class__.default_items_on_page
+        items_on_page = items_on_page if (items_on_page > 0) else self.default_items_on_page
         self.page_count = (len(experiments)-1) // items_on_page + 1
         self.page_index = page_index if (page_index <= self.page_count) else self.page_count
         if (self.experiments):
             if (not hasattr(experiments[0], order_by)):
-                order_by = __class__.default_order_by_field
+                order_by = self.default_order_by_field
             self.experiments = sorted(self.experiments, key=lambda x: x[order_by], reverse=reverse)
             starting_item_index = (self.page_index - 1) * items_on_page
             ending_item_index = (self.page_index * items_on_page + 1) if (self.page_index < self.page_count) else len(self.experiments)

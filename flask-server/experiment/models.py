@@ -11,7 +11,7 @@ The entities for the Experiment module.
 '''
 
 # Here put the import lib.
-from __future__ import annotations  # To enable the annotation that a staticmethod of a class returns an instance of the class.
+from __future__ import annotations  # To enable the annotation that a staticmethod/classmethod of a class returns an instance of the class.
 from io import BufferedReader
 from flask_login import UserMixin
 from datetime import datetime, timedelta
@@ -100,10 +100,10 @@ class Experiment():
         self.summon_upload_pdb = kwargs.get("summon_upload_box", False)
 
         self.group_experiment_id = kwargs.get("group_experiment_id", None)
-        self.sub_experiment_ids = kwargs.get("sub_experiment_ids", list() if self.type == __class__.GROUP_TYPE else None)
+        self.sub_experiment_ids = kwargs.get("sub_experiment_ids", list() if self.type == self.GROUP_TYPE else None)
     
-    @staticmethod
-    def get(id: str) -> Experiment | None:
+    @classmethod
+    def get(cls, id: str) -> Experiment | None:
         """Get experiment instance with given ID.
         
         Args:
@@ -120,15 +120,15 @@ class Experiment():
             return None
 
     # @overload
-    @staticmethod
-    def get_user_experiments(user: User, include_subordinate: bool = False) -> List[Experiment]:
+    @classmethod
+    def get_user_experiments(cls, user: User, include_subordinate: bool = False) -> List[Experiment]:
         """Get a list of Experiment instance of the certain user by `user_id`.
         
         Args:
             user: A `User` instance.
         """
         if hasattr(user, 'id'):
-            query = {"user_id": user.id} if include_subordinate else {"user_id": user.id, "type": {"$gte": __class__.INDIVIDUAL_TYPE}}
+            query = {"user_id": user.id} if include_subordinate else {"user_id": user.id, "type": {"$gte": cls.INDIVIDUAL_TYPE}}
             experiment_query_result = db.experiments.find(query)
             experiments = [Experiment.from_dict(experiment_dict) for experiment_dict in experiment_query_result]
             # experiment_query_result = Experiment.query.filter_by(user_id=user.id).order_by(Experiment.created_time).all()
@@ -198,8 +198,8 @@ class Experiment():
             dict_data["updated_time"] = str(self.updated_time)
         return dict_data
     
-    @staticmethod
-    def from_dict(experiment_dict: dict | None) -> Experiment:
+    @classmethod
+    def from_dict(cls, experiment_dict: dict | None) -> Experiment:
         """Build an experiment instance from a dict.
         
         Args:
@@ -231,7 +231,7 @@ class Experiment():
 
     @property
     def type_text(self):
-        return __class__.EXPERIMENT_TYPE_MAPPER.get(self.type, "Uncategorized")
+        return self.EXPERIMENT_TYPE_MAPPER.get(self.type, "Uncategorized")
 
     @property
     def group_experiment(self) -> Experiment | None:
@@ -257,8 +257,8 @@ class Experiment():
     @property
     def group_experiment(self) -> Experiment | None:
         """Get the group experiment instance that current subordinate experiment belongs to."""
-        if (self.type == __class__.SUBORDINATE_TYPE and self.group_experiment_id):
-            experiment = __class__.get(self.group_experiment_id)
+        if (self.type == self.SUBORDINATE_TYPE and self.group_experiment_id):
+            experiment = self.get(self.group_experiment_id)
             return experiment
         else:
             return None
@@ -266,14 +266,14 @@ class Experiment():
     @property
     def subordinate_experiments(self) -> List[Experiment]:
         """Get the subordinate experiments of the current group experiment instance."""
-        if (self.type == __class__.GROUP_TYPE):
-            return [__class__.get(id) for id in self.sub_experiment_ids]
+        if (self.type == self.GROUP_TYPE):
+            return [self.get(id) for id in self.sub_experiment_ids]
         else:
             return list()
 
     @property
     def pdb_filepath(self):
-        if (self.type != __class__.GROUP_TYPE and self.pdb_filename):
+        if (self.type != self.GROUP_TYPE and self.pdb_filename):
             return path.join(self.directory, self.pdb_filename)
         else:
             return None
@@ -318,8 +318,8 @@ class Experiment():
     
     #region Experiment - PDB File
 
-    @staticmethod
-    def __validate_pdb(pdb_file: str | FileStorage) -> Tuple[bool, bool, str]:
+    @classmethod
+    def __validate_pdb(cls, pdb_file: str | FileStorage) -> Tuple[bool, bool, str]:
         """Validate PDB file.
 
         Args:
@@ -492,7 +492,7 @@ class Experiment():
         fs.safe_mkdir(save_folder)
         prmtop_file_path = path.join(save_folder, topology_file.filename)
         traj_file_path = path.join(save_folder, traj_file.filename)
-        ref_pdb_path = path.join(save_folder, __class__.mutant_pdb_filename)
+        ref_pdb_path = path.join(save_folder, self.mutant_pdb_filename)
         try:
             # Construct the reference structure PDB file.
             mutant = [generate_from_mutation_flag(mutation_str) for mutation_str in mutant_name.split("_")]
@@ -635,7 +635,7 @@ class Experiment():
         """
         save_folder = path.join(self.directory, mutant_name.replace(" ", "_"))
         fs.safe_mkdir(save_folder)
-        ref_pdb_path = path.join(save_folder, __class__.mutant_pdb_filename)
+        ref_pdb_path = path.join(save_folder, self.mutant_pdb_filename)
         try:
             # Construct the reference structure PDB file.
             mutant = [generate_from_mutation_flag(mutation_str) for mutation_str in mutant_name.split("_")]
@@ -666,12 +666,12 @@ class Experiment():
             for tag, structure in tag_structure_pairs.items():
                 try:
                     pdb_filepath = sp.save_structure(
-                        outfile=path.join(self.directory, tag, __class__.mutant_pdb_filename), 
+                        outfile=path.join(self.directory, tag, self.mutant_pdb_filename), 
                         stru=structure,
                     )
                     mutant_count += 1
                 except:
-                    _LOGGER.error(f"Failed to save file to {path.join(self.directory, tag, __class__.mutant_pdb_filename)}.")
+                    _LOGGER.error(f"Failed to save file to {path.join(self.directory, tag, self.mutant_pdb_filename)}.")
                     fail_count += 1
                 finally:
                     continue
@@ -900,8 +900,8 @@ class Result():
 
         return
     
-    @staticmethod
-    def get(id: str) -> Result | None:
+    @classmethod
+    def get(cls, id: str) -> Result | None:
         """Get a result instance with given ID.
         
         Args:
@@ -917,8 +917,8 @@ class Result():
         else:
             return None
 
-    @staticmethod
-    def from_dict(result_dict: dict | None) -> Result:
+    @classmethod
+    def from_dict(cls, result_dict: dict | None) -> Result:
         """Build a result instance from a dict.
         
         Args:
@@ -944,8 +944,8 @@ class Result():
             dict_data["updated_time"] = str(self.updated_time)
         return dict_data
     
-    @staticmethod
-    def get_experiment_results(experiment_id: str) -> List[Dict[str, Any]]:
+    @classmethod
+    def get_experiment_results(cls, experiment_id: str) -> List[Dict[str, Any]]:
         """Get a list of results of an Experiment instance with designated `experiment_id`.
         For each mutant, the value of the analysis data will be the average of all its replica.
         
