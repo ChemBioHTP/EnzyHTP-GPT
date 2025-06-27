@@ -25,6 +25,7 @@ from werkzeug.datastructures import ImmutableMultiDict
 
 # Here put local imports.
 from .models import Experiment, Result
+from .experiment_config import StatusCode
 from auth.models import User
 from auth.views import (
     unauth_handler as unauth_handler_in_auth, 
@@ -57,7 +58,6 @@ from config import (
 from services import image_path_to_src
 
 # Here put enzy_htp modules.
-from enzy_htp.workflow.config import StatusCode
 from enzy_htp.core import (
     file_system as fs,
     _LOGGER

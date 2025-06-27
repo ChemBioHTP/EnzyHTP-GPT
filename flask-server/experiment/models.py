@@ -30,6 +30,7 @@ from context import mongo
 from config import EXPERIMENT_FILE_DIRECTORY, SCRATCH_FOLDER
 from auth.models import User
 from .analysis import METRICS_MAPPER
+from .experiment_config import StatusCode
 from services.openai_service import OpenAIAssistant
 
 # Here put enzy_htp modules.
@@ -44,7 +45,6 @@ from enzy_htp.preparation.validity import is_structure_valid
 from enzy_htp.mutation.mutation_pattern import api as pattern_api
 from enzy_htp.mutation_class import get_mutant_name_str, get_mutant_name_tag, generate_from_mutation_flag
 from enzy_htp.mutation.api import mutate_stru
-from enzy_htp.workflow.config import StatusCode
 
 sp = PDBParser()
 
