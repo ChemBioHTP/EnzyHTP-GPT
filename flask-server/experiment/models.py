@@ -1049,6 +1049,8 @@ class Experiment():
             group_status = 400
             group_message = ""
             for sub_experiment in self.subordinate_experiments:
+                sub_experiment.metrics = self.metrics
+                sub_experiment.update_mutation_pattern(self.mutation_pattern)
                 is_successful, status, message = sub_experiment.post_slurm_job()
                 group_successful = group_successful or is_successful
                 group_status = min(group_status, status)
