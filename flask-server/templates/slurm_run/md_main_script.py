@@ -33,20 +33,7 @@ from analysis_main_script import main as analysis_main
 
 class StatusCode():
     """
-    Class representing various execution statuses for workunits and workflows.
-
-    Notes:
-        When a WorkFlow instance or WorkUnit instance is marked as `RUNNING_WITH_PAUSE_IN_INNER_UNITS` or `EXPECTED_PAUSE`, 
-        it freezes the execution of all subsequent instances of the WorkUnit for the WorkFlow instance in which it resides
-        (a loop ControlWorkUnit or parallel ControlWorkUnit freezes execution of the current loop/parallel instance and 
-        proceeds directly to the next loop/parallel instance until all instances of the ControlWorkUnit in which it resides 
-        have been executed), and then saves the current GeneralWorkUnit instance state to a snapshot pickle file.
-
-    Notes in Chinese Language for Reference (consistent with the meaning of the English version) / 汉语备注，备忘用，与英语文本含义一致:
-        当一个 WorkFlow 实例或 WorkUnit 实例被标记为 `RUNNING_WITH_PAUSE_IN_INNER_UNITS` 或 `EXPECTED_PAUSE` 时，
-        将冻结其所在的工作流实例的后续所有 WorkUnit 实例的执行（循环式 ControlWorkUnit 或并行式 ControlWorkUnit 
-        会冻结当前循环体/并行体实例，直接继续执行下一个循环体/并行体实例，直至其所在的 ControlWorkUnit 中的所有循环体/并行体实例被执行完毕），
-        然后保存当前 GeneralWorkUnit 实例状态的快照至 pickle 文件。
+    Class representing various execution statuses.
 
     Attributes:
         CREATED (int): The initial status when a WorkUnit or WorkFlow instance is created. Value: -9

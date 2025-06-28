@@ -13,7 +13,9 @@ The entities for the Experiment module.
 # Here put the import lib.
 from __future__ import annotations  # To enable the annotation that a staticmethod/classmethod of a class returns an instance of the class.
 from io import BufferedReader
+from string import Template
 from flask_login import UserMixin
+from flask_jwt_extended import create_access_token
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Union, Tuple, Callable, Literal
 from json import loads, dumps
@@ -24,14 +26,42 @@ from os import path
 import os
 import uuid
 import re
+import zipfile
+import tempfile
 
 # Here put local imports.
 from context import mongo
-from config import EXPERIMENT_FILE_DIRECTORY, SCRATCH_FOLDER
+from config import (
+    BASEDIR,
+    TOKEN_EXPIRES_DELTA,
+    WORKSHEET_MUTATION_COLUMN_NAME,
+    APP_HOST,
+    JSONIFY_MIMETYPE,
+
+    # Experiment.
+    EXPERIMENT_FILE_DIRECTORY,
+    SCRATCH_FOLDER,
+
+    # Slurm API.
+    SLURM_USER,
+
+    SLURM_MD_JOB_ENTRY_SCRIPT,
+    SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT,
+    SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH,
+    SLURM_ANALYSIS_JOB_ENTRY_CONTENT,
+    SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
+    
+    SLURM_DEPLOY_SCRIPT_FILENAME, 
+    SLURM_DEPLOY_SCRIPT, 
+    MAX_MUTANT_COUNT,
+
+    PLHD_RESULT_IMG_PATHS,
+    PLHD_RESULT_INTERPRETATION,
+)
 from auth.models import User
 from .analysis import METRICS_MAPPER
 from .experiment_config import StatusCode
-from services.openai_service import OpenAIAssistant
+from services import OpenAIAssistant, SlurmJobRequest, SlurmJobData
 
 # Here put enzy_htp modules.
 from enzy_htp import interface
@@ -66,18 +96,18 @@ class Experiment():
         SUBORDINATE_TYPE: "Subordinate",
     }
 
-    def __init__(self, user_id: str, name: str, type: int = 0, metrics: List[Dict[str, Any]] = list(), description: str = None, **kwargs):
+    def __init__(self, user_id: str, name: str, experiment_type: int = 0, metrics: List[Dict[str, Any]] = list(), description: str = None, **kwargs):
         """Initializes an instance of Experiment with the provided parameters.
 
         Args:
             user_id (str): The user ID associated with this experiment.
             name (str): The name of the experiment.
-            type (int, optional): The type of the experiment (default is 0).
+            experiment_type (int, optional): The type of the experiment (default is 0).
             metrics (List[Dict[str, Any]], optional): Metrics information about kinds of analysis to be performed and their arguments (default is an empty list).
             description (str, optional): A description of the experiment (default is None).
             kwargs: Other keyword arguments.
         """
-        self.type = type
+        self.type = experiment_type
         self.name = name
         self.description = description
         self.user_id = user_id
@@ -295,6 +325,8 @@ class Experiment():
     def has_pdb_file(self) -> bool:
         if (self.pdb_filepath and os.path.isfile(self.pdb_filepath)):
             return True
+        elif (self.type == self.GROUP_TYPE):    # Group Experiment must have pdb file (with its subordinates).
+            return True
         else:
             return False
 
@@ -302,6 +334,7 @@ class Experiment():
     def directory(self) -> str:
         """The directory where the file of this experiment is saved."""
         directory_path = path.join(EXPERIMENT_FILE_DIRECTORY, self.id)
+        fs.safe_mkdir(directory_path)
         return directory_path
 
     def clear_folder(self, remove_folder: bool = False):
@@ -391,7 +424,13 @@ class Experiment():
         """
         is_updated = False
         file_ext = fs.get_file_ext(pdb_file.filename).lower()
+
+        if (self.status not in StatusCode.unexecuted_statuses):
+            return False, True, "Unable to update PDB when it has tried running."
+            
         if (file_ext == ".pdb"):
+            if (self.type == self.GROUP_TYPE):
+                return False, False, "Unable to change a group experiment back to individual experiment."
             fs.safe_mkdir(self.directory)
 
             is_valid, is_supported, message = Experiment.__validate_pdb(pdb_file)
@@ -410,8 +449,39 @@ class Experiment():
 
             return is_updated, is_supported, message
         elif (file_ext == ".zip"):
-            # TODO (Zhong): Decompress zip file and create multiple subordinate experiments.
-            pass
+            zip_file = pdb_file
+            pdb_filepaths = []
+            # Create a temporary folder to extract zip contents
+            with tempfile.TemporaryDirectory() as tmpdir:
+                zip_path = os.path.join(tmpdir, zip_file.filename)
+                zip_file.save(zip_path)
+
+                # Extract the zip file
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    zip_ref.extractall(tmpdir)
+
+                # Search for all .pdb files in the extracted content
+                for root, _, files in os.walk(tmpdir):
+                    for fname in files:
+                        if fname.lower().endswith(".pdb"):
+                            original_pdb_path = os.path.join(root, fname)
+                            new_pdb_path = os.path.join(SCRATCH_FOLDER, fname)
+                            fs.safe_cp(original_pdb_path, new_pdb_path)
+                            pdb_filepaths.append(new_pdb_path)
+
+            if (self.type == self.INDIVIDUAL_TYPE):
+                self.type = self.GROUP_TYPE     # Convert individual experiment to group experiment.
+                fs.safe_rm(self.pdb_filepath)
+                self.pdb_filename = None
+                self.sub_experiment_ids = list()
+                for i, pdb_filepath in enumerate(pdb_filepaths):
+                    sub_experiment = Experiment(user_id=self.user_id, name=f"{self.name} - {i:>04}", 
+                        experiment_type=self.SUBORDINATE_TYPE, 
+                        pdb_filename=path.basename(pdb_filepath),
+                    )
+                    fs.safe_cp(pdb_filepath, sub_experiment.pdb_filepath)
+                    self.sub_experiment_ids.append(sub_experiment.id)
+
         else:
             return False, False, "This is not a PDB file or Compressed file."
     
@@ -550,27 +620,30 @@ class Experiment():
         is_successful = False
         mutants = list()
         message = str()
-        if not self.has_pdb_file:
-            message = "The current experiment isn't associated with any PDB file."
-            return is_successful, mutants, message
+        if (self.type != self.GROUP_TYPE):
+            if not self.has_pdb_file:
+                message = "The current experiment isn't associated with any PDB file."
+                return is_successful, mutants, message
 
-        protein_stru = sp.get_structure(self.pdb_filepath)
-        try:
-            mutants = pattern_api.decode_mutation_pattern(protein_stru, self.mutation_pattern)
-        except pattern_api.InvalidMutationPatternSyntax as e:
-            message = f"Mutation pattern parsing failed due to InvalidMutationPatternSyntax: {e}"
-        except core_exc.InvalidResidueCode as e:
-            message = f"Mutation pattern parsing failed due to InvalidResidueCode: {e}"
-        except Exception as e:
-            message = f"Mutation pattern parsing failed due to Uncategorized General Exception: {e}"
-        finally:
-            if (not message):
-                message = "Mutation pattern parsing succeeded!"
-                is_successful = True
-            else:
-                _LOGGER.error(message)
-        
-        return is_successful, mutants, message
+            protein_stru = sp.get_structure(self.pdb_filepath)
+            try:
+                mutants = pattern_api.decode_mutation_pattern(protein_stru, self.mutation_pattern)
+            except pattern_api.InvalidMutationPatternSyntax as e:
+                message = f"Mutation pattern parsing failed due to InvalidMutationPatternSyntax: {e}"
+            except core_exc.InvalidResidueCode as e:
+                message = f"Mutation pattern parsing failed due to InvalidResidueCode: {e}"
+            except Exception as e:
+                message = f"Mutation pattern parsing failed due to Uncategorized General Exception: {e}"
+            finally:
+                if (not message):
+                    message = "Mutation pattern parsing succeeded!"
+                    is_successful = True
+                else:
+                    _LOGGER.error(message)
+            
+            return is_successful, mutants, message
+        else:
+            return False, mutants, "This is not an individual or subordinate experiment."
 
     def get_mutants_structure(self, engine: str = "pymol") -> Tuple[bool, dict, str]:
         """Get the PDB file string of the mutated structure.
@@ -584,20 +657,23 @@ class Experiment():
             tag_structure_pairs (dict): A dictionary with mutant tags as keys and the corresponding structure as values.
             message (str): The message describing the updating.
         """
-        tag_structure_pairs = dict()
-        is_successful, mutants, message = self.get_mutants()
-        if (is_successful):
-            try:
-                protein_stru = sp.get_structure(self.pdb_filepath)
-                for mutant in mutants:
-                    mutant_stru = mutate_stru(protein_stru, mutant, engine)
-                    name_tag = get_mutant_name_str(mutant)
-                    tag_structure_pairs[name_tag] = mutant_stru
-                message = "Getting Mutant structure succeeded!"
-            except Exception as e:
-                is_successful = False
-                message = f"Getting Mutant structure failed due to Exception: {e}"
-        return is_successful, tag_structure_pairs, message
+        if (self.type != self.GROUP_TYPE):
+            tag_structure_pairs = dict()
+            is_successful, mutants, message = self.get_mutants()
+            if (is_successful):
+                try:
+                    protein_stru = sp.get_structure(self.pdb_filepath)
+                    for mutant in mutants:
+                        mutant_stru = mutate_stru(protein_stru, mutant, engine)
+                        name_tag = get_mutant_name_str(mutant)
+                        tag_structure_pairs[name_tag] = mutant_stru
+                    message = "Getting Mutant structure succeeded!"
+                except Exception as e:
+                    is_successful = False
+                    message = f"Getting Mutant structure failed due to Exception: {e}"
+            return is_successful, tag_structure_pairs, message
+        else:
+            return False, dict(), "This is not an individual or subordinate experiment."
 
     def get_mutants_pdb_string(self, engine: str = "pymol") -> Tuple[bool, dict, str]:
         """Get the PDB file string of the mutated structure.
@@ -633,19 +709,22 @@ class Experiment():
             mutant_pdb_filepath (str): The path to the mutant PDB file.
             message (str): The message describing the mutant construction.
         """
-        save_folder = path.join(self.directory, mutant_name.replace(" ", "_"))
-        fs.safe_mkdir(save_folder)
-        ref_pdb_path = path.join(save_folder, self.mutant_pdb_filename)
-        try:
-            # Construct the reference structure PDB file.
-            mutant = [generate_from_mutation_flag(mutation_str) for mutation_str in mutant_name.split("_")]
-            ref_stru = mutate_stru(sp.get_structure(self.pdb_filepath), mutant=mutant, engine=engine)
-            sp.save_structure(outfile=ref_pdb_path, stru=ref_stru)
-            return True, ref_pdb_path, f"The mutant `{mutant_name}` is constructed."
-        except Exception as e:
-            message = f"Exception raised when constructing the mutant `{mutant_name}`: {e}"
-            _LOGGER.error(message)
-            return False, str(), message
+        if (self.type != self.GROUP_TYPE):
+            save_folder = path.join(self.directory, mutant_name.replace(" ", "_"))
+            fs.safe_mkdir(save_folder)
+            ref_pdb_path = path.join(save_folder, self.mutant_pdb_filename)
+            try:
+                # Construct the reference structure PDB file.
+                mutant = [generate_from_mutation_flag(mutation_str) for mutation_str in mutant_name.split("_")]
+                ref_stru = mutate_stru(sp.get_structure(self.pdb_filepath), mutant=mutant, engine=engine)
+                sp.save_structure(outfile=ref_pdb_path, stru=ref_stru)
+                return True, ref_pdb_path, f"The mutant `{mutant_name}` is constructed."
+            except Exception as e:
+                message = f"Exception raised when constructing the mutant `{mutant_name}`: {e}"
+                _LOGGER.error(message)
+                return False, str(), message
+        else:
+            return False, "", "This is not an individual or subordinate experiment."
 
     def make_mutants_pdb_files(self, engine: str = "pymol") -> Tuple[bool, int, str]:
         """Make pdb files for all the mutants associated with this experiment.
@@ -659,24 +738,27 @@ class Experiment():
             mutant_count (int): The number of mutants PDB file.
             message (str): The message describing the updating.
         """
-        mutant_count = 0
-        fail_count = 0
-        is_successful, tag_structure_pairs, message = self.get_mutants_structure(engine)
-        if (is_successful):
-            for tag, structure in tag_structure_pairs.items():
-                try:
-                    pdb_filepath = sp.save_structure(
-                        outfile=path.join(self.directory, tag, self.mutant_pdb_filename), 
-                        stru=structure,
-                    )
-                    mutant_count += 1
-                except:
-                    _LOGGER.error(f"Failed to save file to {path.join(self.directory, tag, self.mutant_pdb_filename)}.")
-                    fail_count += 1
-                finally:
-                    continue
-            message = f"Mutant PDB file made: {mutant_count} success, {fail_count} failure."
-        return is_successful, mutant_count, message
+        if (self.type != self.GROUP_TYPE):
+            mutant_count = 0
+            fail_count = 0
+            is_successful, tag_structure_pairs, message = self.get_mutants_structure(engine)
+            if (is_successful):
+                for tag, structure in tag_structure_pairs.items():
+                    try:
+                        pdb_filepath = sp.save_structure(
+                            outfile=path.join(self.directory, tag, self.mutant_pdb_filename), 
+                            stru=structure,
+                        )
+                        mutant_count += 1
+                    except:
+                        _LOGGER.error(f"Failed to save file to {path.join(self.directory, tag, self.mutant_pdb_filename)}.")
+                        fail_count += 1
+                    finally:
+                        continue
+                message = f"Mutant PDB file made: {mutant_count} success, {fail_count} failure."
+            return is_successful, mutant_count, message
+        else:
+            return False, 0, "This is not an individual or subordinate experiment."
     
     def get_mutants_string_list(self) -> Tuple[bool, list, str]:
         """Get a list of mutant string concerning the current experiment instance.
@@ -686,12 +768,15 @@ class Experiment():
             mutant_string_list (list): A list of mutant string assigned by the mutation pattern. None if the pattern is invalid.
             message (str): The message describing the updating.
         """
-        mutant_string_list = list()
-        is_successful, mutants, message = self.get_mutants()
-        if (is_successful):
-            for mut in mutants:
-                mutant_string_list.append(get_mutant_name_str(mut))
-        return is_successful, mutant_string_list, message
+        if (self.type != self.GROUP_TYPE):
+            mutant_string_list = list()
+            is_successful, mutants, message = self.get_mutants()
+            if (is_successful):
+                for mut in mutants:
+                    mutant_string_list.append(get_mutant_name_str(mut))
+            return is_successful, mutant_string_list, message
+        else:
+            return False, list(), "This is not an individual or subordinate experiment."
 
     def update_mutation_pattern(self, mutation_pattern: str, freeze: bool = False) -> Tuple[bool, list, str]:
         """Update the mutation pattern of the current experiment instance.
@@ -707,16 +792,29 @@ class Experiment():
             message (str): The message describing the updating.
         """
         self.mutation_pattern = mutation_pattern
-        is_successful, mutant_string_list, message = self.get_mutants_string_list()
-        if (is_successful):
-            if (freeze):
-                self.mutation_pattern = ",".join(["{}{}{}".format("{", mutant.replace(" ", ","), "}") for mutant in mutant_string_list])
-            # db.experiments.update_one({"id": self.id}, {"$set": {"mutation_pattern": self.mutation_pattern, "updated_time": datetime.now()}})
-            updated_attrs, _, _, _ = self.update_attributes({"mutation_pattern": self.mutation_pattern})
+        if (self.type != self.GROUP_TYPE):
+            is_successful, mutant_string_list, message = self.get_mutants_string_list()
+            if (is_successful):
+                if (freeze):
+                    self.mutation_pattern = ",".join(["{}{}{}".format("{", mutant.replace(" ", ","), "}") for mutant in mutant_string_list])
+                # db.experiments.update_one({"id": self.id}, {"$set": {"mutation_pattern": self.mutation_pattern, "updated_time": datetime.now()}})
+                updated_attrs, _, _, _ = self.update_attributes({"mutation_pattern": self.mutation_pattern})
+                for sub_experiment in self.subordinate_experiments:
+                    sub_experiment.update_mutation_pattern(mutation_pattern, freeze)
+            message = message.replace("parsing", "update")
+            return is_successful, mutant_string_list, message
+        else:
+            freeze = False
+            group_successful = False
+            group_mutants_list = list()
+            group_messages = list()
             for sub_experiment in self.subordinate_experiments:
-                sub_experiment.update_mutation_pattern(mutation_pattern, freeze)
-        message = message.replace("parsing", "update")
-        return is_successful, mutant_string_list, message
+                is_successful, mutant_string_list, message = sub_experiment.update_mutation_pattern(mutation_pattern=self.mutation_pattern, freeze=freeze)
+                group_successful = is_successful or group_successful
+                group_mutants_list.append(mutant_string_list)
+                group_messages.append(message)
+                continue
+            return group_successful, group_mutants_list, group_messages
 
     #endregion
 
@@ -864,6 +962,94 @@ class Experiment():
             }
         )
         return is_successful
+
+    #endregion
+
+    #region Slurm Correspondence.
+
+    def post_slurm_job(self) -> Tuple[bool, int, str]:
+        """Posts a SLURM job to the server for execution.
+        
+        For non-group experiments, it validates the mutant count, resets job-related attributes, 
+        prepares the entry script content, and submits the job via SlurmJobData. 
+        Returns a tuple of (is_successful, HTTP status, message).
+        
+        For group experiments, it recursively posts jobs for all sub-experiments and 
+        returns the aggregated result (success if any sub-job succeeded, min status code, 
+        and the last message).
+        
+        Raises:
+            N/A
+        
+        Returns:
+            Tuple[bool, int, str]: (is_successful, HTTP status, message)
+        """
+        if (self.type != self.GROUP_TYPE):
+            experiment_mutant_count = self.mutant_count
+            if (experiment_mutant_count > MAX_MUTANT_COUNT):
+                return False, 429, f"The experiment contains {experiment_mutant_count} mutants, which exceeds the number that our server can support (no more than {MAX_MUTANT_COUNT}). Please deploy it to your or your institution's own cluster for computation."
+            else:
+                pass
+
+            _, _ = SlurmJobData.delete(self.slurm_job_uuid)
+            self.slurm_job_uuid = None
+            self.status = StatusCode.CANCELLED
+            self.progress = 0.0
+            self.update_attributes(
+                mapper={
+                    "status": self.status, 
+                    "slurm_job_uuid": self.slurm_job_uuid,
+                    "progress": self.progress,
+                }
+            )
+            slurm_request = SlurmJobRequest()
+
+            entry_script_content = Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute({
+                "slurm_user": SLURM_USER,
+                "username": User.get(self.user_id).username,
+                "app_host": APP_HOST,
+                "experiment_id": self.id,
+                "pdb_filename": self.pdb_filename,
+                "metrics": dumps(self.metrics),
+                "access_token": create_access_token(identity=self.user_id, expires_delta=TOKEN_EXPIRES_DELTA),
+                "mutation_pattern": self.mutation_pattern,
+                "constraints_str": dumps(self.constraints)
+            })
+
+            files = [
+                # md_entry_script_path,
+                SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH,
+                SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
+                self.pdb_filepath,
+            ]
+            status, message, job_uuid = SlurmJobData.post(
+                slurm_request=slurm_request, file_list=files,
+                # entry_script_filename=md_entry_script_path,
+                entry_script_content=entry_script_content,
+            )
+            
+            if (job_uuid):
+                self.slurm_job_uuid = job_uuid
+                self.status = StatusCode.PENDING
+            self.update_attributes(
+                mapper={
+                    "status": self.status, 
+                    "slurm_job_uuid": self.slurm_job_uuid
+                }
+            )
+            return bool(self.slurm_job_uuid), status, message
+        else:
+            group_successful = False
+            group_status = 400
+            group_message = ""
+            for sub_experiment in self.subordinate_experiments:
+                is_successful, status, message = sub_experiment.post_slurm_job()
+                group_successful = group_successful or is_successful
+                group_status = min(group_status, status)
+                group_message = message
+                continue
+            return group_successful, group_status, group_message
+
 
     #endregion
 

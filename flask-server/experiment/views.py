@@ -293,7 +293,7 @@ class IndexApi(Resource):
         experiment_type = int(request.form.get("type", Experiment.INDIVIDUAL_TYPE))
         description = request.form.get("description")
 
-        experiment = Experiment(user_id=user.id, name=name, type=experiment_type, description=description)
+        experiment = Experiment(user_id=user.id, name=name, experiment_type=experiment_type, description=description)
         db.experiments.insert_one(experiment.as_dict())
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user)
 
@@ -1205,90 +1205,30 @@ class SlurmCorrespondenceApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        if (experiment.slurm_job_uuid):
-            if (experiment.status not in StatusCode.error_including_pause_statuses):
-                response_info = ExperimentBehaviourResponseInfo(
-                    experiment=experiment,
-                    user=user,
-                    message="Slurm job is already submitted. You cannot submit another job unless you delete the current one.",
-                    is_authenticated=True,
-                    is_successful=False,
-                )
-                return Response(response=response_info.serialize(), status=409, mimetype=JSONIFY_MIMETYPE)
-            else:   # When the existing slurm job is exited with error, delete the current one.
-                _, _ = SlurmJobData.delete(experiment.slurm_job_uuid)
-                experiment.slurm_job_uuid = None
-                experiment.status = StatusCode.CANCELLED
-                experiment.progress = 0.0
-                experiment.update_attributes(
-                    mapper={
-                        "status": experiment.status, 
-                        "slurm_job_uuid": experiment.slurm_job_uuid,
-                        "progress": experiment.progress,
-                    }
-                )
-        elif not experiment.has_pdb_file:
+        if not experiment.has_pdb_file:
             return no_pdb_response()
         else:
             pass
         
-        experiment_mutant_count = experiment.mutant_count
-        if (experiment_mutant_count > MAX_MUTANT_COUNT):
+        if (experiment.status in StatusCode.queued_status):
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,
                 user=user,
-                message=f"The experiment contains {experiment_mutant_count} mutants, which exceeds the number that our server can support (no more than {MAX_MUTANT_COUNT}). Please deploy it to your or your institution's own cluster for computation.",
+                message="Slurm job is already submitted. You cannot submit another job unless you delete the current one.",
                 is_authenticated=True,
                 is_successful=False,
             )
-            return Response(response=response_info.serialize(), status=429, mimetype=JSONIFY_MIMETYPE)
-        else:
-            # is_successful, mutant_count, message = experiment.make_mutants_pdb_files()
-            pass
-
-        slurm_request = SlurmJobRequest()
-
-        entry_script_content = Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute({
-            "slurm_user": SLURM_USER,
-            "username": user.username,
-            "app_host": APP_HOST,
-            "experiment_id": experiment.id,
-            "pdb_filename": experiment.pdb_filename,
-            "metrics": dumps(experiment.metrics),
-            "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
-            "mutation_pattern": experiment.mutation_pattern,
-            "constraints_str": dumps(experiment.constraints)
-        })
-
-        files = [
-            # md_entry_script_path,
-            SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH,
-            SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
-            experiment.pdb_filepath,
-        ]
-        status, message, job_uuid = SlurmJobData.post(
-            slurm_request=slurm_request, file_list=files,
-            # entry_script_filename=md_entry_script_path,
-            entry_script_content=entry_script_content,
-        )
-        
-        if (job_uuid):
-            experiment.slurm_job_uuid = job_uuid
-            experiment.status = StatusCode.PENDING
-        experiment.update_attributes(
-            mapper={
-                "status": experiment.status, 
-                "slurm_job_uuid": experiment.slurm_job_uuid
-            }
-        )
+            return Response(response=response_info.serialize(), status=409, mimetype=JSONIFY_MIMETYPE)
+        else:   # When the existing slurm job is exited with error, delete the current one.
+            is_successful, status, message = experiment.post_slurm_job()
 
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
             user=user,
             message=message,
             is_authenticated=True,
-            is_successful=True if job_uuid else False,
-            slurm_job_uuid=job_uuid
+            is_successful=is_successful,
+            slurm_job_uuid=experiment.slurm_job_uuid if experiment.type != experiment.GROUP_TYPE else [exp.slurm_job_uuid for exp in experiment.subordinate_experiments]
         )
         return Response(response=response_info.serialize(), status=status, mimetype=JSONIFY_MIMETYPE)
 
