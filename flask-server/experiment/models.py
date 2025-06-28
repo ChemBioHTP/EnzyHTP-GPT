@@ -481,7 +481,10 @@ class Experiment():
                     )
                     fs.safe_cp(pdb_filepath, sub_experiment.pdb_filepath)
                     self.sub_experiment_ids.append(sub_experiment.id)
-
+                    db.experiments.insert_one(sub_experiment.as_dict())
+                    continue
+            else:
+                pass
         else:
             return False, False, "This is not a PDB file or Compressed file."
     
@@ -967,6 +970,9 @@ class Experiment():
 
     #region Slurm Correspondence.
 
+    # This region has some miners for group experiment. 
+    # If one subordinate succeeds, it will return success, which is unable to tell internal failure.
+
     def post_slurm_job(self) -> Tuple[bool, int, str]:
         """Posts a SLURM job to the server for execution.
         
@@ -1050,7 +1056,58 @@ class Experiment():
                 continue
             return group_successful, group_status, group_message
 
-
+    def delete_slurm_job(self) -> Tuple[bool, int, str]:
+        """Deletes the SLURM job associated with the current experiment.
+        
+        For non-group experiments, it deletes the job via SlurmJobData. 
+        Returns a tuple of (is_successful, HTTP status, message).
+        
+        For group experiments, it recursively deletes jobs for all sub-experiments and 
+        returns the aggregated result (success if any sub-job succeeded, min status code, 
+        and the last message).
+        
+        Raises:
+            N/A
+        
+        Returns:
+            Tuple[bool, int, str]: (is_successful, HTTP status, message)
+        """
+        is_successful = False
+        if (self.type != self.GROUP_TYPE):
+            if (self.slurm_job_uuid):
+                status, message = SlurmJobData.delete(self.slurm_job_uuid)
+                if (status == 200):
+                    self.slurm_job_uuid = None
+                    self.status = StatusCode.CANCELLED
+                elif (status == 404):
+                    message = "The Slurm Job record exists in the database but was erased in the cluster. Set Job UUID to None."
+                    is_successful = True
+                    status = 200
+                    self.slurm_job_uuid = None
+                    self.status = StatusCode.CANCELLED
+                else:
+                    pass
+                self.update_attributes(
+                    mapper={
+                        "status": self.status, 
+                        "slurm_job_uuid": self.slurm_job_uuid
+                    }
+                )
+                return is_successful, status, message
+            else:
+                message="Slurm job information is not contained in the current experiment."
+                return False, 404, message
+        else:
+            group_successful = False
+            group_status = 400
+            group_message = ""
+            for sub_experiment in self.subordinate_experiments:
+                is_successful, status, message = sub_experiment.delete_slurm_job()
+                group_successful = group_successful or is_successful
+                group_status = min(group_status, status)
+                group_message = message
+                continue
+            return group_successful, group_status, group_message
     #endregion
 
 

@@ -1149,6 +1149,17 @@ class SlurmCorrespondenceApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
+        if (experiment.type == experiment.GROUP_TYPE):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                message="Group experiment doesn't have Slurm job information.",
+                is_authenticated=True,
+                is_successful=False,
+            )
+            return Response(response=response_info.serialize(), status=404, mimetype=JSONIFY_MIMETYPE)
+
+        
         if (not experiment.slurm_job_uuid):
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,
@@ -1247,60 +1258,15 @@ class SlurmCorrespondenceApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
 
-        if (experiment.slurm_job_uuid):
-            status, message = SlurmJobData.delete(experiment.slurm_job_uuid)
-            if (status == 200):
-                response_info = ExperimentBehaviourResponseInfo(
-                    experiment=experiment,
-                    user=user,
-                    message=message,
-                    is_authenticated=True,
-                    is_successful=True,
-                )
-                experiment.slurm_job_uuid = None
-                experiment.status = StatusCode.CANCELLED
-                experiment.update_attributes(
-                    mapper={
-                        "status": experiment.status, 
-                        "slurm_job_uuid": experiment.slurm_job_uuid
-                    }
-                )
-            elif (status == 404):
-                response_info = ExperimentBehaviourResponseInfo(
-                    experiment=experiment,
-                    user=user,
-                    message="The Slurm Job record exists in the database but was erased in the cluster. Set Job UUID to None.",
-                    is_authenticated=True,
-                    is_successful=True,
-                )
-                status = 200
-                experiment.slurm_job_uuid = None
-                experiment.status = StatusCode.CANCELLED
-                experiment.update_attributes(
-                    mapper={
-                        "status": experiment.status, 
-                        "slurm_job_uuid": experiment.slurm_job_uuid
-                    }
-                )
-                # db.session.commit()
-            else:
-                response_info = ExperimentBehaviourResponseInfo(
-                    experiment=experiment,
-                    user=user,
-                    message=message,
-                    is_authenticated=True,
-                    is_successful=False,
-                )
-            return Response(response=response_info.serialize(), status=status, mimetype=JSONIFY_MIMETYPE)
-        else:
-            response_info = ExperimentBehaviourResponseInfo(
-                experiment=experiment,
-                user=user,
-                message="Slurm job information is not contained in the current experiment.",
-                is_authenticated=True,
-                is_successful=False,
-            )
-            return Response(response=response_info.serialize(), status=404, mimetype=JSONIFY_MIMETYPE)
+        is_successful, status, message = experiment.delete_slurm_job()
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment,
+            user=user,
+            message=message,
+            is_authenticated=True,
+            is_successful=is_successful,
+        )
+        return Response(response=response_info.serialize(), status=status, mimetype=JSONIFY_MIMETYPE)
 
 class SlurmTokenApi(Resource):
     """Route: `/slurm/token`."""
