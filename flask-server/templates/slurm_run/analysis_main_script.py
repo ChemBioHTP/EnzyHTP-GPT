@@ -23,7 +23,6 @@ from enzy_htp.analysis import binding_energy, rmsd, spi_metric
 from enzy_htp.core.clusters.accre_r9 import AccreR9
 from enzy_htp.structure import PDBParser, StructureEnsemble, Ligand
 from enzy_htp.structure.structure_selection import select_stru
-from enzy_htp.workflow.config import StatusCode
 
 app_host = environ.get("app_host")
 experiment_id = environ.get("experiment_id")
@@ -129,6 +128,7 @@ def post_result(experiment_id: str, mutant: str, replica_id: str, pdb_filename: 
             data=payload,
             timeout=30)
         if (response.ok):
+            _LOGGER.info(f"Result POST succeeded: {response.status_code}")
             return
         else:
             _LOGGER.warning(f"Result POST failed with error: {response.status_code}")

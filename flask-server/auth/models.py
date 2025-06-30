@@ -9,7 +9,7 @@
 '''
 
 # Here put the import lib.
-from __future__ import annotations  # To enable the annotation that a staticmethod of a class returns an instance of the class.
+from __future__ import annotations  # To enable the annotation that a staticmethod/classmethod of a class returns an instance of the class.
 from flask_login import UserMixin
 from flask_mail import Message
 from sqlalchemy import and_
@@ -56,8 +56,8 @@ class User(UserMixin):
     # admin = db.Column(db.Boolean, nullable=False, default=False)
     # is_active = db.Column(db.Boolean, nullable=False, default=True)
 
-    @staticmethod
-    def check_username(username: str) -> bool:
+    @classmethod
+    def check_username(cls, username: str) -> bool:
         """Check if the username is legal.
         
         Args:
@@ -72,8 +72,8 @@ class User(UserMixin):
         else:
             return False
 
-    @staticmethod
-    def __generate_password_hash(password_plaintext: str) -> str:
+    @classmethod
+    def __generate_password_hash(cls, password_plaintext: str) -> str:
         """Encrypt the password with SHA256.
 
         Args:
@@ -86,8 +86,8 @@ class User(UserMixin):
         password = sha256(password_plaintext.encode('utf-8')).hexdigest().lower()
         return password
 
-    @staticmethod
-    def get(id: str) -> User | None:
+    @classmethod
+    def get(cls, id: str) -> User | None:
         """Get user instance.
         
         Args:
@@ -100,8 +100,8 @@ class User(UserMixin):
         else:
             return None
         
-    @staticmethod
-    def get_by_email(email: str) -> User | None:
+    @classmethod
+    def get_by_email(cls, email: str) -> User | None:
         """Search for `User` instance by email.
         
         Args:
@@ -219,8 +219,8 @@ class User(UserMixin):
         dict_data = self.__dict__
         return dict_data
     
-    @staticmethod
-    def from_dict(user_dict: dict | None) -> User:
+    @classmethod
+    def from_dict(cls, user_dict: dict | None) -> User:
         """Build an user instance from a dict.
         
         Args:
@@ -253,8 +253,8 @@ class OAuthUser():
     # user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
     # user: User = db.relationship('User', backref=db.backref('oauth_users'))
 
-    @staticmethod
-    def camel_case_oauth_vendor(oauth_vendor: str) -> str:
+    @classmethod
+    def camel_case_oauth_vendor(cls, oauth_vendor: str) -> str:
         """Convert the name of OAuth Vendor to camel case  
         (e.g. GOOGLE -> Google, microsoft -> Microsoft).
         
@@ -269,8 +269,8 @@ class OAuthUser():
         else:
             return f'{oauth_vendor[0].upper()}{oauth_vendor[1:].lower()}'
 
-    @staticmethod
-    def get_by_email_and_vendor(email: str, oauth_vendor: str) -> OAuthUser | None:
+    @classmethod
+    def get_by_email_and_vendor(cls, email: str, oauth_vendor: str) -> OAuthUser | None:
         """Search for `OAuthUser` instance by email and vendor.
         
         Args:
@@ -310,8 +310,8 @@ class OAuthUser():
         dict_data = self.__dict__
         return dict_data
     
-    @staticmethod
-    def from_dict(oauth_user_dict: dict | None) -> OAuthUser:
+    @classmethod
+    def from_dict(cls, oauth_user_dict: dict | None) -> OAuthUser:
         """Build an OAuthUser instance from a dict.
         
         Args:
@@ -358,7 +358,7 @@ class VerificationCode():
         self.creation_time = kwargs.get("creation_time", datetime.now())
         self.expiration_time = kwargs.get("expiration_time", self.creation_time + timedelta(minutes=valid_minutes))
         self.is_used = kwargs.get("is_used", False)
-        self.verification_code = kwargs.get("verification_code", self.__class__.generate_verification_code(length))
+        self.verification_code = kwargs.get("verification_code", self.generate_verification_code(length))
         self.id = kwargs.get("id", str(uuid.uuid4()))
         return
 
@@ -377,7 +377,7 @@ class VerificationCode():
             "valid_mins": int((self.expiration_time - self.creation_time).total_seconds() / 60)
         })
         try:
-            email_obj = Message(subject=self.__class__.MAIL_SUBJECT, html=email_html)
+            email_obj = Message(subject=self.MAIL_SUBJECT, html=email_html)
             email_obj.add_recipient(user.email)
             mail.send(email_obj)
             return True
@@ -385,8 +385,8 @@ class VerificationCode():
             print(exc)
             return False
 
-    @staticmethod
-    def get_by_user_and_code(user: User, verification_code: str) -> VerificationCode | None:
+    @classmethod
+    def get_by_user_and_code(cls, user: User, verification_code: str) -> VerificationCode | None:
         """Search for `User` instance by email.
         
         Args:
@@ -403,8 +403,8 @@ class VerificationCode():
         else:
             return None
         
-    @staticmethod
-    def clean_expired_records() -> None:
+    @classmethod
+    def clean_expired_records(cls) -> None:
         """Clean up verification code records that have existed for more than a day."""
         current_time = datetime.now()
         time_checkpoint = current_time - timedelta(days=1)
@@ -412,8 +412,8 @@ class VerificationCode():
         db.verification_codes.delete_many({"creation_time": {"lte": time_checkpoint}})
         # db.session.commit()
 
-    @staticmethod
-    def generate_verification_code(length: int = 6) -> str:
+    @classmethod
+    def generate_verification_code(cls, length: int = 6) -> str:
         """Generate a verification, a combination of alphabets and numbers, with given length.
         
         Args:
@@ -433,8 +433,8 @@ class VerificationCode():
         dict_data = self.__dict__
         return dict_data
     
-    @staticmethod
-    def from_dict(verification_code_dict: dict | None) -> VerificationCode:
+    @classmethod
+    def from_dict(cls, verification_code_dict: dict | None) -> VerificationCode:
         """Build an VerificationCode instance from a dict.
         
         Args:

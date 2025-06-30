@@ -125,6 +125,26 @@ class MetricsPlannerAssistant(OpenAIAssistant):
                 "experiment": experiment
             },
         )
+        
+    def post_process(self, response_content: str, is_finishing: bool) -> str:
+        """Process the `response_content` from the agent.
+
+        Args:
+            response_content (str): The response from GPT.
+            is_finishing (bool): A flag indicating if the job of current agent can be completed.
+        
+        Returns:
+            processed_response_content (str): The response content after process.
+        """
+        initial_processed_response_content = super().post_process(response_content, is_finishing)
+
+        processed_response_content = initial_processed_response_content.replace(
+            "substrate_selection_pattern", "ligand"
+        ).replace(
+            "pocket_selection_pattern", "region_pattern"
+        )
+        return processed_response_content
+
 
     def pre_process(self, input_prompt: str):
         """Process the input prompt before sending to Metrics Planner Agent.

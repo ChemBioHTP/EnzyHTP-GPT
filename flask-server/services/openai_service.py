@@ -192,8 +192,8 @@ class FunctionParameter():
         """Set the name of the parameter."""
         self.key = value
 
-    @staticmethod
-    def parse_function_parameters(parameters_dict: dict) -> List[FunctionParameter]:
+    @classmethod
+    def parse_function_parameters(cls, parameters_dict: dict) -> List[FunctionParameter]:
         """Read the parameters information from the 'parameters' field of the function dictionary.
         
         Args:
@@ -474,7 +474,7 @@ class OpenAIAssistant(OpenAIChat):
         """
         try:
             if (self.conversation_mode):
-                is_successful = __class__.delete_thread(openai_secret_key=self.client.api_key, thread_id=self.__thread.id)
+                is_successful = self.delete_thread(openai_secret_key=self.client.api_key, thread_id=self.__thread.id)
                 if (is_successful):
                     self.thread = None
                 return is_successful
@@ -482,8 +482,8 @@ class OpenAIAssistant(OpenAIChat):
             return False
 
 
-    @staticmethod
-    def get_thread_messages(openai_secret_key: str, thread_id: str, limit: int = 20) -> Tuple[bool, List[Dict[str, str]]]:
+    @classmethod
+    def get_thread_messages(cls, openai_secret_key: str, thread_id: str, limit: int = 20) -> Tuple[bool, List[Dict[str, str]]]:
         """Get the messages of a thread with the given ID.
 
         Args:
@@ -513,8 +513,8 @@ class OpenAIAssistant(OpenAIChat):
         except:
             return False, list()
         
-    @staticmethod
-    def get_thread_summary(openai_secret_key: str, thread_id: str) -> Tuple[bool, str]:
+    @classmethod
+    def get_thread_summary(cls, openai_secret_key: str, thread_id: str) -> Tuple[bool, str]:
         """Summarize the information of a thread and extract key information.
         TODO (Zhong): Use regular expression to better extracting key information.
 
@@ -526,13 +526,13 @@ class OpenAIAssistant(OpenAIChat):
             is_successful (bool): Indidate if the messages are successfully retrieved and summarized.
             summary (str): The summarized message of the thread.
         """
-        is_successful, messages = __class__.get_thread_messages(openai_secret_key, thread_id)
+        is_successful, messages = cls.get_thread_messages(openai_secret_key, thread_id)
         assistant_messages = [message for message in messages if message.get("role", None) == "assistant"]
         summary = assistant_messages[-1].get("text_value", str())
         return is_successful, summary
 
-    @staticmethod
-    def delete_thread(openai_secret_key: str, thread_id: str):
+    @classmethod
+    def delete_thread(cls, openai_secret_key: str, thread_id: str):
         """Delete a thread with the given ID.
 
         Args:
@@ -553,8 +553,8 @@ class OpenAIAssistant(OpenAIChat):
         except (Exception):
             return False
         
-    @staticmethod
-    def delete_threads(openai_secret_key: str, thread_id_list: List[str]):
+    @classmethod
+    def delete_threads(cls, openai_secret_key: str, thread_id_list: List[str]):
         """Delete a thread with the given ID.
 
         Args:
@@ -568,7 +568,7 @@ class OpenAIAssistant(OpenAIChat):
         is_successful = True
         deleted_thread_id_list = list()
         for thread_id in thread_id_list:
-            is_deleted = __class__.delete_thread(openai_secret_key=openai_secret_key, thread_id=thread_id)
+            is_deleted = cls.delete_thread(openai_secret_key=openai_secret_key, thread_id=thread_id)
             if (is_deleted):
                 deleted_thread_id_list.append(thread_id)
             else:
@@ -664,7 +664,7 @@ class OpenAIAssistant(OpenAIChat):
                 thread = self.client.beta.threads.create()
                 self.__run_thread(prompt=prompt, thread=thread)
                 response_content = self.__retrieve_response_content(thread=thread)
-                _ = __class__.delete_thread(openai_secret_key=self.client.api_key, thread_id=thread.id)
+                _ = self.delete_thread(openai_secret_key=self.client.api_key, thread_id=thread.id)
             
             # Successfully received a response from OpenAI.
             return (True, 200, response_content)

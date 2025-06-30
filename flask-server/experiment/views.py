@@ -25,6 +25,7 @@ from werkzeug.datastructures import ImmutableMultiDict
 
 # Here put local imports.
 from .models import Experiment, Result
+from .experiment_config import StatusCode
 from auth.models import User
 from auth.views import (
     unauth_handler as unauth_handler_in_auth, 
@@ -57,7 +58,6 @@ from config import (
 from services import image_path_to_src
 
 # Here put enzy_htp modules.
-from enzy_htp.workflow.config import StatusCode
 from enzy_htp.core import (
     file_system as fs,
     _LOGGER
@@ -97,16 +97,18 @@ class ExperimentIndexResponse():
         for exp in experiments:
             exp_dict = exp.as_dict(stringfy_time=True)
             del exp_dict["user_id"]
+            if ("chat_messages") in exp_dict.keys():
+                del exp_dict["chat_messages"]
             exp_dict["status_text"] = StatusCode.status_text_mapper.get(exp.status)
             self.experiments.append(exp_dict)
             continue
 
-        items_on_page = items_on_page if (items_on_page > 0) else __class__.default_items_on_page
+        items_on_page = items_on_page if (items_on_page > 0) else self.default_items_on_page
         self.page_count = (len(experiments)-1) // items_on_page + 1
         self.page_index = page_index if (page_index <= self.page_count) else self.page_count
         if (self.experiments):
             if (not hasattr(experiments[0], order_by)):
-                order_by = __class__.default_order_by_field
+                order_by = self.default_order_by_field
             self.experiments = sorted(self.experiments, key=lambda x: x[order_by], reverse=reverse)
             starting_item_index = (self.page_index - 1) * items_on_page
             ending_item_index = (self.page_index * items_on_page + 1) if (self.page_index < self.page_count) else len(self.experiments)
@@ -288,10 +290,10 @@ class IndexApi(Resource):
         user: User = current_user
         
         name = request.form.get("name", f"{user.username}'s experiment")
-        experiment_type = int(request.form.get("type", -1))
+        experiment_type = int(request.form.get("type", Experiment.INDIVIDUAL_TYPE))
         description = request.form.get("description")
 
-        experiment = Experiment(user_id=user.id, name=name, type=experiment_type, description=description)
+        experiment = Experiment(user_id=user.id, name=name, experiment_type=experiment_type, description=description)
         db.experiments.insert_one(experiment.as_dict())
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user)
 
@@ -331,6 +333,24 @@ class IndexApi(Resource):
             return notfound_response(user, experiment_id)
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
+        
+        if (experiment.type == experiment.GROUP_TYPE):
+            delete_flag = True
+            for sub_exp in experiment.subordinate_experiments:
+                if (sub_exp.status in StatusCode.queued_status):
+                    delete_flag = False
+                continue
+            if (delete_flag):
+                for sub_exp in experiment.subordinate_experiments:
+                    sub_exp.clear_folder(remove_folder=True)
+                    db.experiments.delete_one({"id": sub_exp.id})
+                    db.results.delete_many({"experiment_id": sub_exp.id})
+                    continue
+            else:
+                response_info = ExperimentBehaviourResponseInfo(experiment, user,
+                    is_successful=False, 
+                    message=f"The experiment instance '{experiment_id}' hasn't completed or exited, which is unable to be deleted.")
+                return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
         
         if (experiment.status in StatusCode.queued_status):
             response_info = ExperimentBehaviourResponseInfo(experiment, user,
@@ -669,14 +689,12 @@ class DownloadableApi(Resource):
             return forbidden_response(user, experiment)
         
         deploy_pack_io = BytesIO()
-        deploy_pack_zip = ZipFile(deploy_pack_io, "w")
-
-        deploy_pack_zip.write(experiment.pdb_filepath, arcname=experiment.pdb_filename, compress_type=ZIP_DEFLATED)   # Add PDB file into zip.
+        with ZipFile(deploy_pack_io, "w") as deploy_pack_zip:
+            deploy_pack_zip.write(experiment.pdb_filepath, arcname=experiment.pdb_filename, compress_type=ZIP_DEFLATED)   # Add PDB file into zip.
         
-        deploy_pack_zip.close()
         deploy_pack_io.seek(0)
         zipfile_prefix = re.sub(r'[\\/:"*?<>|]', "", experiment.name)
-        return send_file(deploy_pack_io, mimetype="application/zip", as_attachment=True, download_name=f"{zipfile_prefix} Downloadable Files.zip")
+        return send_file(deploy_pack_io, mimetype="application/zip", as_attachment=True, download_name=f"{zipfile_prefix} Downloadables.zip")
 
 class PdbFileApi(Resource):
     """Route: `/<experiment_id>/pdb_file`"""
@@ -712,7 +730,7 @@ class PdbFileApi(Resource):
             experiment_id (str): The identifier of an experiment instance.
         """
         user: User = current_user
-        experiment = Experiment.get(experiment_id)
+        experiment: Experiment = Experiment.get(experiment_id)
         message = str()
         is_updated = False
 
@@ -725,9 +743,11 @@ class PdbFileApi(Resource):
         force_update = request.form.get("force", True) # Whether to skip verification and force update of PDB files.
         is_updated, is_supported, message = experiment.update_pdb(pdb_file=pdb_file, force_update=force_update)
 
-        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment, user=user,
             is_successful=is_updated,
-            message=message)
+            message=message,
+        )
         return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
 class MutationApi(Resource):
@@ -1147,6 +1167,17 @@ class SlurmCorrespondenceApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
+        if (experiment.type == experiment.GROUP_TYPE):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                message="Group experiment doesn't have Slurm job information.",
+                is_authenticated=True,
+                is_successful=False,
+            )
+            return Response(response=response_info.serialize(), status=404, mimetype=JSONIFY_MIMETYPE)
+
+        
         if (not experiment.slurm_job_uuid):
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,
@@ -1203,90 +1234,30 @@ class SlurmCorrespondenceApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        if (experiment.slurm_job_uuid):
-            if (experiment.status not in StatusCode.error_including_pause_statuses):
-                response_info = ExperimentBehaviourResponseInfo(
-                    experiment=experiment,
-                    user=user,
-                    message="Slurm job is already submitted. You cannot submit another job unless you delete the current one.",
-                    is_authenticated=True,
-                    is_successful=False,
-                )
-                return Response(response=response_info.serialize(), status=409, mimetype=JSONIFY_MIMETYPE)
-            else:   # When the existing slurm job is exited with error, delete the current one.
-                _, _ = SlurmJobData.delete(experiment.slurm_job_uuid)
-                experiment.slurm_job_uuid = None
-                experiment.status = StatusCode.CANCELLED
-                experiment.progress = 0.0
-                experiment.update_attributes(
-                    mapper={
-                        "status": experiment.status, 
-                        "slurm_job_uuid": experiment.slurm_job_uuid,
-                        "progress": experiment.progress,
-                    }
-                )
-        elif not experiment.has_pdb_file:
+        if not experiment.has_pdb_file:
             return no_pdb_response()
         else:
             pass
         
-        experiment_mutant_count = experiment.mutant_count
-        if (experiment_mutant_count > MAX_MUTANT_COUNT):
+        if (experiment.status in StatusCode.queued_status):
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,
                 user=user,
-                message=f"The experiment contains {experiment_mutant_count} mutants, which exceeds the number that our server can support (no more than {MAX_MUTANT_COUNT}). Please deploy it to your or your institution's own cluster for computation.",
+                message="Slurm job is already submitted. You cannot submit another job unless you delete the current one.",
                 is_authenticated=True,
                 is_successful=False,
             )
-            return Response(response=response_info.serialize(), status=429, mimetype=JSONIFY_MIMETYPE)
-        else:
-            # is_successful, mutant_count, message = experiment.make_mutants_pdb_files()
-            pass
-
-        slurm_request = SlurmJobRequest()
-
-        entry_script_content = Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute({
-            "slurm_user": SLURM_USER,
-            "username": user.username,
-            "app_host": APP_HOST,
-            "experiment_id": experiment.id,
-            "pdb_filename": experiment.pdb_filename,
-            "metrics": dumps(experiment.metrics),
-            "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
-            "mutation_pattern": experiment.mutation_pattern,
-            "constraints_str": dumps(experiment.constraints)
-        })
-
-        files = [
-            # md_entry_script_path,
-            SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH,
-            SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
-            experiment.pdb_filepath,
-        ]
-        status, message, job_uuid = SlurmJobData.post(
-            slurm_request=slurm_request, file_list=files,
-            # entry_script_filename=md_entry_script_path,
-            entry_script_content=entry_script_content,
-        )
-        
-        if (job_uuid):
-            experiment.slurm_job_uuid = job_uuid
-            experiment.status = StatusCode.PENDING
-        experiment.update_attributes(
-            mapper={
-                "status": experiment.status, 
-                "slurm_job_uuid": experiment.slurm_job_uuid
-            }
-        )
+            return Response(response=response_info.serialize(), status=409, mimetype=JSONIFY_MIMETYPE)
+        else:   # When the existing slurm job is exited with error, delete the current one.
+            is_successful, status, message = experiment.post_slurm_job()
 
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
             user=user,
             message=message,
             is_authenticated=True,
-            is_successful=True if job_uuid else False,
-            slurm_job_uuid=job_uuid
+            is_successful=is_successful,
+            slurm_job_uuid=experiment.slurm_job_uuid if experiment.type != experiment.GROUP_TYPE else [exp.slurm_job_uuid for exp in experiment.subordinate_experiments]
         )
         return Response(response=response_info.serialize(), status=status, mimetype=JSONIFY_MIMETYPE)
 
@@ -1305,60 +1276,15 @@ class SlurmCorrespondenceApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
 
-        if (experiment.slurm_job_uuid):
-            status, message = SlurmJobData.delete(experiment.slurm_job_uuid)
-            if (status == 200):
-                response_info = ExperimentBehaviourResponseInfo(
-                    experiment=experiment,
-                    user=user,
-                    message=message,
-                    is_authenticated=True,
-                    is_successful=True,
-                )
-                experiment.slurm_job_uuid = None
-                experiment.status = StatusCode.CANCELLED
-                experiment.update_attributes(
-                    mapper={
-                        "status": experiment.status, 
-                        "slurm_job_uuid": experiment.slurm_job_uuid
-                    }
-                )
-            elif (status == 404):
-                response_info = ExperimentBehaviourResponseInfo(
-                    experiment=experiment,
-                    user=user,
-                    message="The Slurm Job record exists in the database but was erased in the cluster. Set Job UUID to None.",
-                    is_authenticated=True,
-                    is_successful=True,
-                )
-                status = 200
-                experiment.slurm_job_uuid = None
-                experiment.status = StatusCode.CANCELLED
-                experiment.update_attributes(
-                    mapper={
-                        "status": experiment.status, 
-                        "slurm_job_uuid": experiment.slurm_job_uuid
-                    }
-                )
-                # db.session.commit()
-            else:
-                response_info = ExperimentBehaviourResponseInfo(
-                    experiment=experiment,
-                    user=user,
-                    message=message,
-                    is_authenticated=True,
-                    is_successful=False,
-                )
-            return Response(response=response_info.serialize(), status=status, mimetype=JSONIFY_MIMETYPE)
-        else:
-            response_info = ExperimentBehaviourResponseInfo(
-                experiment=experiment,
-                user=user,
-                message="Slurm job information is not contained in the current experiment.",
-                is_authenticated=True,
-                is_successful=False,
-            )
-            return Response(response=response_info.serialize(), status=404, mimetype=JSONIFY_MIMETYPE)
+        is_successful, status, message = experiment.delete_slurm_job()
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment,
+            user=user,
+            message=message,
+            is_authenticated=True,
+            is_successful=is_successful,
+        )
+        return Response(response=response_info.serialize(), status=status, mimetype=JSONIFY_MIMETYPE)
 
 class SlurmTokenApi(Resource):
     """Route: `/slurm/token`."""

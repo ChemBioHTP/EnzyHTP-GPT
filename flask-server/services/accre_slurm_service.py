@@ -10,7 +10,7 @@ Vanderbilt University ACCRE Slurm correspondence.
 '''
 
 # Here put the import lib.
-from __future__ import annotations  # To enable the annotation that a staticmethod of a class returns an instance of the class.
+from __future__ import annotations  # To enable the annotation that a staticmethod/classmethod of a class returns an instance of the class.
 from io import TextIOWrapper
 from json import dumps
 from os.path import basename, isfile
@@ -116,8 +116,8 @@ class SlurmJobRequest:
         # dict_to_serialize["time"] = f"{self.time.days}-{self.time.seconds//3600}:{(self.time.seconds % 3600) // 60}:{self.time.seconds%60}"
         return dumps(dict_to_serialize)
     
-    @staticmethod
-    def get_slurm_token() -> Tuple[bool, str, str]:
+    @classmethod
+    def get_slurm_token(cls) -> Tuple[bool, str, str]:
         """Get the slurm token dict from database.
         
         Returns:
@@ -125,7 +125,7 @@ class SlurmJobRequest:
             token (str): The token string.
             refresh_token (str): The refresh_token string.
         """
-        token_dict: dict = db.tokens.find_one({"name": __class__.SLURM_TOKEN_NAME})
+        token_dict: dict = db.tokens.find_one({"name": cls.SLURM_TOKEN_NAME})
         if (token_dict is not None):
             token = token_dict.get("token", str())
             refresh_token = token_dict.get("refresh_token", str())
@@ -133,8 +133,8 @@ class SlurmJobRequest:
         else:
             return False, str(), str()
 
-    @staticmethod
-    def is_token_newer(new_token: str, old_token: str = str()) -> bool:
+    @classmethod
+    def is_token_newer(cls, new_token: str, old_token: str = str()) -> bool:
         """Compare the issue time between the new token and the old token (JWT).
         
         Args:
@@ -168,8 +168,8 @@ class SlurmJobRequest:
             print(exc)
             return False
         
-    @staticmethod
-    def newer_token(new_token: str, old_token: str = str()) -> Tuple[str, bool]:
+    @classmethod
+    def newer_token(cls, new_token: str, old_token: str = str()) -> Tuple[str, bool]:
         """Return the newer token between the 2 tokens.
         
         Args:
@@ -180,14 +180,14 @@ class SlurmJobRequest:
             token (str): The newerly-issued token.
             is_updated (bool): A flag indicating if the token is updated.
         """
-        if (__class__.is_token_newer(new_token, old_token)):
+        if (cls.is_token_newer(new_token, old_token)):
             # Keep the newer token.
             return new_token, True
         else:
             return old_token, False
 
-    @staticmethod
-    def update_slurm_tokens(token: str = str(), refresh_token: str = str()) -> Tuple[bool, ]:
+    @classmethod
+    def update_slurm_tokens(cls, token: str = str(), refresh_token: str = str()) -> Tuple[bool, ]:
         """Update the token and refresh_token of Vanderbilt ACCRE Slurm API.
 
         Args:
@@ -198,19 +198,19 @@ class SlurmJobRequest:
             is_updated (bool): Flag indicating if any updates take place.
             message (str): Message describing the result.
         """
-        if_exist, old_token, old_refresh_token = __class__.get_slurm_token()
-        token_dict = {"name": __class__.SLURM_TOKEN_NAME}
+        if_exist, old_token, old_refresh_token = cls.get_slurm_token()
+        token_dict = {"name": cls.SLURM_TOKEN_NAME}
         is_token_updated = False    # Indicate if `token` is updated.
         is_refresh_updated = False  # Indicate if `refresh_token` is updated.
         if (if_exist):  # If record exists, update it.
-            token_dict["token"], is_token_updated = __class__.newer_token(token, old_token)
-            token_dict["refresh_token"], is_refresh_updated = __class__.newer_token(refresh_token, old_refresh_token)
-            db.tokens.update_one({"name": __class__.SLURM_TOKEN_NAME}, {"$set": token_dict})
+            token_dict["token"], is_token_updated = cls.newer_token(token, old_token)
+            token_dict["refresh_token"], is_refresh_updated = cls.newer_token(refresh_token, old_refresh_token)
+            db.tokens.update_one({"name": cls.SLURM_TOKEN_NAME}, {"$set": token_dict})
         else:       # If no record, insert a new one.
             if (token):
-                token_dict["token"], is_token_updated = __class__.newer_token(token)
+                token_dict["token"], is_token_updated = cls.newer_token(token)
             if (refresh_token):
-                token_dict["refresh_token"], is_refresh_updated = __class__.newer_token(refresh_token)
+                token_dict["refresh_token"], is_refresh_updated = cls.newer_token(refresh_token)
             db.tokens.insert_one(token_dict)
         if (not is_token_updated and not is_refresh_updated):
             return False, "Neither token nor refresh_token is updated."
@@ -221,8 +221,8 @@ class SlurmJobRequest:
         elif (is_token_updated and is_refresh_updated):
             return True, "Both token and refresh_token are updated."
 
-    @staticmethod
-    def refresh_slurm_token() -> Tuple[bool, int, str]:
+    @classmethod
+    def refresh_slurm_token(cls) -> Tuple[bool, int, str]:
         """Refresh the SLURM token with refresh_token.
         
         Returns:
@@ -231,7 +231,7 @@ class SlurmJobRequest:
             message (str): Message describing the result.
         """
         refresh_token_url = f"{SLURM_HOST}/auth/token/refresh"
-        _, old_token, old_refresh_token = __class__.get_slurm_token()
+        _, old_token, old_refresh_token = cls.get_slurm_token()
         if (not old_token or not old_refresh_token):
             return False, 403, "Empty token or refresh_token."
         headers = {
@@ -245,7 +245,7 @@ class SlurmJobRequest:
                 refresh_token_data_dict = response_dict.get("data", dict())
                 new_refresh_token = refresh_token_data_dict.get("refresh_token", "")
                 new_token = refresh_token_data_dict.get("token", "")
-                is_updated, message = __class__.update_slurm_tokens(token=new_token, refresh_token=new_refresh_token)
+                is_updated, message = cls.update_slurm_tokens(token=new_token, refresh_token=new_refresh_token)
                 return is_updated, response.status_code, message
             else:
                 return False, 200, response_dict.get("message")
@@ -290,8 +290,8 @@ class SlurmJobData:
         self.failure_reason = failure_reason
         self.kwargs = kwargs
         
-    @staticmethod
-    def get(id: str) -> Tuple[int, SlurmJobData] | None:
+    @classmethod
+    def get(cls, id: str) -> Tuple[int, SlurmJobData] | None:
         """Get the information of a specific slurm job.
         
         Args:
@@ -309,7 +309,7 @@ class SlurmJobData:
         if (response.ok):
             response_dict: dict = loads(response.text)
             slurm_job_data_dict = response_dict.get("data", dict())
-            slurm_job_data = __class__(**slurm_job_data_dict)
+            slurm_job_data = cls(**slurm_job_data_dict)
             return 200, slurm_job_data
         else:
             return response.status_code, None
@@ -401,8 +401,8 @@ class SlurmJobData:
             message = "Slurm token doesn't exist. Please contact the website administrator."
             return 403, message, None
 
-    @staticmethod
-    def delete(id: str) -> Tuple[int, str]:
+    @classmethod
+    def delete(cls, id: str) -> Tuple[int, str]:
         """Delete a specific slurm job.
         
         Args:
@@ -416,7 +416,7 @@ class SlurmJobData:
         headers = {
             "Authorization": f"Bearer {token}"
         }
-        status, job_data = __class__.get(id)
+        status, job_data = cls.get(id)
         if (status != 200):
             return 404, "Unable to delete the Slurm Job. The target job doesn't exist."
 

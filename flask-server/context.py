@@ -39,6 +39,9 @@ jwt = JWTManager()
 from flask_mail import Mail
 mail = Mail()
 
+from flask_apscheduler import APScheduler
+scheduler = APScheduler()
+
 # Set SSL Context
 import ssl
 ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
