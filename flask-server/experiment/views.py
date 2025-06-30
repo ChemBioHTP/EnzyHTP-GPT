@@ -334,6 +334,24 @@ class IndexApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
+        if (experiment.type == experiment.GROUP_TYPE):
+            delete_flag = True
+            for sub_exp in experiment.subordinate_experiments:
+                if (sub_exp.status in StatusCode.queued_status):
+                    delete_flag = False
+                continue
+            if (delete_flag):
+                for sub_exp in experiment.subordinate_experiments:
+                    sub_exp.clear_folder(remove_folder=True)
+                    db.experiments.delete_one({"id": sub_exp.id})
+                    db.results.delete_many({"experiment_id": sub_exp.id})
+                    continue
+            else:
+                response_info = ExperimentBehaviourResponseInfo(experiment, user,
+                    is_successful=False, 
+                    message=f"The experiment instance '{experiment_id}' hasn't completed or exited, which is unable to be deleted.")
+                return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
+        
         if (experiment.status in StatusCode.queued_status):
             response_info = ExperimentBehaviourResponseInfo(experiment, user,
                 is_successful=False, 
