@@ -638,7 +638,6 @@ class ResultApi(Resource):
         
         experiment_results = Result.get_experiment_results(experiment_id=experiment_id)
         result_images = [image_path_to_src(path) for path in PLHD_RESULT_IMG_PATHS]
-        print(experiment_results)
 
         if (not experiment.result_interpretation):
             result_explainer = ResultExplainerAssistant(
