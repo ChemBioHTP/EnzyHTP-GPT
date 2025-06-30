@@ -131,6 +131,7 @@ class Experiment():
 
         self.group_experiment_id = kwargs.get("group_experiment_id", None)
         self.sub_experiment_ids = kwargs.get("sub_experiment_ids", list() if self.type == self.GROUP_TYPE else None)
+        self.result_interpretation = kwargs.get("result_interpretation", None)
     
     @classmethod
     def get(cls, id: str) -> Experiment | None:
@@ -1191,28 +1192,38 @@ class Result():
     
     @classmethod
     def get_experiment_results(cls, experiment_id: str) -> List[Dict[str, Any]]:
-        """Get a list of results of an Experiment instance with designated `experiment_id`.
-        For each mutant, the value of the analysis data will be the average of all its replica.
-        
+        """Get a list of averaged results of an Experiment by `experiment_id`.
+        Results are grouped by (mutant, pdb_filename), and NaN values are skipped in averaging.
+
         Args:
-            experiment_id (str): The `id` to identify an experiment.
+            experiment_id (str): The ID of the experiment.
 
         Returns:
-            experiment_results (List[Dict[str, Any]]): A list of results of an Experiment instance.
+            experiment_results (List[Dict[str, Any]]): A list of aggregated results.
         """
+        # Load all records of the experiment from MongoDB
         results_cursor = db.results.find({"experiment_id": experiment_id})
         result_df = DataFrame([result for result in results_cursor])
 
-        if (not len(result_df)):
-            return list()
+        if result_df.empty:
+            return []
 
-        keep_columns = list(METRICS_MAPPER.keys())
-        keep_columns.append("mutant")
+        # Keep only relevant columns: metrics + identifiers
+        metrics_cols = list(METRICS_MAPPER.keys())
+        identifier_cols = ["mutant", "pdb_filename"]
+        keep_cols = identifier_cols + metrics_cols
+        result_df = result_df[keep_cols]
 
-        result_df = result_df[keep_columns]
-        result_df_group = result_df.groupby(["mutant"]).mean()
+        # Group by mutant and pdb_filename, then compute mean (ignores NaNs)
+        grouped_df = (
+            result_df
+            .groupby(identifier_cols, dropna=False)
+            .mean(numeric_only=True)
+            .reset_index()
+        )
 
-        return result_df_group.agg(lambda x: x.tolist()).reset_index().to_dict(orient="records")
+        # Convert to list of dictionaries
+        return grouped_df.to_dict(orient="records")
 
     def insert_or_update(self):
         """Insert or Update the current Result instance to the database."""

@@ -26,6 +26,7 @@ from werkzeug.datastructures import ImmutableMultiDict
 # Here put local imports.
 from .models import Experiment, Result
 from .experiment_config import StatusCode
+from .agents import ResultExplainerAssistant
 from auth.models import User
 from auth.views import (
     unauth_handler as unauth_handler_in_auth, 
@@ -638,6 +639,14 @@ class ResultApi(Resource):
         experiment_results = Result.get_experiment_results(experiment_id=experiment_id)
         result_images = [image_path_to_src(path) for path in PLHD_RESULT_IMG_PATHS]
 
+        if (not experiment.result_interpretation):
+            result_explainer = ResultExplainerAssistant(
+                openai_secret_key=user.openai_secret_key, 
+                conversation_mode=False,
+                experiment=experiment
+            )
+            experiment.result_interpretation = result_explainer.ask_gpt(prompt=dumps(experiment_results))
+
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
             user=user,
@@ -645,7 +654,7 @@ class ResultApi(Resource):
             is_successful=(True if experiment_results else False),
             experiment_results=experiment_results,
             result_images=result_images,
-            result_interpretation=PLHD_RESULT_INTERPRETATION,
+            result_interpretation=experiment.result_interpretation,
             downloadable_files=experiment.downloadable_files()
         )
         return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)

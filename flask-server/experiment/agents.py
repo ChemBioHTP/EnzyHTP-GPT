@@ -275,6 +275,48 @@ class MutantPlannerAssistant(OpenAIAssistant):
             processed_response_content = initial_processed_response_content   # by default result as is after stripping
             return processed_response_content
 
+class ResultExplainerAssistant(OpenAIAssistant):
+    """The agent acting as a Result Explainer."""
+    
+    experiment: Experiment
+    # completion_message: str = "Experiment has been set up successfully!"
+
+    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
+        """
+        Initializes the MutantPlannerAssistant agent with the OpenAI API key.
+
+        Args:
+            openai_secret_key (str): API key for accessing OpenAI services.
+            thread_id (str, optional): The identifier of a context thread, which can be referenced in OpenAI API endpoints.
+            conversation_mode (bool): If True, retains the conversation context. Default is False.
+            experiment (Experiment): The Experiment instance calling this assistant.
+        """
+        self.experiment = experiment
+        instructions = str()
+        tools = list()
+        with open(path.join(PROMPTS_DIRECTORY, "result_explainer.txt")) as fobj:
+            instructions = fobj.read()
+        with open(path.join(PROMPTS_DIRECTORY, "result_explainer_functions.json")) as json_fobj:
+            tool_functions: List[dict] = load(json_fobj)
+            tools = [
+                {
+                    "type": "function",
+                    "function": tool_function
+                } for tool_function in tool_functions
+            ]
+        super().__init__(openai_secret_key, 
+            assistant_name="Result Explainer", 
+            instructions=instructions, 
+            model=MODEL_VERSION,
+            tools=tools,
+            tool_function_mapper=TOOL_FUNCTION_MAPPER,
+            thread_id=thread_id,
+            conversation_mode=conversation_mode,
+            tool_function_callable_kwargs={
+                "experiment": experiment
+            },
+        )
+
 class TimezoneConsultantAssistant(OpenAIAssistant):
     """The agent acting as a Time Zone Consultant.
     The agent is for test use only.
