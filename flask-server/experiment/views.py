@@ -638,6 +638,7 @@ class ResultApi(Resource):
         
         experiment_results = Result.get_experiment_results(experiment_id=experiment_id)
         result_images = [image_path_to_src(path) for path in PLHD_RESULT_IMG_PATHS]
+        print(experiment_results)
 
         if (not experiment.result_interpretation):
             result_explainer = ResultExplainerAssistant(
@@ -645,7 +646,7 @@ class ResultApi(Resource):
                 conversation_mode=False,
                 experiment=experiment
             )
-            experiment.result_interpretation = result_explainer.ask_gpt(prompt=dumps(experiment_results))
+            is_valid, status, experiment.result_interpretation = result_explainer.ask_gpt(prompt=dumps(experiment_results))
 
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
