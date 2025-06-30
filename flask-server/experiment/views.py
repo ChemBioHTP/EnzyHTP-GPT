@@ -646,6 +646,7 @@ class ResultApi(Resource):
                 experiment=experiment
             )
             is_valid, status, experiment.result_interpretation = result_explainer.ask_gpt(prompt=dumps(experiment_results))
+            experiment.update_attributes({"result_interpretation": experiment.result_interpretation})
 
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
