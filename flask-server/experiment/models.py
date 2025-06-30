@@ -1201,10 +1201,23 @@ class Result():
         Returns:
             experiment_results (List[Dict[str, Any]]): A list of aggregated results.
         """
+        result_list = []
         # Load all records of the experiment from MongoDB
-        results_cursor = db.results.find({"experiment_id": experiment_id})
-        result_df = DataFrame([result for result in results_cursor])
+        experiment = Experiment.get(experiment_id)
 
+        if (not experiment):
+            pass
+        else:
+            if (experiment.type == Experiment.GROUP_TYPE):
+                for sub_experiment in experiment.subordinate_experiments:
+                    results_cursor = db.results.find({"experiment_id": sub_experiment.id})
+                    result_list.extend(result for result in results_cursor)
+                    continue
+            else:
+                results_cursor = db.results.find({"experiment_id": experiment_id})
+                result_list = [result for result in results_cursor]
+
+        result_df = DataFrame(result_list)
         if result_df.empty:
             return []
 
