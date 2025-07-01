@@ -11,6 +11,7 @@ OpenAI (ChatGPT) correspondence.
 
 # Here put the import lib.
 from __future__ import annotations
+import time
 from typing import Any, Callable, Tuple, Dict, List
 from typing_extensions import override
 
@@ -553,27 +554,57 @@ class OpenAIAssistant(OpenAIChat):
             stream.until_done()
         return
 
-    def __retrieve_response_content(self, thread: Thread = None):
-        """Wait for the completion of the Run instance and retrieve its response content.
-        
+    def __retrieve_response_content(
+            self, 
+            thread: Thread = None, 
+            wait_seconds: float = 0.5,
+            num_tol: int = 3,
+        ):
+        """Block until an assistant message appears in the thread or timeout.
+
         Args:
-            thread (Thread, optional): The thread instance where the conversation to be held. Default None.
-                                    If the assistant is not in conversation_mode, the thread instance should be provided.
+            thread (Thread, optional): The thread whose messages to inspect.
+            wait_seconds (float): Max seconds to wait for assistant reply.
+            num_tol (float): number of trials for getting assistant reply.
 
         Returns:
-            response_content (str): The response content from GPT.
+            str: The text content of the first assistant message (most-recent).
+
+        Raises:
+            RuntimeError: If no assistant message is found within `timeout`.
         """
         if (thread == None and self.conversation_mode):
             thread = self.thread
         elif (thread == None and not self.conversation_mode):
-            raise Exception("The Thread instance should be provided if the assistant is not in conversation_mode.")
+            raise ValueError("The Thread instance should be provided if the assistant is not in conversation_mode.")
 
-        # Update the messages of the service after the prompt is successfully processed and parsed.
-        retrived_messages = self.client.beta.threads.messages.list(
-            thread_id=thread.id
+        msgs = self.client.beta.threads.messages.list(
+            thread_id=thread.id,
+            order="desc"
+        ).data
+
+        if msgs and msgs[0].role == "assistant":
+            return msgs[0].content[0].text.value
+
+        for i in range(num_tol):
+            # wait for the msg to sync
+            time.sleep(wait_seconds)
+
+            msgs = self.client.beta.threads.messages.list(
+                thread_id=thread.id,
+                order="desc"
+            ).data
+
+            if msgs and msgs[0].role == "assistant":
+                return msgs[0].content[0].text.value
+
+        # raise if the last message is not from assistant
+        raise RuntimeError(
+            f"No assistant reply received within {wait_seconds:.1f}s; "
+            "latest message is still not from assistant."
+            "full thread:"
+            f"{msgs}"
         )
-        response_content = retrived_messages.data[0].content[0].text.value
-        return response_content
 
     def ask_gpt(self, prompt: str) -> Tuple[bool, int, str]:
         """Sends a prompt to GPT assistant and retrieves the response.
