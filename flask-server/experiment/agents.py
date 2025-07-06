@@ -19,12 +19,14 @@ from string import Template
 from json import load, dumps
 from typing import List, Tuple, Union
 from typing_extensions import Annotated
+from datetime import datetime
 
 from config import BASEDIR
 from services import OpenAIAssistant
 
-from .models import Experiment
 from .agent_tool_functions import TOOL_FUNCTION_MAPPER
+from .analysis import METRICS_MAPPER
+from .models import Experiment, Result
 
 from enzy_htp import PDBParser
 from enzy_htp.core import _LOGGER
@@ -280,6 +282,11 @@ class ResultExplainerAssistant(OpenAIAssistant):
     
     experiment: Experiment
     # completion_message: str = "Experiment has been set up successfully!"
+    
+    scientific_question: str
+    metrics: List[dict]
+    results: List[dict]
+    metadata: dict
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
         """
@@ -316,6 +323,44 @@ class ResultExplainerAssistant(OpenAIAssistant):
                 "experiment": experiment
             },
         )
+        self.scientific_question = experiment.research_question
+        self.metadata = {
+            "simulation_engine": "Amber",
+            "temperature_K": 300,
+            "production_ns": 0.1,
+            "date": str(datetime.now()),
+        }
+        self.metrics = list()
+        for result in Result.get_experiment_results(experiment_id=experiment.id):
+            metric_schema = {
+                "wt_path": result.get("pdb_filename", str()),
+                "mutant": result.get("mutant", "WT"),
+            }
+            for metric_key, metric_value in result.items():
+                if (metric_key in METRICS_MAPPER):
+                    metric = metric_schema.copy()
+                    metric["metric"] = metric_key
+                    metric["value"] = metric_value
+                    self.metrics.append(metric)
+                else:
+                    pass
+        return
+    
+    def ask_gpt(self):
+        """Ask GPT for analysis of the experiment. The prompt is formulated automatically.
+
+        Returns:
+            is_valid (bool): Whether the API key is valid.
+            status_code (int): The HTTP status code from the API response.
+            response_content (str): The actual response from GPT or an error message.
+        """
+        prompt_dict = {
+            "scientific_question": self.scientific_question,
+            "metrics": self.metrics,
+            "metadata": self.metadata,
+        }
+        prompt = dumps(prompt_dict)
+        return super().ask_gpt(prompt)
 
 class QuestionSummarizerAssistant(OpenAIAssistant):
     """The agent acting as a Question Summarizer."""
@@ -357,8 +402,7 @@ class QuestionSummarizerAssistant(OpenAIAssistant):
                 "experiment": experiment
             },
         )
-    
-
+        return
 
 class TimezoneConsultantAssistant(OpenAIAssistant):
     """The agent acting as a Time Zone Consultant.
@@ -398,6 +442,8 @@ DefinedAgent = Annotated[
         QuestionAnalyzerAssistant,
         MetricsPlannerAssistant,
         MutantPlannerAssistant,
+        ResultExplainerAssistant,
+        QuestionSummarizerAssistant,
     ],
     "DefinedAgent",
 ]
