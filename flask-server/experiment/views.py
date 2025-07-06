@@ -637,7 +637,9 @@ class ResultApi(Resource):
             return forbidden_response(user, experiment)
         
         experiment_results = Result.get_experiment_results(experiment_id=experiment_id)
-        result_images = [image_path_to_src(path) for path in PLHD_RESULT_IMG_PATHS]
+
+        # result_images = [image_path_to_src(path) for path in PLHD_RESULT_IMG_PATHS]
+        result_images = []  # Set `result_images` to empty list.
 
         if (not experiment.result_interpretation):
             result_explainer = ResultExplainerAssistant(
