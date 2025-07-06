@@ -934,7 +934,7 @@ class MutationApi(Resource):
 
 #region OpenAI Assistants
 from services import OpenAIChat, OpenAIAssistant
-from .agents import AGENT_MAPPER, DefinedAgent
+from .agents import QuestionAnalyzerAssistant, QuestionSummarizerAssistant, AGENT_MAPPER, DefinedAgent
 
 class AssistantsApi(Resource):
     """Route: `/<experiment_id>/assistants`"""
@@ -1060,6 +1060,21 @@ class AssistantsApi(Resource):
         current_assistant_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
         if (issubclass(current_assistant_class, OpenAIAssistant)):
             completion_message = current_assistant_class.completion_message
+        if (experiment.current_assistant_type == 0):
+            is_successful, messages = OpenAIAssistant.get_thread_messages(
+                openai_secret_key=user.openai_secret_key, 
+                thread_id=(experiment.thread_id_list[0] if experiment.thread_id_list else experiment.current_thread_id)
+            )
+            if (is_successful):
+                question_summarizer = QuestionSummarizerAssistant(
+                    openai_secret_key=user.openai_secret_key, conversation_mode=False, experiment=experiment
+                )
+                is_valid, status_code, experiment.research_question = question_summarizer.ask_gpt(
+                    prompt=dumps(messages)
+                )
+            else:
+                pass
+
 
         updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
             mapper={

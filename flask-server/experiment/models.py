@@ -131,6 +131,7 @@ class Experiment():
 
         self.group_experiment_id = kwargs.get("group_experiment_id", None)
         self.sub_experiment_ids = kwargs.get("sub_experiment_ids", list() if self.type == self.GROUP_TYPE else None)
+        self.research_question = kwargs.get("research_question", None)
         self.result_interpretation = kwargs.get("result_interpretation", None)
     
     @classmethod
@@ -836,7 +837,7 @@ class Experiment():
             },
             {
                 "title": "Research Question",
-                "content": self.chat_messages[0]["text_value"] if len(self.chat_messages) else str(),
+                "content": self.chat_messages[0]["text_value"] if len(self.chat_messages) else self.research_question,
                 "is_completed": self.current_assistant_type > 0,
             },
             {
