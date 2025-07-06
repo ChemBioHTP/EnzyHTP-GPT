@@ -1069,7 +1069,7 @@ class AssistantsApi(Resource):
                 question_summarizer = QuestionSummarizerAssistant(
                     openai_secret_key=user.openai_secret_key, conversation_mode=False, experiment=experiment
                 )
-                is_valid, status_code, experiment.research_question = question_summarizer.ask_gpt(
+                is_valid, status_code, experiment.scientific_question = question_summarizer.ask_gpt(
                     prompt=dumps(messages)
                 )
             else:

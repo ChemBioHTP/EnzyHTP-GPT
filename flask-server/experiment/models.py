@@ -131,8 +131,9 @@ class Experiment():
 
         self.group_experiment_id = kwargs.get("group_experiment_id", None)
         self.sub_experiment_ids = kwargs.get("sub_experiment_ids", list() if self.type == self.GROUP_TYPE else None)
-        self.research_question = kwargs.get("research_question", None)
+        self.scientific_question = kwargs.get("scientific_question", None)
         self.result_interpretation = kwargs.get("result_interpretation", None)
+        return
     
     @classmethod
     def get(cls, id: str) -> Experiment | None:
@@ -837,7 +838,7 @@ class Experiment():
             },
             {
                 "title": "Research Question",
-                "content": self.chat_messages[0]["text_value"] if len(self.chat_messages) else self.research_question,
+                "content": self.scientific_question,
                 "is_completed": self.current_assistant_type > 0,
             },
             {

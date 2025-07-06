@@ -323,7 +323,7 @@ class ResultExplainerAssistant(OpenAIAssistant):
                 "experiment": experiment
             },
         )
-        self.scientific_question = experiment.research_question
+        self.scientific_question = experiment.scientific_question
 
         self.metrics = list()
         with open(path.join(PROMPTS_DIRECTORY, "result_explainer_metrics.json")) as json_fobj:
