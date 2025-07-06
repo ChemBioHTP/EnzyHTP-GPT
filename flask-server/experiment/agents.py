@@ -324,26 +324,39 @@ class ResultExplainerAssistant(OpenAIAssistant):
             },
         )
         self.scientific_question = experiment.research_question
+
+        self.metrics = list()
+        with open(path.join(PROMPTS_DIRECTORY, "result_explainer_metrics.json")) as json_fobj:
+            metrics_pool: List[dict] = load(json_fobj)
+            metric_names = [metric["name"] for metric in experiment.metrics]
+            for metric in metrics_pool:
+                if (metric["name"] in metric_names):
+                    self.metrics.append(metric)
+                else:
+                    pass
+                continue
+
+        self.results = list()
+        for exp_result in Result.get_experiment_results(experiment_id=experiment.id):
+            metric_schema = {
+                "wt_path": exp_result.get("pdb_filename", str()),
+                "mutant": exp_result.get("mutant", "WT"),
+            }
+            for result_key, result_value in exp_result.items():
+                if (result_key in METRICS_MAPPER):
+                    metric = metric_schema.copy()
+                    metric["metric"] = result_key
+                    metric["value"] = result_value
+                    self.results.append(metric)
+                else:
+                    pass
+                continue
         self.metadata = {
             "simulation_engine": "Amber",
             "temperature_K": 300,
             "production_ns": 0.1,
             "date": str(datetime.now()),
         }
-        self.metrics = list()
-        for result in Result.get_experiment_results(experiment_id=experiment.id):
-            metric_schema = {
-                "wt_path": result.get("pdb_filename", str()),
-                "mutant": result.get("mutant", "WT"),
-            }
-            for metric_key, metric_value in result.items():
-                if (metric_key in METRICS_MAPPER):
-                    metric = metric_schema.copy()
-                    metric["metric"] = metric_key
-                    metric["value"] = metric_value
-                    self.metrics.append(metric)
-                else:
-                    pass
         return
     
     def ask_gpt(self):
@@ -357,6 +370,7 @@ class ResultExplainerAssistant(OpenAIAssistant):
         prompt_dict = {
             "scientific_question": self.scientific_question,
             "metrics": self.metrics,
+            "results": self.results,
             "metadata": self.metadata,
         }
         prompt = dumps(prompt_dict)
