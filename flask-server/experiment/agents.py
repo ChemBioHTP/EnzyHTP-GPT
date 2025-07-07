@@ -16,7 +16,7 @@ Three OpenAI Assistant Agents:
 from os import path
 import re
 from string import Template
-from json import load, dumps
+from json import load, loads, dumps
 from typing import List, Tuple, Union
 from typing_extensions import Annotated
 from datetime import datetime
@@ -205,7 +205,7 @@ class MutantPlannerAssistant(OpenAIAssistant):
         self.experiment = experiment
         instructions = str()
         tools = list()
-        with open(path.join(PROMPTS_DIRECTORY, "mutant_planner-v2.txt")) as fobj:
+        with open(path.join(PROMPTS_DIRECTORY, "mutant_planner-v3.txt")) as fobj:
             instructions = fobj.read()
         with open(path.join(PROMPTS_DIRECTORY, "mutant_planner_functions.json")) as json_fobj:
             tool_functions: List[dict] = load(json_fobj)
@@ -259,23 +259,29 @@ class MutantPlannerAssistant(OpenAIAssistant):
         # remember we want to be able to hide output from user
         initial_processed_response_content = super().post_process(response_content, is_finishing)
         
-        pattern = "Output: *(.+)"
-        initial_processed_response_content = initial_processed_response_content.strip("`")
-        if is_finishing or initial_processed_response_content.startswith("Output"):
-            try:
-                mutation_pattern = re.match(pattern, initial_processed_response_content).group(1).strip("\"")
-                result_dict = {
-                    "mutation_pattern": mutation_pattern
-                }
-                processed_response_content = f"```json\n{dumps(result_dict)}\n```"
-                return processed_response_content
-            except Exception as exc:
-                _LOGGER.error(f"Failed to process `response_content`: {exc}")
-                return response_content
-        else:
-            self.detect_vicious_output(initial_processed_response_content)  # This is about detecting potential attach, we will finish this when need it.
-            processed_response_content = initial_processed_response_content   # by default result as is after stripping
-            return processed_response_content
+        processed_response_content = initial_processed_response_content.replace(    # The output interface is updated with Mutant Planner V3.
+            "output", "mutation_pattern"
+        ).replace(
+            "Output", "mutation_pattern"
+        )
+        # pattern = "Output: *(.+)"
+        # initial_processed_response_content = initial_processed_response_content.strip("`")
+        # if is_finishing or initial_processed_response_content.startswith("Output"):
+        #     try:
+        #         mutation_pattern = re.match(pattern, initial_processed_response_content).group(1).strip("\"")
+        #         result_dict = {
+        #             "mutation_pattern": mutation_pattern
+        #         }
+        #         processed_response_content = f"```json\n{dumps(result_dict)}\n```"
+        #         return processed_response_content
+        #     except Exception as exc:
+        #         _LOGGER.error(f"Failed to process `response_content`: {exc}")
+        #         return response_content
+        # else:
+        #     self.detect_vicious_output(initial_processed_response_content)  # This is about detecting potential attach, we will finish this when need it.
+        #     processed_response_content = initial_processed_response_content   # by default result as is after stripping
+        #     return processed_response_content
+        return processed_response_content
 
 class ResultExplainerAssistant(OpenAIAssistant):
     """The agent acting as a Result Explainer."""
