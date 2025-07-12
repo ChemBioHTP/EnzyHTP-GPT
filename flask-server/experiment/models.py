@@ -474,7 +474,8 @@ class Experiment():
 
             if (self.type == self.INDIVIDUAL_TYPE):
                 self.type = self.GROUP_TYPE     # Convert individual experiment to group experiment.
-                fs.safe_rm(self.pdb_filepath)
+                if (self.pdb_filepath):
+                    fs.safe_rm(self.pdb_filepath)
                 self.pdb_filename = None
                 self.sub_experiment_ids = list()
                 for i, pdb_filepath in enumerate(pdb_filepaths):
