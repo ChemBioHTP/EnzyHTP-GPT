@@ -426,6 +426,7 @@ class Experiment():
             message (str): The message describing the updating.
         """
         is_updated = False
+        is_supported = False
         file_ext = fs.get_file_ext(pdb_file.filename).lower()
 
         if (self.status not in StatusCode.unexecuted_statuses):
@@ -436,7 +437,7 @@ class Experiment():
                 return False, False, "Unable to change a group experiment back to individual experiment."
             fs.safe_mkdir(self.directory)
 
-            is_valid, is_supported, message = Experiment.__validate_pdb(pdb_file)
+            is_valid, is_supported, message = self.__validate_pdb(pdb_file)
             if (is_valid and force_update):
                 message = f"Force the update of PDB file. {message}"
 
@@ -487,8 +488,9 @@ class Experiment():
                     self.sub_experiment_ids.append(sub_experiment.id)
                     db.experiments.insert_one(sub_experiment.as_dict())
                     continue
+                return True, True, "This experiment is converted into a group experiment, with subordinates created."
             else:
-                pass
+                return False, False, "This experiment cannot be processed in this manner. It is already a group or subordinate experiment."
         else:
             return False, False, "This is not a PDB file or Compressed file."
     
