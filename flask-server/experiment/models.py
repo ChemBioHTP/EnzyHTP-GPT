@@ -326,7 +326,7 @@ class Experiment():
 
     @property
     def has_pdb_file(self) -> bool:
-        if (self.pdb_filepath and os.path.isfile(self.pdb_filepath)):
+        if (self.pdb_filepath and fs.is_path_exist(self.pdb_filepath)):
             return True
         elif (self.type == self.GROUP_TYPE):    # Group Experiment must have pdb file (with its subordinates).
             return True
