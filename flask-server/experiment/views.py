@@ -1280,7 +1280,7 @@ class SlurmCorrespondenceApi(Resource):
             return no_pdb_response(user, experiment)
         else:
             pass
-        
+
         if (experiment.status in StatusCode.queued_status):
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,

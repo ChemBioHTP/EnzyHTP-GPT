@@ -108,6 +108,7 @@ class Experiment():
             kwargs: Other keyword arguments.
         """
         self.type = experiment_type
+        self.type = kwargs.get("type", self.type)
         self.name = name
         self.description = description
         self.user_id = user_id
