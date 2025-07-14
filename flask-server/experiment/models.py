@@ -477,6 +477,7 @@ class Experiment():
                 self.type = self.GROUP_TYPE     # Convert individual experiment to group experiment.
                 if (self.pdb_filepath):
                     fs.safe_rm(self.pdb_filepath)
+                self.type = self.GROUP_TYPE
                 self.pdb_filename = pdb_file.filename
                 self.summon_upload_pdb = False
                 self.sub_experiment_ids = list()
@@ -489,7 +490,18 @@ class Experiment():
                     self.sub_experiment_ids.append(sub_experiment.id)
                     db.experiments.insert_one(sub_experiment.as_dict())
                     continue
-                db.experiments.update_one({"id": self.id}, {"$set": {"pdb_filename": self.pdb_filename, "summon_upload_pdb": self.summon_upload_pdb}})
+                db.experiments.update_one(
+                    {
+                        "id": self.id,
+                    }, 
+                    {
+                        "$set": {
+                            "type": self.type, 
+                            "pdb_filename": self.pdb_filename, 
+                            "summon_upload_pdb": self.summon_upload_pdb, 
+                            "sub_experiment_ids": self.sub_experiment_ids,
+                    }
+                })
                 return True, True, "This experiment is converted into a group experiment, with subordinates created."
             else:
                 return False, False, "This experiment cannot be processed in this manner. It is already a group or subordinate experiment."
