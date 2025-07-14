@@ -728,7 +728,7 @@ class PdbFileApi(Resource):
         # if (experiment.user_id != user.id):
         #     return forbidden_response(user, experiment)    
         if not experiment.has_pdb_file:
-            return no_pdb_response()
+            return no_pdb_response(User.get(experiment.user_id), experiment)
         else:
             return send_file(path_or_file=experiment.pdb_filepath, mimetype="text/plain",
                 as_attachment=False, 
@@ -1277,7 +1277,7 @@ class SlurmCorrespondenceApi(Resource):
             return forbidden_response(user, experiment)
         
         if not experiment.has_pdb_file:
-            return no_pdb_response()
+            return no_pdb_response(user, experiment)
         else:
             pass
         
