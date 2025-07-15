@@ -13,6 +13,7 @@ import os
 import re
 import prompts
 import pandas as pd
+from os import path
 from flask import Response, request, send_file
 from flask_login import login_required, current_user
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
@@ -429,14 +430,14 @@ class ExperimentApi(Resource):
                 message=make_mutant_message)
             return Response(response=response_info.serialize(), status=501, mimetype=JSONIFY_MIMETYPE)
         else:
-            # analysis_entry_script_path = os.path.join(experiment.directory, "analysis_entry_script.sh")
+            # analysis_entry_script_path = path.join(experiment.directory, "analysis_entry_script.sh")
             # with open(analysis_entry_script_path, "w") as fobj:
             #     fobj.write(Template(SLURM_ANALYSIS_JOB_ENTRY_CONTENT).safe_substitute({
             #         "app_host": APP_HOST,
             #         "experiment_id": experiment.id,
             #         "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
             #         "pdb_filename": experiment.pdb_filename,
-            #         "ref_pdb_filename": basename(mutant_pdb_filepath),
+            #         "ref_pdb_filename": path.basename(mutant_pdb_filepath),
             #         "metrics": dumps(experiment.metrics),
             #         "topology_filename": topology_file.filename,
             #         "trajectory_filename": trajectory_file.filename,
@@ -449,7 +450,7 @@ class ExperimentApi(Resource):
                 "experiment_id": experiment.id,
                 "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
                 "pdb_filename": experiment.pdb_filename,
-                "ref_pdb_filename": basename(mutant_pdb_filepath),
+                "ref_pdb_filename": path.basename(mutant_pdb_filepath),
                 "metrics": dumps(experiment.metrics),
                 "topology_filename": topology_file.filename,
                 "trajectory_filename": trajectory_file.filename,
@@ -650,6 +651,10 @@ class ResultApi(Resource):
             )
             is_valid, status, experiment.result_interpretation = result_explainer.ask_gpt()
             experiment.update_attributes({"result_interpretation": experiment.result_interpretation})
+        
+        downloadable_files_dict = dict()
+        for file in experiment.downloadable_files:
+            downloadable_files_dict[file] = fs.get_file_ext(file)
 
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
@@ -659,7 +664,7 @@ class ResultApi(Resource):
             experiment_results=experiment_results,
             result_images=result_images,
             result_interpretation=experiment.result_interpretation,
-            downloadable_files=experiment.downloadable_files()
+            downloadable_files=downloadable_files_dict,
         )
         return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
@@ -708,6 +713,33 @@ class DownloadableApi(Resource):
         deploy_pack_io.seek(0)
         zipfile_prefix = re.sub(r'[\\/:"*?<>|]', "", experiment.name)
         return send_file(deploy_pack_io, mimetype="application/zip", as_attachment=True, download_name=f"{zipfile_prefix} Downloadables.zip")
+
+class DownloadableFileApi(Resource):
+    """Route: `/<experiment_id>/downloadable/<file_path>`"""
+
+    @login_required
+    def get(self, experiment_id: str, file_path: str):
+        """Get a .zip format compress file containing downloadable files.
+
+        Args:
+            experiment_id (str): The identifier of an experiment instance.
+            file_path (str): The relative path of the target file.
+        """
+        user: User = current_user
+        experiment = Experiment.get(experiment_id)
+
+        if (experiment is None):
+            return notfound_response(user, experiment_id)
+        if (experiment.user_id != user.id):
+            return forbidden_response(user, experiment)
+        
+        file_abs_path = path.join(experiment.directory, file_path)
+        if (path.isfile(file_abs_path)):
+            return send_file(file_abs_path, mimetype="application/octet-stream", as_attachment=True, download_name=path.basename(file_path))
+        else:
+            response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False)
+            return Response(response=response_info.serialize(), status=204, mimetype=JSONIFY_MIMETYPE)
+
 
 class PdbFileApi(Resource):
     """Route: `/<experiment_id>/pdb_file`"""
@@ -811,7 +843,7 @@ class MutationApi(Resource):
 
         mutation_request = request.form.get("mutation_request")
 
-        instructions = open(os.path.join(BASEDIR, "prompts", "mutant_planner-v1.txt")).read()
+        instructions = open(path.join(BASEDIR, "prompts", "mutant_planner-v1.txt")).read()
         service = OpenAIAssistant(user.openai_secret_key, 
             assistant_name="Mutant Planner", 
             instructions=instructions, 
@@ -1186,7 +1218,6 @@ class AssistantsApi(Resource):
 #region Slurm Jobs.
 
 from io import StringIO, BytesIO
-from os.path import basename
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from services import SlurmJobRequest, SlurmJobData

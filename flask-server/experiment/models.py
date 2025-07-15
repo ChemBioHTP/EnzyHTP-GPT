@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Union, Tuple, Callable, Literal
 from json import loads, dumps
 from plum import dispatch
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
+from pathlib import Path
 from pandas import DataFrame
 from os import path
 import os
@@ -509,18 +510,27 @@ class Experiment():
         else:
             return False, False, "This is not a PDB file or Compressed file."
     
-    def downloadable_files(self) -> Dict[str, str]:
+    @property
+    def downloadable_files(self) -> List[str]:
         """Return the downloadable files of the experiment result.
         
         Returns:
-            Dict[str, str]: A dictionary with file name and file format.
+            List[str]: A list of file relative paths (to the experiment directory).
         """
-        file_dict = {
-            "Fixed wild type": ".pdb",
-            "Parameter files": ".in",
-            "Constraint files": ".rs",
-        }
-        return file_dict
+        files = Path(self.directory).rglob("*")
+        file_paths = list()
+        # file_dict = {
+        #     "Fixed wild type": ".pdb",
+        #     "Parameter files": ".in",
+        #     "Constraint files": ".rs",
+        # }
+        for file_path in files:
+            if (path.isdir(file_path)):
+                pass
+            else:
+                file_paths.append(file_path)
+            continue
+        return file_paths
 
     #endregion
 
