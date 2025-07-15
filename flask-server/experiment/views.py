@@ -716,15 +716,15 @@ class DownloadableApi(Resource):
         return send_file(deploy_pack_io, mimetype="application/zip", as_attachment=True, download_name=f"{zipfile_prefix}.zip")
 
 class DownloadableFileApi(Resource):
-    """Route: `/<experiment_id>/downloadable/<file_path>`"""
+    """Route: `/<experiment_id>/downloadable/<filepath>`"""
 
     @login_required
-    def get(self, experiment_id: str, file_path: str):
+    def get(self, experiment_id: str, filepath: str):
         """Get a file of specified path.
 
         Args:
             experiment_id (str): The identifier of an experiment instance.
-            file_path (str): The relative path of the target file.
+            filepath (str): The relative path (to the experiment directory) of the target file.
         """
         user: User = current_user
         experiment = Experiment.get(experiment_id)
@@ -734,9 +734,9 @@ class DownloadableFileApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        file_abs_path = path.join(experiment.directory, file_path)
+        file_abs_path = path.join(experiment.directory, filepath)
         if (path.isfile(file_abs_path)):
-            return send_file(file_abs_path, mimetype="application/octet-stream", as_attachment=True, download_name=path.basename(file_path))
+            return send_file(file_abs_path, mimetype="application/octet-stream", as_attachment=True, download_name=path.basename(filepath))
         else:
             response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False)
             return Response(response=response_info.serialize(), status=204, mimetype=JSONIFY_MIMETYPE)
