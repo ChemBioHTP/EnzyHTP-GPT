@@ -525,7 +525,7 @@ class Experiment():
         #     "Constraint files": ".rs",
         # }
         for file_path_obj in files:
-            file_path = file_path_obj.as_posix()
+            file_path = (file_path_obj.relative_to(self.directory)).as_posix()
             if (path.isdir(file_path)):
                 pass
             else:
