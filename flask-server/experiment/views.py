@@ -708,18 +708,19 @@ class DownloadableApi(Resource):
         
         deploy_pack_io = BytesIO()
         with ZipFile(deploy_pack_io, "w") as deploy_pack_zip:
-            deploy_pack_zip.write(experiment.pdb_filepath, arcname=experiment.pdb_filename, compress_type=ZIP_DEFLATED)   # Add PDB file into zip.
+            for filepath in experiment.downloadable_files:
+                deploy_pack_zip.write(filename=path.join(experiment.directory, filepath), arcname=filepath, compress_type=ZIP_DEFLATED)   # Add PDB file into zip.
         
         deploy_pack_io.seek(0)
         zipfile_prefix = re.sub(r'[\\/:"*?<>|]', "", experiment.name)
-        return send_file(deploy_pack_io, mimetype="application/zip", as_attachment=True, download_name=f"{zipfile_prefix} Downloadables.zip")
+        return send_file(deploy_pack_io, mimetype="application/zip", as_attachment=True, download_name=f"{zipfile_prefix}.zip")
 
 class DownloadableFileApi(Resource):
     """Route: `/<experiment_id>/downloadable/<file_path>`"""
 
     @login_required
     def get(self, experiment_id: str, file_path: str):
-        """Get a .zip format compress file containing downloadable files.
+        """Get a file of specified path.
 
         Args:
             experiment_id (str): The identifier of an experiment instance.
@@ -739,7 +740,6 @@ class DownloadableFileApi(Resource):
         else:
             response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False)
             return Response(response=response_info.serialize(), status=204, mimetype=JSONIFY_MIMETYPE)
-
 
 class PdbFileApi(Resource):
     """Route: `/<experiment_id>/pdb_file`"""
