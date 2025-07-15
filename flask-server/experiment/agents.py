@@ -29,7 +29,7 @@ from .analysis import METRICS_MAPPER
 from .models import Experiment, Result
 
 from enzy_htp import PDBParser
-from enzy_htp.core import _LOGGER
+from enzy_htp.core import _LOGGER, file_system as fs
 from enzy_htp.structure import Residue
 from enzy_htp.mutation.mutation_pattern import decode_position_pattern
 
@@ -293,6 +293,7 @@ class ResultExplainerAssistant(OpenAIAssistant):
     metrics: List[dict]
     results: List[dict]
     metadata: dict
+    downloadables: List[dict]
 
     def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
         """
@@ -357,6 +358,12 @@ class ResultExplainerAssistant(OpenAIAssistant):
                 else:
                     pass
                 continue
+        self.downloadables = [
+            {
+                "file_type": fs.get_file_ext(file_path),
+                "filename": file_path,
+            } for file_path in experiment.downloadable_files
+        ]
         self.metadata = {
             "simulation_engine": "Amber",
             "temperature_K": 300,
@@ -377,6 +384,7 @@ class ResultExplainerAssistant(OpenAIAssistant):
             "scientific_question": self.scientific_question,
             "metrics": self.metrics,
             "results": self.results,
+            "downloadables": self.downloadables,
             "metadata": self.metadata,
         }
         prompt = dumps(prompt_dict)
