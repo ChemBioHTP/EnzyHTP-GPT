@@ -524,7 +524,8 @@ class Experiment():
         #     "Parameter files": ".in",
         #     "Constraint files": ".rs",
         # }
-        for file_path in files:
+        for file_path_obj in files:
+            file_path = file_path_obj.as_posix()
             if (path.isdir(file_path)):
                 pass
             else:
