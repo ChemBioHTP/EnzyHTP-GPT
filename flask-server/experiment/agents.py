@@ -257,14 +257,24 @@ class MutantPlannerAssistant(OpenAIAssistant):
             processed_response_content (str): The response content after process.
         """
         # remember we want to be able to hide output from user
-        initial_processed_response_content = super().post_process(response_content, is_finishing)
+        # initial_processed_response_content = super().post_process(response_content, is_finishing)
         
-        processed_response_content = initial_processed_response_content.replace(    # The output interface is updated with Mutant Planner V3.
+        response_content = response_content.replace(    # The output interface is updated with Mutant Planner V3.
             "output", "mutation_pattern"
         ).replace(
             "Output", "mutation_pattern"
         )
-        # pattern = "Output: *(.+)"
+        re_pattern = '"mutation_pattern"\s*:\s*"*(.+)"'
+        processed_response_content = response_content
+        pattern_results: List[str] = re.findall(re_pattern, response_content)
+        if (pattern_results):
+            mutation_pattern = pattern_results[0]
+            mutation_explainer_agent = MutationPatternExplainer(openai_secret_key=self.client.api_key, experiment=self.experiment)
+            mutation_explanation = mutation_explainer_agent.ask_gpt(mutation_pattern)
+            processed_response_content = f"{response_content}\n{mutation_explanation}"
+        else:
+            pass
+        # pattern = "mutation_pattern: *(.+)"
         # initial_processed_response_content = initial_processed_response_content.strip("`")
         # if is_finishing or initial_processed_response_content.startswith("Output"):
         #     try:
@@ -282,6 +292,40 @@ class MutantPlannerAssistant(OpenAIAssistant):
         #     processed_response_content = initial_processed_response_content   # by default result as is after stripping
         #     return processed_response_content
         return processed_response_content
+
+class MutationPatternExplainer(OpenAIAssistant):
+    """The agent explains the mutation pattern to natural language."""
+    
+    experiment: Experiment
+
+    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
+        """
+        Initializes the MutantPlannerAssistant agent with the OpenAI API key.
+
+        Args:
+            openai_secret_key (str): API key for accessing OpenAI services.
+            thread_id (str, optional): The identifier of a context thread, which can be referenced in OpenAI API endpoints.
+            conversation_mode (bool): If True, retains the conversation context. Default is False.
+            experiment (Experiment): The Experiment instance calling this assistant.
+        """
+        self.experiment = experiment
+        instructions = str()
+        tools = list()
+        with open(path.join(PROMPTS_DIRECTORY, "mutation_pattern_explainer.txt")) as fobj:
+            instructions = fobj.read()
+        super().__init__(openai_secret_key, 
+            assistant_name="Mutation Pattern Explainer", 
+            instructions=instructions, 
+            model=MODEL_VERSION,
+            tools=tools,
+            tool_function_mapper=TOOL_FUNCTION_MAPPER,
+            thread_id=thread_id,
+            conversation_mode=conversation_mode,
+            tool_function_callable_kwargs={
+                "experiment": experiment
+            },
+        )
+        return
 
 class ResultExplainerAssistant(OpenAIAssistant):
     """The agent acting as a Result Explainer."""
@@ -470,6 +514,7 @@ DefinedAgent = Annotated[
         QuestionAnalyzerAssistant,
         MetricsPlannerAssistant,
         MutantPlannerAssistant,
+        MutationPatternExplainer,
         ResultExplainerAssistant,
         QuestionSummarizerAssistant,
     ],
