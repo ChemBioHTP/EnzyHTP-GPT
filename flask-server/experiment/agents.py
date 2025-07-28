@@ -270,7 +270,7 @@ class MutantPlannerAssistant(OpenAIAssistant):
         if (pattern_results):
             mutation_pattern = pattern_results[0]
             mutation_explainer_agent = MutationPatternExplainer(openai_secret_key=self.client.api_key, experiment=self.experiment)
-            mutation_explanation = mutation_explainer_agent.ask_gpt(mutation_pattern)
+            is_valid, status_code, mutation_explanation = mutation_explainer_agent.ask_gpt(mutation_pattern)
             processed_response_content = f"{response_content}\n{mutation_explanation}"
         else:
             pass
