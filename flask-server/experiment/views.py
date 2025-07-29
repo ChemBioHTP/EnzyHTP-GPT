@@ -1033,7 +1033,7 @@ class AssistantsApi(Resource):
                     "chat_messages": assistant_messages
                 })
 
-        for i in len(assistant_messages):
+        for i in range(len(assistant_messages)):
             message = assistant_messages[i]
             message["text_value"] = OpenAIChat.humanize_text_value(text_value=message["text_value"])
             assistant_messages[i] = message
