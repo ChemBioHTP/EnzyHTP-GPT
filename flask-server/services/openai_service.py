@@ -16,7 +16,7 @@ from typing_extensions import override
 
 from inspect import signature
 from time import sleep
-from json import loads
+from json import loads, JSONDecodeError
 
 from openai import (
     OpenAI,
@@ -37,8 +37,11 @@ from openai import (
     UnprocessableEntityError,
     APIResponseValidationError,
 )
+import re
 
 # Here put local imports.
+from .json_to_tree import JsonToTree
+
 # from config import DEFAULT_OPENAI_API_KEY
 DEFAULT_OPENAI_API_KEY = "5511667"
 DEFAULT_TIMEOUT_LIMIT = 60      # The timeout waiting for response. Unit: Seconds.
@@ -140,6 +143,21 @@ class OpenAIChat:
             return (False, 500, "API Error: " + str(e))
         except Exception as e:
             return (False, 500, "An unexpected error occurred: " + str(e))
+
+    @classmethod
+    def humanize_text_value(cls, text_value: str):
+        # Try to extract text between triple backticks (with or without json)
+        pattern = re.compile(
+            r"```(?:json)?\s*\n([\s\S]*?)\n?```",  # group 1: json content
+            re.IGNORECASE
+        )
+        match = pattern.search(text_value)
+
+        if match:
+            json_block = match.group(0).strip()    # full block with markers
+            json_content = match.group(1).strip()  # content without markers
+            text_value = text_value.replace(json_block, JsonToTree.json2txttree(json_data=json_content, contain_value=True))
+        return text_value
 
 #endregion
 

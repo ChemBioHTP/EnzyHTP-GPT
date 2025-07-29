@@ -1033,6 +1033,11 @@ class AssistantsApi(Resource):
                     "chat_messages": assistant_messages
                 })
 
+        for i in len(assistant_messages):
+            message = assistant_messages[i]
+            message["text_value"] = OpenAIChat.humanize_text_value(text_value=message["text_value"])
+            assistant_messages[i] = message
+            continue
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
             is_successful=True,
             configuration_stages=experiment.configuration_stages,
@@ -1081,6 +1086,8 @@ class AssistantsApi(Resource):
         experiment.append_chat_messages(role="assistant", text_value=processed_response_content)
 
         configuration_updated, updated_attributes = experiment.parse_agent_response_content(response_content=processed_response_content)
+
+        processed_response_content = current_assistant.humanize_text_value(processed_response_content)
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
             is_successful=is_openai_key_valid, 
             message=f"Received response from OpenAI. Updates to the experiment configuration may be triggered.",
