@@ -156,7 +156,7 @@ class OpenAIChat:
         if match:
             json_block = match.group(0).strip()    # full block with markers
             json_content = match.group(1).strip()  # content without markers
-            text_value = text_value.replace(json_block, JsonToTree.json2txttree(json_data=json_content, contain_value=True))
+            text_value = text_value.replace(json_block, JsonToTree.json2txttree(json_data=loads(json_content), contain_value=True))
         return text_value
 
 #endregion
