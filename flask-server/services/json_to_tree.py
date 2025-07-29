@@ -66,7 +66,7 @@ class JsonToTree():
                   f' {line}', sep="", file=file)
 
     @classmethod
-    def json2txttree(cls, json_data: Union[dict, list], contain_value: bool = False, file = None):
+    def tree_text(cls, json_data: Union[dict, list], contain_value: bool = False, file = None):
         """ Output JSON data as tree to file or return as string """
         if file == None:
             messageFile = StringIO()
@@ -78,7 +78,7 @@ class JsonToTree():
             cls._getHierarchy(json_data=json_data, contain_value=contain_value, file=file)
 
     @classmethod
-    def json2txttable(cls, json_data: Union[dict, list], contain_value: bool = False, header = None, file = None):
+    def table_text(cls, json_data: Union[dict, list], contain_value: bool = False, header = None, file = None):
         """ Output JSON data as a Markkdown table to file or return as string """
         # Get tree structure
         treeFile = StringIO()

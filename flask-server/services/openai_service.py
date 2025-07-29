@@ -159,7 +159,7 @@ class OpenAIChat:
             json_data = dict()
             try:
                 json_data = loads(json_content)
-                tree_content = JsonToTree.json2txttree(json_data=json_data, contain_value=True)
+                tree_content = JsonToTree.tree_text(json_data=json_data, contain_value=True)
                 tree_block = f"""```txt\n{tree_content}\n```"""
                 text_value = text_value.replace(json_block, tree_block)
             except:

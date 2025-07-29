@@ -272,6 +272,7 @@ class MutantPlannerAssistant(OpenAIAssistant):
             mutation_explainer_agent = MutationPatternExplainer(openai_secret_key=self.client.api_key, experiment=self.experiment)
             is_valid, status_code, mutation_explanation = mutation_explainer_agent.ask_gpt(mutation_pattern)
             processed_response_content = f"{response_content}\n{mutation_explanation}"
+            processed_response_content = f"Please confirm the mutations you want:\n```txt\n{mutation_pattern}\n```\n{mutation_explanation}"
         else:
             pass
         # pattern = "mutation_pattern: *(.+)"
