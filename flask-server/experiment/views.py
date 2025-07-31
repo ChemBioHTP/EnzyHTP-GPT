@@ -1085,7 +1085,7 @@ class AssistantsApi(Resource):
         experiment.append_chat_messages(role="user", text_value=user_prompt)
         experiment.append_chat_messages(role="assistant", text_value=processed_response_content)
 
-        configuration_updated, updated_attributes = experiment.parse_agent_response_content(response_content=processed_response_content)
+        # configuration_updated, updated_attributes = experiment.parse_agent_response_content(response_content=processed_response_content)
 
         processed_response_content = current_assistant.humanize_text_value(processed_response_content)
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
@@ -1095,8 +1095,8 @@ class AssistantsApi(Resource):
             require_pdb_file=experiment.summon_upload_pdb,
             confirm_button=experiment.summon_next_agent,
             tool_call_result=current_assistant.latest_tool_call_result,
-            configuration_updated=configuration_updated,
-            updated_attributes=updated_attributes,
+            # configuration_updated=configuration_updated,
+            # updated_attributes=updated_attributes,
             configuration_stages=experiment.configuration_stages,
         )
 
@@ -1162,7 +1162,7 @@ class AssistantsApi(Resource):
                     response_content = current_assistant.post_process(response_content, experiment.summon_next_agent)
                     experiment.append_thread_id_list(current_assistant.thread.id)
                     experiment.append_chat_messages(role="assistant", text_value=response_content)  # Only the response from the assistant is recorded.
-                configuration_updated, updated_attributes_from_response = experiment.parse_agent_response_content(response_content=response_content)
+                # configuration_updated, updated_attributes_from_response = experiment.parse_agent_response_content(response_content=response_content)
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=True,
@@ -1171,8 +1171,8 @@ class AssistantsApi(Resource):
                 response_content=response_content,
                 require_pdb_file=experiment.summon_upload_pdb,
                 confirm_button=experiment.summon_next_agent,
-                configuration_updated=configuration_updated,
-                updated_attributes=(updated_attrs+updated_attributes_from_response),
+                # configuration_updated=configuration_updated,
+                # updated_attributes=(updated_attrs+updated_attributes_from_response),
                 configuration_stages=experiment.configuration_stages,
             )
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)

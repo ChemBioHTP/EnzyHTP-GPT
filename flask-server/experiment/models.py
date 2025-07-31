@@ -883,55 +883,55 @@ class Experiment():
         ]
         return stages
 
-    def parse_agent_response_content(self, response_content: str) -> Tuple[bool, list]:
-        """Update the experiment configuration information according to the response_content from GPT Agents.
+    # def parse_agent_response_content(self, response_content: str) -> Tuple[bool, list]:
+    #     """Update the experiment configuration information according to the response_content from GPT Agents.
         
-        Args:
-            response_content (str): The response content from GPT.
+    #     Args:
+    #         response_content (str): The response content from GPT.
 
-        Returns:
-            configuration_updated (bool): Indicate if the experiment configuration is updated by the response_content from GPT Agents.
-            updated_attrs (list): A list of updated attributes.
-        """
-        editable_attrs = ["metrics", "constraints"]
+    #     Returns:
+    #         configuration_updated (bool): Indicate if the experiment configuration is updated by the response_content from GPT Agents.
+    #         updated_attrs (list): A list of updated attributes.
+    #     """
+    #     editable_attrs = ["metrics", "constraints"]
 
-        # _LOGGER.info(f"Response content:\n{response_content}\n")
+    #     # _LOGGER.info(f"Response content:\n{response_content}\n")
 
-        is_matched = False
-        matched_head = str()
-        match_results: List[str] = list()
+    #     is_matched = False
+    #     matched_head = str()
+    #     match_results: List[str] = list()
 
-        match_rule_heads = ["```\n", "```json\n"]
-        match_rule_tail = "\n```"
+    #     match_rule_heads = ["```\n", "```json\n"]
+    #     match_rule_tail = "\n```"
         
-        for head in match_rule_heads:
-            match_rule = fr"{head}(.*?){match_rule_tail}"
-            match_results = re.search(match_rule, response_content, re.DOTALL)
-            if (match_results):
-                is_matched = True
-                matched_head = head
-                break
-            continue
+    #     for head in match_rule_heads:
+    #         match_rule = fr"{head}(.*?){match_rule_tail}"
+    #         match_results = re.search(match_rule, response_content, re.DOTALL)
+    #         if (match_results):
+    #             is_matched = True
+    #             matched_head = head
+    #             break
+    #         continue
         
-        if (is_matched):
-            json_text = match_results[0].replace(matched_head, "").replace(match_rule_tail, "")
-            configuration_mapper: Dict[str, Any] = loads(json_text)
+    #     if (is_matched):
+    #         json_text = match_results[0].replace(matched_head, "").replace(match_rule_tail, "")
+    #         configuration_mapper: Dict[str, Any] = loads(json_text)
             
-            # _LOGGER.info(f"Matched results:\n{configuration_mapper}\n")
+    #         # _LOGGER.info(f"Matched results:\n{configuration_mapper}\n")
 
-            is_mutation_updated = False
-            mutation_field_name = "mutation_pattern"
-            if (mutation_pattern:=configuration_mapper.get(mutation_field_name)):
-                is_mutation_updated, mutant_string_list, message = self.update_mutation_pattern(mutation_pattern=mutation_pattern, freeze=True)
-                del configuration_mapper[mutation_field_name]
+    #         is_mutation_updated = False
+    #         mutation_field_name = "mutation_pattern"
+    #         if (mutation_pattern:=configuration_mapper.get(mutation_field_name)):
+    #             is_mutation_updated, mutant_string_list, message = self.update_mutation_pattern(mutation_pattern=mutation_pattern, freeze=True)
+    #             del configuration_mapper[mutation_field_name]
 
-            updated_attrs, blocked_attrs, nonexistent_attrs, message = self.update_attributes(mapper=configuration_mapper, editable_attrs=editable_attrs)
-            if (is_mutation_updated):
-                updated_attrs.append(mutation_field_name)
-            return True, updated_attrs
-        else:
-            # _LOGGER.info("Not matched results.")
-            return False, list()
+    #         updated_attrs, blocked_attrs, nonexistent_attrs, message = self.update_attributes(mapper=configuration_mapper, editable_attrs=editable_attrs)
+    #         if (is_mutation_updated):
+    #             updated_attrs.append(mutation_field_name)
+    #         return True, updated_attrs
+    #     else:
+    #         # _LOGGER.info("Not matched results.")
+    #         return False, list()
         
     def append_thread_id_list(self, new_thread_id: str):
         """Append new chat `thread_id` to the experiment's `thread_ids` attribute, and update the `current_thread_id`.

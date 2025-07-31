@@ -17,7 +17,7 @@ from os import path
 import re
 from string import Template
 from json import load, loads, dumps
-from typing import List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 from typing_extensions import Annotated
 from datetime import datetime
 
@@ -184,6 +184,34 @@ class MetricsPlannerAssistant(OpenAIAssistant):
         processed_response_content = processed_response_content.replace(
             "pocket_selection_pattern", "region_pattern"
         )
+
+        editable_attrs = ["metrics", "constraints"]
+        is_matched = False
+        matched_head = str()
+        match_results: List[str] = list()
+
+        match_rule_heads = ["```\n", "```json\n"]
+        match_rule_tail = "\n```"
+        
+        for head in match_rule_heads:
+            match_rule = fr"{head}(.*?){match_rule_tail}"
+            match_results = re.search(match_rule, processed_response_content, re.DOTALL)
+            if (match_results):
+                is_matched = True
+                matched_head = head
+                break
+            continue
+        
+        if (is_matched):
+            json_text = match_results[0].replace(matched_head, "").replace(match_rule_tail, "")
+            configuration_mapper: Dict[str, Any] = loads(json_text)
+
+            updated_attrs, blocked_attrs, nonexistent_attrs, message = self.experiment.update_attributes(mapper=configuration_mapper, editable_attrs=editable_attrs)
+            # return True, updated_attrs
+        else:
+            # _LOGGER.info("Not matched results.")
+            # return False, list()
+            pass
         return processed_response_content
 
 class MutantPlannerAssistant(OpenAIAssistant):
@@ -269,6 +297,7 @@ class MutantPlannerAssistant(OpenAIAssistant):
         pattern_results: List[str] = re.findall(re_pattern, response_content)
         if (pattern_results):
             mutation_pattern = pattern_results[0]
+            self.experiment.update_mutation_pattern(mutation_pattern=mutation_pattern)
             mutation_explainer_agent = MutationPatternExplainer(openai_secret_key=self.client.api_key, experiment=self.experiment)
             is_valid, status_code, mutation_explanation = mutation_explainer_agent.ask_gpt(mutation_pattern)
             processed_response_content = f"{response_content}\n{mutation_explanation}"
