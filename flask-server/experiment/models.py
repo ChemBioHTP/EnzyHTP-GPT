@@ -55,9 +55,10 @@ from config import (
     SLURM_DEPLOY_SCRIPT_FILENAME, 
     SLURM_DEPLOY_SCRIPT, 
     MAX_MUTANT_COUNT,
+    DEFAULT_MD_LENGTH,
 
-    PLHD_RESULT_IMG_PATHS,
-    PLHD_RESULT_INTERPRETATION,
+    # PLHD_RESULT_IMG_PATHS,
+    # PLHD_RESULT_INTERPRETATION,
 )
 from auth.models import User
 from .analysis import METRICS_MAPPER
@@ -121,6 +122,7 @@ class Experiment():
         self.pdb_filename = kwargs.get("pdb_filename", None)
         # self.results: List[dict] = kwargs.get("results", list())
         self.slurm_job_uuid = kwargs.get("slurm_job_uuid", None)
+        self.md_length = kwargs.get("md_timespan", DEFAULT_MD_LENGTH)
         self.status: int = kwargs.get("status", StatusCode.CREATED)
         self.progress: float = kwargs.get("progress", 0.0)
         self.mutation_pattern = kwargs.get("mutation_pattern", "WT")

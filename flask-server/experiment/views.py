@@ -54,8 +54,8 @@ from config import (
     SLURM_DEPLOY_SCRIPT, 
     MAX_MUTANT_COUNT,
 
-    PLHD_RESULT_IMG_PATHS,
-    PLHD_RESULT_INTERPRETATION,
+    # PLHD_RESULT_IMG_PATHS,
+    # PLHD_RESULT_INTERPRETATION,
 )
 from services import image_path_to_src
 
