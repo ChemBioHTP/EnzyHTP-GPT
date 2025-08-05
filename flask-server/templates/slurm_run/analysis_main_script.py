@@ -19,9 +19,11 @@ from json import loads
 
 # Here put enzy_htp modules.
 from enzy_htp import interface, _LOGGER
-from enzy_htp.analysis import binding_energy, rmsd, spi_metric
+from enzy_htp.analysis import binding_energy, ddg_fold_of_mutants, ele_field_strength_at_along, rmsd, spi_metric
+from enzy_htp.mutation import assign_mutant
+from enzy_htp.mutation_class import Mutation
 from enzy_htp.core.clusters.accre_r9 import AccreR9
-from enzy_htp.structure import PDBParser, StructureEnsemble, Ligand
+from enzy_htp.structure import Structure, StructureEnsemble, Ligand
 from enzy_htp.structure.structure_selection import select_stru
 
 app_host = environ.get("app_host")
@@ -57,8 +59,16 @@ def active_site_rmsd(stru_esm: StructureEnsemble, region_pattern: str, **kwargs)
 def cavity(stru_esm: StructureEnsemble, region_pattern: str, **kwargs) -> float:
     pass
 
-def ddg_fold(stru_esm: StructureEnsemble, **kwargs):
-    pass
+def ddg_fold(stru: Structure, mutation_pattern: str, **kwargs):
+    """Calculate the change of dG_fold of the protein mutants in a mutant space.
+
+    Args:
+        stru (Structure): The target molecule of the calculation represented as a `Structure` instance.
+        mutation_pattern (str): The mutation pattern applied to the structure.
+    """
+    mutants: List[List[Mutation]] = assign_mutant(stru=stru, pattern=mutation_pattern)
+    ddg_dict = ddg_fold_of_mutants(stru=stru, mutant_space=mutants)
+    return ddg_dict
 
 def electric_field(stru_esm: StructureEnsemble, region_pattern: str, **kwargs):
     pass
