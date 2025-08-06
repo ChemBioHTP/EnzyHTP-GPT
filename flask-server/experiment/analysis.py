@@ -24,19 +24,25 @@ def active_site_rmsd(stru_esm: StructureEnsemble, region_pattern: str, **kwargs)
     rmsd_values = rmsd(stru_esm=stru_esm, region_pattern=region_pattern)
     return sum(rmsd_values)/len(rmsd_values)
 
-def cavity(stru_esm: StructureEnsemble, region_pattern: str, **kwargs) -> float:
+def cavity(**kwargs) -> float:
     pass
 
-def ddg_fold(stru: Structure, mutation_pattern: str, **kwargs):
+def ddg_fold(stru: Structure, mutant: List[Mutation], **kwargs):
     """Calculate the change of dG_fold of the protein mutants in a mutant space.
 
     Args:
         stru (Structure): The target molecule of the calculation represented as a `Structure` instance.
-        mutation_pattern (str): The mutation pattern applied to the structure.
+        mutant (List[Mutation]): The target mutant to assess.
     """
-    mutants = assign_mutant(stru=stru, pattern=mutation_pattern)
-    ddg_dict = ddg_fold_of_mutants(stru=stru, mutant_space=mutants)
+    ddg_dict = ddg_fold_of_mutants(stru=stru, mutant_space=[mutant])
     return ddg_dict
+
+def dsi(linker_sequence: str, **kwargs):
+    """The domain seperation index of the two domains of a bidomain enzyme. 
+    This index describes how seperate the two domains are in the dynamic motion of the enzyme.
+    A study by Ning et al showed it is predictive for the cold-adaption ability (the ability to maintain activity at lower temperature) of bidomain enzymes. 
+    """
+    pass
 
 def electric_field(stru_esm: StructureEnsemble, region_pattern: str, **kwargs):
     pass
@@ -72,8 +78,8 @@ METRICS_MAPPER: Dict[str, Callable] = {
     "active_site_rmsd": active_site_rmsd,
     "cavity": cavity,
     "ddg_fold": ddg_fold,
+    "dsi": dsi,
     "electric_field": electric_field,
     "mmpbgbsa": mmpbgbsa,
     "spi": spi,
-    "dsi": dsi,
 }

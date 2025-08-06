@@ -21,7 +21,7 @@ from json import loads
 from enzy_htp import interface, _LOGGER
 from enzy_htp.analysis import binding_energy, ddg_fold_of_mutants, ele_field_strength_at_along, rmsd, spi_metric
 from enzy_htp.mutation import assign_mutant
-from enzy_htp.mutation_class import Mutation
+from enzy_htp.mutation_class import Mutation, generate_from_mutation_flag
 from enzy_htp.core.clusters.accre_r9 import AccreR9
 from enzy_htp.structure import Structure, StructureEnsemble, Ligand
 from enzy_htp.structure.structure_selection import select_stru
@@ -59,15 +59,14 @@ def active_site_rmsd(stru_esm: StructureEnsemble, region_pattern: str, **kwargs)
 def cavity(stru_esm: StructureEnsemble, region_pattern: str, **kwargs) -> float:
     pass
 
-def ddg_fold(stru: Structure, mutation_pattern: str, **kwargs):
+def ddg_fold(stru: Structure, mutant: List[Mutation], **kwargs):
     """Calculate the change of dG_fold of the protein mutants in a mutant space.
 
     Args:
         stru (Structure): The target molecule of the calculation represented as a `Structure` instance.
-        mutation_pattern (str): The mutation pattern applied to the structure.
+        mutant (List[Mutation]): The target mutant to assess.
     """
-    mutants: List[List[Mutation]] = assign_mutant(stru=stru, pattern=mutation_pattern)
-    ddg_dict = ddg_fold_of_mutants(stru=stru, mutant_space=mutants)
+    ddg_dict = ddg_fold_of_mutants(stru=stru, mutant_space=[mutant])
     return ddg_dict
 
 def electric_field(stru_esm: StructureEnsemble, region_pattern: str, **kwargs):
@@ -110,19 +109,19 @@ METRICS_MAPPER: Dict[str, Callable] = {
 
 # endregion
 
-def post_result(experiment_id: str, mutant: str, replica_id: str, pdb_filename: str = None, **kwargs):
+def post_result(experiment_id: str, mutant_name: str, replica_id: str, pdb_filename: str = None, **kwargs):
     """Post the result to the mutexa.
 
     Args:
         experiment_id (int): The experiment ID associated with this result.
         pdb_filename (str): The name of the PDB file of the result.
-        mutant (str): The name of the mutant protein. e.g.: 'A##B C##D'
+        mutant_name (str): The name of the mutant protein. e.g.: 'A##B C##D'
         replica_id (str): The ID of the MD simulation relica of one mutant.
         kwargs: Keyword arguments containing metrics and other attributes.
     """
     payload = {
         "pdb_filename": pdb_filename,
-        "mutant": mutant,
+        "mutant": mutant_name,
         "replica_id": replica_id,
     }
     for metric in METRICS_MAPPER.keys():
@@ -147,13 +146,13 @@ def post_result(experiment_id: str, mutant: str, replica_id: str, pdb_filename: 
     finally:
         _LOGGER.info(f"Job result record:")
         _LOGGER.info(f"\texperiment_id: {experiment_id};")
-        _LOGGER.info(f"\tmutant: {mutant};")
+        _LOGGER.info(f"\tmutant: {mutant_name};")
         _LOGGER.info(f"\treplica_id: {replica_id};")
         for key, value in kwargs.items():
             _LOGGER.info(f"\t{key}: {value};")
         return
 
-def main(stru_esm: StructureEnsemble, metrics: List[Dict[str, Any]], mutant: str, replica_id: str, **kwargs):
+def main(stru_esm: StructureEnsemble, metrics: List[Dict[str, Any]], mutant_name: str, replica_id: str, **kwargs):
     """
     The main function running the analysis script.
 
@@ -165,7 +164,7 @@ def main(stru_esm: StructureEnsemble, metrics: List[Dict[str, Any]], mutant: str
     """
     analysis_result_dict = {    # Record analysis result.
         "experiment_id": experiment_id,
-        "mutant": mutant,
+        "mutant_name": mutant_name,
         "replica_id": replica_id,
     }
     analysis_record_dict = dict()   # Record success or failure.
@@ -178,6 +177,8 @@ def main(stru_esm: StructureEnsemble, metrics: List[Dict[str, Any]], mutant: str
                 if (isinstance(analysis_callable, Callable)):
                     analysis_params.update({    # Compose analysis arguments.
                         "stru_esm": stru_esm,
+                        "stru": stru_esm.structure_0,
+                        "mutant": [generate_from_mutation_flag(mutant_name_split) for mutant_name_split in mutant_name.split()]
                     })
                     analysis_result_dict[analysis_tag] = analysis_callable(**analysis_params)    # Perform analysis and record result.
                     analysis_record_dict[analysis_tag] = True
@@ -200,6 +201,6 @@ if __name__ == "__main__":
     ref_pdb_filename = environ.get("ref_pdb_filename")
 
     stru_esm: StructureEnsemble = interface.amber.load_traj(prmtop_path=topology_filename, traj_path=trajectory_filename, ref_pdb=ref_pdb_filename)
-    main(stru_esm=stru_esm, metrics=metrics, mutant=mutant, replica_id=replica_id)
+    main(stru_esm=stru_esm, metrics=metrics, mutant_name=mutant, replica_id=replica_id)
 
     pass
