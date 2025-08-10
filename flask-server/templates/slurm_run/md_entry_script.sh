@@ -23,6 +23,7 @@ export pdb_filename="${pdb_filename}"
 export metrics='${metrics}'
 export mutation_pattern="${mutation_pattern}"
 export constraints_str="${constraints_str}"
+export md_length="${md_length}"
 
 echo "It's $(date +"%Y-%m-%d %T %Z") now. The bash script is in $file_dir directory."
 echo "The PDB file is $pdb_filename"

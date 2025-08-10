@@ -24,6 +24,7 @@
             spi
         + Description:
             the substrate positioning index is defined by the ratio between the solvent-accessible surface area (SASA) of the substrate and the SASA of the enzyme pocket.
+            Studies by the Yang group at Vanderbilt show that it correlates with the enzyme activity that a favorable SPI corresponds to a larger proportion of reactive conformations.
         + Required argument:
             - substrate_selection_pattern: the PyMol style selection pattern defining the substrate. Refer to *PyMol selection pattern*
         + Optional argument:
@@ -41,7 +42,7 @@
         + JSON Name:
             active_site_rmsd
         + Description:
-            The Root Mean Square Deviation (RMSD) of the active site of the enzyme
+            Active site RMSD is defined as the average of the frame-by-frame root-mean-square deviation of all heavy-atom coordinates of residues that composes the active site of the enzyme relative to an average structure, calculated over the entire molecular-dynamics trajectory.
         + Required argument:
             - pocket_selection_pattern: the PyMol style selection pattern defining the active site pocket. Refer to *PyMol selection pattern* (by default 5 angstroms near the substrate if the substrate is given)
         + Optional argument:
@@ -49,11 +50,11 @@
         + Related Properties 
             (NOTE: The related properties are different under different MD models)
             - MD Model: protein-ligand complex without constraint
-                + Related property: None
+                + Related property: Substrate Positioning Dynamics, Activation Barrier, Enzyme Activity, Ligand binding
             - MD Model: pre-reaction complex (protein-ligand complex with a constraint applied to the "forming bond")
                 + Related properties: Substrate Positioning Dynamics, Activation Barrier, Enzyme Activity, Ligand binding
             - MD Model: apo-protein without constraint
-                + Related property: None
+                + Related property: Substrate Positioning Dynamics, Activation Barrier, Enzyme Activity, Ligand binding
 
     - MMPB/GBSA Ligand Binding Energy
         + JSON Name:

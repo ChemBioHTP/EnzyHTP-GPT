@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Union, Tuple, Callable, Literal
 from json import loads, dumps
 from plum import dispatch
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
+from pathlib import Path
 from pandas import DataFrame
 from os import path
 import os
@@ -54,9 +55,10 @@ from config import (
     SLURM_DEPLOY_SCRIPT_FILENAME, 
     SLURM_DEPLOY_SCRIPT, 
     MAX_MUTANT_COUNT,
+    DEFAULT_MD_LENGTH,
 
-    PLHD_RESULT_IMG_PATHS,
-    PLHD_RESULT_INTERPRETATION,
+    # PLHD_RESULT_IMG_PATHS,
+    # PLHD_RESULT_INTERPRETATION,
 )
 from auth.models import User
 from .analysis import METRICS_MAPPER
@@ -108,6 +110,7 @@ class Experiment():
             kwargs: Other keyword arguments.
         """
         self.type = experiment_type
+        self.type = kwargs.get("type", self.type)
         self.name = name
         self.description = description
         self.user_id = user_id
@@ -119,6 +122,7 @@ class Experiment():
         self.pdb_filename = kwargs.get("pdb_filename", None)
         # self.results: List[dict] = kwargs.get("results", list())
         self.slurm_job_uuid = kwargs.get("slurm_job_uuid", None)
+        self.md_length = kwargs.get("md_timespan", DEFAULT_MD_LENGTH)
         self.status: int = kwargs.get("status", StatusCode.CREATED)
         self.progress: float = kwargs.get("progress", 0.0)
         self.mutation_pattern = kwargs.get("mutation_pattern", "WT")
@@ -131,6 +135,9 @@ class Experiment():
 
         self.group_experiment_id = kwargs.get("group_experiment_id", None)
         self.sub_experiment_ids = kwargs.get("sub_experiment_ids", list() if self.type == self.GROUP_TYPE else None)
+        self.scientific_question = kwargs.get("scientific_question", None)
+        self.result_interpretation = kwargs.get("result_interpretation", None)
+        return
     
     @classmethod
     def get(cls, id: str) -> Experiment | None:
@@ -323,7 +330,7 @@ class Experiment():
 
     @property
     def has_pdb_file(self) -> bool:
-        if (self.pdb_filepath and os.path.isfile(self.pdb_filepath)):
+        if (self.pdb_filepath and fs.is_path_exist(self.pdb_filepath)):
             return True
         elif (self.type == self.GROUP_TYPE):    # Group Experiment must have pdb file (with its subordinates).
             return True
@@ -423,6 +430,7 @@ class Experiment():
             message (str): The message describing the updating.
         """
         is_updated = False
+        is_supported = False
         file_ext = fs.get_file_ext(pdb_file.filename).lower()
 
         if (self.status not in StatusCode.unexecuted_statuses):
@@ -433,7 +441,7 @@ class Experiment():
                 return False, False, "Unable to change a group experiment back to individual experiment."
             fs.safe_mkdir(self.directory)
 
-            is_valid, is_supported, message = Experiment.__validate_pdb(pdb_file)
+            is_valid, is_supported, message = self.__validate_pdb(pdb_file)
             if (is_valid and force_update):
                 message = f"Force the update of PDB file. {message}"
 
@@ -471,8 +479,11 @@ class Experiment():
 
             if (self.type == self.INDIVIDUAL_TYPE):
                 self.type = self.GROUP_TYPE     # Convert individual experiment to group experiment.
-                fs.safe_rm(self.pdb_filepath)
-                self.pdb_filename = None
+                if (self.pdb_filepath):
+                    fs.safe_rm(self.pdb_filepath)
+                self.type = self.GROUP_TYPE
+                self.pdb_filename = pdb_file.filename
+                self.summon_upload_pdb = False
                 self.sub_experiment_ids = list()
                 for i, pdb_filepath in enumerate(pdb_filepaths):
                     sub_experiment = Experiment(user_id=self.user_id, name=f"{self.name} - {i:>04}", 
@@ -483,23 +494,46 @@ class Experiment():
                     self.sub_experiment_ids.append(sub_experiment.id)
                     db.experiments.insert_one(sub_experiment.as_dict())
                     continue
+                db.experiments.update_one(
+                    {
+                        "id": self.id,
+                    }, 
+                    {
+                        "$set": {
+                            "type": self.type, 
+                            "pdb_filename": self.pdb_filename, 
+                            "summon_upload_pdb": self.summon_upload_pdb, 
+                            "sub_experiment_ids": self.sub_experiment_ids,
+                    }
+                })
+                return True, True, "This experiment is converted into a group experiment, with subordinates created."
             else:
-                pass
+                return False, False, "This experiment cannot be processed in this manner. It is already a group or subordinate experiment."
         else:
             return False, False, "This is not a PDB file or Compressed file."
     
-    def downloadable_files(self) -> Dict[str, str]:
+    @property
+    def downloadable_files(self) -> List[str]:
         """Return the downloadable files of the experiment result.
         
         Returns:
-            Dict[str, str]: A dictionary with file name and file format.
+            List[str]: A list of file relative paths (to the experiment directory).
         """
-        file_dict = {
-            "Fixed wild type": ".pdb",
-            "Parameter files": ".in",
-            "Constraint files": ".rs",
-        }
-        return file_dict
+        files = Path(self.directory).rglob("*")
+        file_paths = list()
+        # file_dict = {
+        #     "Fixed wild type": ".pdb",
+        #     "Parameter files": ".in",
+        #     "Constraint files": ".rs",
+        # }
+        for file_path_obj in files:
+            file_path = (file_path_obj.relative_to(self.directory)).as_posix()
+            if (path.isdir(file_path)):
+                pass
+            else:
+                file_paths.append(file_path)
+            continue
+        return file_paths
 
     #endregion
 
@@ -835,7 +869,7 @@ class Experiment():
             },
             {
                 "title": "Research Question",
-                "content": self.chat_messages[0]["text_value"] if len(self.chat_messages) else str(),
+                "content": self.scientific_question,
                 "is_completed": self.current_assistant_type > 0,
             },
             {
@@ -851,55 +885,55 @@ class Experiment():
         ]
         return stages
 
-    def parse_agent_response_content(self, response_content: str) -> Tuple[bool, list]:
-        """Update the experiment configuration information according to the response_content from GPT Agents.
+    # def parse_agent_response_content(self, response_content: str) -> Tuple[bool, list]:
+    #     """Update the experiment configuration information according to the response_content from GPT Agents.
         
-        Args:
-            response_content (str): The response content from GPT.
+    #     Args:
+    #         response_content (str): The response content from GPT.
 
-        Returns:
-            configuration_updated (bool): Indicate if the experiment configuration is updated by the response_content from GPT Agents.
-            updated_attrs (list): A list of updated attributes.
-        """
-        editable_attrs = ["metrics", "constraints"]
+    #     Returns:
+    #         configuration_updated (bool): Indicate if the experiment configuration is updated by the response_content from GPT Agents.
+    #         updated_attrs (list): A list of updated attributes.
+    #     """
+    #     editable_attrs = ["metrics", "constraints"]
 
-        # _LOGGER.info(f"Response content:\n{response_content}\n")
+    #     # _LOGGER.info(f"Response content:\n{response_content}\n")
 
-        is_matched = False
-        matched_head = str()
-        match_results: List[str] = list()
+    #     is_matched = False
+    #     matched_head = str()
+    #     match_results: List[str] = list()
 
-        match_rule_heads = ["```\n", "```json\n"]
-        match_rule_tail = "\n```"
+    #     match_rule_heads = ["```\n", "```json\n"]
+    #     match_rule_tail = "\n```"
         
-        for head in match_rule_heads:
-            match_rule = fr"{head}(.*?){match_rule_tail}"
-            match_results = re.search(match_rule, response_content, re.DOTALL)
-            if (match_results):
-                is_matched = True
-                matched_head = head
-                break
-            continue
+    #     for head in match_rule_heads:
+    #         match_rule = fr"{head}(.*?){match_rule_tail}"
+    #         match_results = re.search(match_rule, response_content, re.DOTALL)
+    #         if (match_results):
+    #             is_matched = True
+    #             matched_head = head
+    #             break
+    #         continue
         
-        if (is_matched):
-            json_text = match_results[0].replace(matched_head, "").replace(match_rule_tail, "")
-            configuration_mapper: Dict[str, Any] = loads(json_text)
+    #     if (is_matched):
+    #         json_text = match_results[0].replace(matched_head, "").replace(match_rule_tail, "")
+    #         configuration_mapper: Dict[str, Any] = loads(json_text)
             
-            # _LOGGER.info(f"Matched results:\n{configuration_mapper}\n")
+    #         # _LOGGER.info(f"Matched results:\n{configuration_mapper}\n")
 
-            is_mutation_updated = False
-            mutation_field_name = "mutation_pattern"
-            if (mutation_pattern:=configuration_mapper.get(mutation_field_name)):
-                is_mutation_updated, mutant_string_list, message = self.update_mutation_pattern(mutation_pattern=mutation_pattern, freeze=True)
-                del configuration_mapper[mutation_field_name]
+    #         is_mutation_updated = False
+    #         mutation_field_name = "mutation_pattern"
+    #         if (mutation_pattern:=configuration_mapper.get(mutation_field_name)):
+    #             is_mutation_updated, mutant_string_list, message = self.update_mutation_pattern(mutation_pattern=mutation_pattern, freeze=True)
+    #             del configuration_mapper[mutation_field_name]
 
-            updated_attrs, blocked_attrs, nonexistent_attrs, message = self.update_attributes(mapper=configuration_mapper, editable_attrs=editable_attrs)
-            if (is_mutation_updated):
-                updated_attrs.append(mutation_field_name)
-            return True, updated_attrs
-        else:
-            # _LOGGER.info("Not matched results.")
-            return False, list()
+    #         updated_attrs, blocked_attrs, nonexistent_attrs, message = self.update_attributes(mapper=configuration_mapper, editable_attrs=editable_attrs)
+    #         if (is_mutation_updated):
+    #             updated_attrs.append(mutation_field_name)
+    #         return True, updated_attrs
+    #     else:
+    #         # _LOGGER.info("Not matched results.")
+    #         return False, list()
         
     def append_thread_id_list(self, new_thread_id: str):
         """Append new chat `thread_id` to the experiment's `thread_ids` attribute, and update the `current_thread_id`.
@@ -1191,28 +1225,51 @@ class Result():
     
     @classmethod
     def get_experiment_results(cls, experiment_id: str) -> List[Dict[str, Any]]:
-        """Get a list of results of an Experiment instance with designated `experiment_id`.
-        For each mutant, the value of the analysis data will be the average of all its replica.
-        
+        """Get a list of averaged results of an Experiment by `experiment_id`.
+        Results are grouped by (mutant, pdb_filename), and NaN values are skipped in averaging.
+
         Args:
-            experiment_id (str): The `id` to identify an experiment.
+            experiment_id (str): The ID of the experiment.
 
         Returns:
-            experiment_results (List[Dict[str, Any]]): A list of results of an Experiment instance.
+            experiment_results (List[Dict[str, Any]]): A list of aggregated results.
         """
-        results_cursor = db.results.find({"experiment_id": experiment_id})
-        result_df = DataFrame([result for result in results_cursor])
+        result_list = []
+        # Load all records of the experiment from MongoDB
+        experiment = Experiment.get(experiment_id)
 
-        if (not len(result_df)):
-            return list()
+        if (not experiment):
+            pass
+        else:
+            if (experiment.type == Experiment.GROUP_TYPE):
+                for sub_experiment in experiment.subordinate_experiments:
+                    results_cursor = db.results.find({"experiment_id": sub_experiment.id})
+                    result_list.extend(result for result in results_cursor)
+                    continue
+            else:
+                results_cursor = db.results.find({"experiment_id": experiment_id})
+                result_list = [result for result in results_cursor]
 
-        keep_columns = list(METRICS_MAPPER.keys())
-        keep_columns.append("mutant")
+        result_df = DataFrame(result_list)
+        if result_df.empty:
+            return []
 
-        result_df = result_df[keep_columns]
-        result_df_group = result_df.groupby(["mutant"]).mean()
+        # Keep only relevant columns: metrics + identifiers
+        metrics_cols = list(METRICS_MAPPER.keys())
+        identifier_cols = ["mutant", "pdb_filename"]
+        keep_cols = identifier_cols + metrics_cols
+        result_df = result_df[keep_cols]
 
-        return result_df_group.agg(lambda x: x.tolist()).reset_index().to_dict(orient="records")
+        # Group by mutant and pdb_filename, then compute mean (ignores NaNs)
+        grouped_df = (
+            result_df
+            .groupby(identifier_cols, dropna=False)
+            .mean(numeric_only=True)
+            .reset_index()
+        )
+
+        # Convert to list of dictionaries
+        return grouped_df.to_dict(orient="records")
 
     def insert_or_update(self):
         """Insert or Update the current Result instance to the database."""

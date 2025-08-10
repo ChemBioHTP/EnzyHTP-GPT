@@ -13,6 +13,7 @@ import os
 import re
 import prompts
 import pandas as pd
+from os import path
 from flask import Response, request, send_file
 from flask_login import login_required, current_user
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
@@ -26,6 +27,7 @@ from werkzeug.datastructures import ImmutableMultiDict
 # Here put local imports.
 from .models import Experiment, Result
 from .experiment_config import StatusCode
+from .agents import ResultExplainerAssistant
 from auth.models import User
 from auth.views import (
     unauth_handler as unauth_handler_in_auth, 
@@ -52,8 +54,8 @@ from config import (
     SLURM_DEPLOY_SCRIPT, 
     MAX_MUTANT_COUNT,
 
-    PLHD_RESULT_IMG_PATHS,
-    PLHD_RESULT_INTERPRETATION,
+    # PLHD_RESULT_IMG_PATHS,
+    # PLHD_RESULT_INTERPRETATION,
 )
 from services import image_path_to_src
 
@@ -428,14 +430,14 @@ class ExperimentApi(Resource):
                 message=make_mutant_message)
             return Response(response=response_info.serialize(), status=501, mimetype=JSONIFY_MIMETYPE)
         else:
-            # analysis_entry_script_path = os.path.join(experiment.directory, "analysis_entry_script.sh")
+            # analysis_entry_script_path = path.join(experiment.directory, "analysis_entry_script.sh")
             # with open(analysis_entry_script_path, "w") as fobj:
             #     fobj.write(Template(SLURM_ANALYSIS_JOB_ENTRY_CONTENT).safe_substitute({
             #         "app_host": APP_HOST,
             #         "experiment_id": experiment.id,
             #         "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
             #         "pdb_filename": experiment.pdb_filename,
-            #         "ref_pdb_filename": basename(mutant_pdb_filepath),
+            #         "ref_pdb_filename": path.basename(mutant_pdb_filepath),
             #         "metrics": dumps(experiment.metrics),
             #         "topology_filename": topology_file.filename,
             #         "trajectory_filename": trajectory_file.filename,
@@ -448,7 +450,7 @@ class ExperimentApi(Resource):
                 "experiment_id": experiment.id,
                 "access_token": create_access_token(identity=user.id, expires_delta=TOKEN_EXPIRES_DELTA),
                 "pdb_filename": experiment.pdb_filename,
-                "ref_pdb_filename": basename(mutant_pdb_filepath),
+                "ref_pdb_filename": path.basename(mutant_pdb_filepath),
                 "metrics": dumps(experiment.metrics),
                 "topology_filename": topology_file.filename,
                 "trajectory_filename": trajectory_file.filename,
@@ -636,7 +638,23 @@ class ResultApi(Resource):
             return forbidden_response(user, experiment)
         
         experiment_results = Result.get_experiment_results(experiment_id=experiment_id)
-        result_images = [image_path_to_src(path) for path in PLHD_RESULT_IMG_PATHS]
+
+        # result_images = [image_path_to_src(path) for path in PLHD_RESULT_IMG_PATHS]
+        result_images = []  # Set `result_images` to empty list.
+
+        if (not experiment.result_interpretation):
+            _ = AssistantsApi.get_scientific_question(user=user, experiment=experiment)
+            result_explainer = ResultExplainerAssistant(
+                openai_secret_key=user.openai_secret_key, 
+                conversation_mode=False,
+                experiment=experiment
+            )
+            is_valid, status, experiment.result_interpretation = result_explainer.ask_gpt()
+            experiment.update_attributes({"result_interpretation": experiment.result_interpretation})
+        
+        downloadable_files_dict = dict()
+        for file in experiment.downloadable_files:
+            downloadable_files_dict[file] = fs.get_file_ext(file)
 
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
@@ -645,8 +663,8 @@ class ResultApi(Resource):
             is_successful=(True if experiment_results else False),
             experiment_results=experiment_results,
             result_images=result_images,
-            result_interpretation=PLHD_RESULT_INTERPRETATION,
-            downloadable_files=experiment.downloadable_files()
+            result_interpretation=experiment.result_interpretation,
+            downloadable_files=downloadable_files_dict,
         )
         return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
@@ -690,11 +708,38 @@ class DownloadableApi(Resource):
         
         deploy_pack_io = BytesIO()
         with ZipFile(deploy_pack_io, "w") as deploy_pack_zip:
-            deploy_pack_zip.write(experiment.pdb_filepath, arcname=experiment.pdb_filename, compress_type=ZIP_DEFLATED)   # Add PDB file into zip.
+            for filepath in experiment.downloadable_files:
+                deploy_pack_zip.write(filename=path.join(experiment.directory, filepath), arcname=filepath, compress_type=ZIP_DEFLATED)   # Add PDB file into zip.
         
         deploy_pack_io.seek(0)
         zipfile_prefix = re.sub(r'[\\/:"*?<>|]', "", experiment.name)
-        return send_file(deploy_pack_io, mimetype="application/zip", as_attachment=True, download_name=f"{zipfile_prefix} Downloadables.zip")
+        return send_file(deploy_pack_io, mimetype="application/zip", as_attachment=True, download_name=f"{zipfile_prefix}.zip")
+
+class DownloadableFileApi(Resource):
+    """Route: `/<experiment_id>/downloadable/<filepath>`"""
+
+    @login_required
+    def get(self, experiment_id: str, filepath: str):
+        """Get a file of specified path.
+
+        Args:
+            experiment_id (str): The identifier of an experiment instance.
+            filepath (str): The relative path (to the experiment directory) of the target file.
+        """
+        user: User = current_user
+        experiment = Experiment.get(experiment_id)
+
+        if (experiment is None):
+            return notfound_response(user, experiment_id)
+        if (experiment.user_id != user.id):
+            return forbidden_response(user, experiment)
+        
+        file_abs_path = path.join(experiment.directory, filepath)
+        if (path.isfile(file_abs_path)):
+            return send_file(file_abs_path, mimetype="application/octet-stream", as_attachment=True, download_name=path.basename(filepath))
+        else:
+            response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False)
+            return Response(response=response_info.serialize(), status=204, mimetype=JSONIFY_MIMETYPE)
 
 class PdbFileApi(Resource):
     """Route: `/<experiment_id>/pdb_file`"""
@@ -715,7 +760,7 @@ class PdbFileApi(Resource):
         # if (experiment.user_id != user.id):
         #     return forbidden_response(user, experiment)    
         if not experiment.has_pdb_file:
-            return no_pdb_response()
+            return no_pdb_response(User.get(experiment.user_id), experiment)
         else:
             return send_file(path_or_file=experiment.pdb_filepath, mimetype="text/plain",
                 as_attachment=False, 
@@ -798,7 +843,7 @@ class MutationApi(Resource):
 
         mutation_request = request.form.get("mutation_request")
 
-        instructions = open(os.path.join(BASEDIR, "prompts", "mutant_planner-v1.txt")).read()
+        instructions = open(path.join(BASEDIR, "prompts", "mutant_planner-v1.txt")).read()
         service = OpenAIAssistant(user.openai_secret_key, 
             assistant_name="Mutant Planner", 
             instructions=instructions, 
@@ -924,10 +969,36 @@ class MutationApi(Resource):
 
 #region OpenAI Assistants
 from services import OpenAIChat, OpenAIAssistant
-from .agents import AGENT_MAPPER, DefinedAgent
+from .agents import QuestionAnalyzerAssistant, QuestionSummarizerAssistant, AGENT_MAPPER, DefinedAgent
 
 class AssistantsApi(Resource):
     """Route: `/<experiment_id>/assistants`"""
+
+    @classmethod
+    def get_scientific_question(cls, user: User, experiment: Experiment):
+        """Get the scientific question from the experiment instance.
+        
+        Args:
+            user (User): The user instance.
+            experiment (Experiment): The experiment instance.
+        """
+        is_successful, messages = OpenAIAssistant.get_thread_messages(
+            openai_secret_key=user.openai_secret_key, 
+            thread_id=(experiment.thread_id_list[0] if experiment.thread_id_list else experiment.current_thread_id)
+        )
+        if (is_successful):
+            question_summarizer = QuestionSummarizerAssistant(
+                openai_secret_key=user.openai_secret_key, conversation_mode=False, experiment=experiment
+            )
+            is_valid, status_code, experiment.scientific_question = question_summarizer.ask_gpt(
+                prompt=dumps(messages)
+            )
+            experiment.update_attributes(mapper={
+                "scientific_question": experiment.scientific_question
+            })
+        else:
+            pass
+        return experiment.scientific_question
 
     @login_required
     def get(self, experiment_id: str):
@@ -962,6 +1033,11 @@ class AssistantsApi(Resource):
                     "chat_messages": assistant_messages
                 })
 
+        # for i in range(len(assistant_messages)):
+        #     message = assistant_messages[i]
+        #     message["text_value"] = OpenAIChat.humanize_text_value(text_value=message["text_value"])
+        #     assistant_messages[i] = message
+        #     continue
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
             is_successful=True,
             configuration_stages=experiment.configuration_stages,
@@ -1009,7 +1085,9 @@ class AssistantsApi(Resource):
         experiment.append_chat_messages(role="user", text_value=user_prompt)
         experiment.append_chat_messages(role="assistant", text_value=processed_response_content)
 
-        configuration_updated, updated_attributes = experiment.parse_agent_response_content(response_content=processed_response_content)
+        # configuration_updated, updated_attributes = experiment.parse_agent_response_content(response_content=processed_response_content)
+
+        # processed_response_content = current_assistant.humanize_text_value(processed_response_content)
         response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user,
             is_successful=is_openai_key_valid, 
             message=f"Received response from OpenAI. Updates to the experiment configuration may be triggered.",
@@ -1017,8 +1095,8 @@ class AssistantsApi(Resource):
             require_pdb_file=experiment.summon_upload_pdb,
             confirm_button=experiment.summon_next_agent,
             tool_call_result=current_assistant.latest_tool_call_result,
-            configuration_updated=configuration_updated,
-            updated_attributes=updated_attributes,
+            # configuration_updated=configuration_updated,
+            # updated_attributes=updated_attributes,
             configuration_stages=experiment.configuration_stages,
         )
 
@@ -1050,6 +1128,9 @@ class AssistantsApi(Resource):
         current_assistant_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
         if (issubclass(current_assistant_class, OpenAIAssistant)):
             completion_message = current_assistant_class.completion_message
+        
+        # Update scientific question if needed.
+        _ = self.get_scientific_question(user=user, experiment=experiment)
 
         updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
             mapper={
@@ -1081,7 +1162,7 @@ class AssistantsApi(Resource):
                     response_content = current_assistant.post_process(response_content, experiment.summon_next_agent)
                     experiment.append_thread_id_list(current_assistant.thread.id)
                     experiment.append_chat_messages(role="assistant", text_value=response_content)  # Only the response from the assistant is recorded.
-                configuration_updated, updated_attributes_from_response = experiment.parse_agent_response_content(response_content=response_content)
+                # configuration_updated, updated_attributes_from_response = experiment.parse_agent_response_content(response_content=response_content)
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=True,
@@ -1090,8 +1171,8 @@ class AssistantsApi(Resource):
                 response_content=response_content,
                 require_pdb_file=experiment.summon_upload_pdb,
                 confirm_button=experiment.summon_next_agent,
-                configuration_updated=configuration_updated,
-                updated_attributes=(updated_attrs+updated_attributes_from_response),
+                # configuration_updated=configuration_updated,
+                # updated_attributes=(updated_attrs+updated_attributes_from_response),
                 configuration_stages=experiment.configuration_stages,
             )
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
@@ -1144,7 +1225,6 @@ class AssistantsApi(Resource):
 #region Slurm Jobs.
 
 from io import StringIO, BytesIO
-from os.path import basename
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from services import SlurmJobRequest, SlurmJobData
@@ -1235,10 +1315,10 @@ class SlurmCorrespondenceApi(Resource):
             return forbidden_response(user, experiment)
         
         if not experiment.has_pdb_file:
-            return no_pdb_response()
+            return no_pdb_response(user, experiment)
         else:
             pass
-        
+
         if (experiment.status in StatusCode.queued_status):
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,

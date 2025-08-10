@@ -19,9 +19,11 @@ from json import loads
 
 # Here put enzy_htp modules.
 from enzy_htp import interface, _LOGGER
-from enzy_htp.analysis import binding_energy, rmsd, spi_metric
+from enzy_htp.analysis import binding_energy, ddg_fold_of_mutants, ele_field_strength_at_along, rmsd, spi_metric
+from enzy_htp.mutation import assign_mutant
+from enzy_htp.mutation_class import Mutation, generate_from_mutation_flag
 from enzy_htp.core.clusters.accre_r9 import AccreR9
-from enzy_htp.structure import PDBParser, StructureEnsemble, Ligand
+from enzy_htp.structure import Structure, StructureEnsemble, Ligand
 from enzy_htp.structure.structure_selection import select_stru
 
 app_host = environ.get("app_host")
@@ -57,11 +59,62 @@ def active_site_rmsd(stru_esm: StructureEnsemble, region_pattern: str, **kwargs)
 def cavity(stru_esm: StructureEnsemble, region_pattern: str, **kwargs) -> float:
     pass
 
-def ddg_fold(stru_esm: StructureEnsemble, **kwargs):
+def ddg_fold(stru: Structure, mutant: List[Mutation], **kwargs):
+    """Calculate the change of dG_fold of the protein mutants in a mutant space.
+
+    Args:
+        stru (Structure): The target molecule of the calculation represented as a `Structure` instance.
+        mutant (List[Mutation]): The target mutant to assess.
+    """
+    ddg_dict = ddg_fold_of_mutants(stru=stru, mutant_space=[mutant])
+    return ddg_dict[tuple(mutant)]
+
+def dsi(linker_sequence: str, **kwargs):
+    """The domain seperation index of the two domains of a bidomain enzyme. 
+    This index describes how seperate the two domains are in the dynamic motion of the enzyme.
+    A study by Ning et al showed it is predictive for the cold-adaption ability (the ability to maintain activity at lower temperature) of bidomain enzymes.
+
+    Args:
+        linker_sequence (str): The sequence of the linker. (use to define the sequence range of the two domains) 
+    """
     pass
 
-def electric_field(stru_esm: StructureEnsemble, region_pattern: str, **kwargs):
-    pass
+def electric_field(stru_esm: StructureEnsemble, atom_1: str, atom_2: str, unit: str = "kcal/(mol*e*Ang)", **kwargs):
+    """Calculate the RMSD value of a StructureEnsemble instance with specified region pattern.
+    
+    Args:
+        stru_esm (StructureEnsemble): A collection of different geometries of the same enzyme structure.
+        atom_1 (str): The first atom of the bond of interest.
+        atom_2 (str): The second atom of the bond of interest.
+        unit (str, optional): The unit of the output EF.
+    
+    Note:
+        The format of atom_1, atom_2 is "Chain_id.Residue_index.Atom_name"
+        E.g. "A.125.CA" - means the CA atom in residue 125 of chain A.
+
+    Returns:
+        average_electric_field (float | None): The specified field strength in `unit`.
+    """
+    structure_0 = stru_esm.structure_0
+    atom_1_selected = atom_2_selected = None
+
+    try:
+        atom_1_ids = atom_1.split(".")
+        atom_1_res = structure_0.find_residue_with_key((atom_1_ids[0], int(atom_1_ids[1])))
+        atom_1_selected = atom_1_res.find_atom_name(atom_1_ids[2])
+        atom_2_ids = atom_2.split(".")
+        atom_2_res = structure_0.find_residue_with_key((atom_2_ids[0], int(atom_2_ids[1])))
+        atom_2_selected = atom_2_res.find_atom_name(atom_2_ids[2])
+    except:
+        _LOGGER.error("Invalid `atom_1` or `atom_2` argument values: Cannot find specified atoms.")
+        return None
+    
+    ef_values = list()
+    for stru in stru_esm.structures(remove_solvent=True):
+        ef_result = ele_field_strength_at_along(stru=stru, p1=atom_1_selected, p2=atom_2_selected)
+        ef_values.append(ef_result)
+        continue
+    return mean(ef_values)
 
 def mmpbgbsa(stru_esm: StructureEnsemble, ligand: str, **kwargs) -> float:
     """Calculate the binding energy of `ligand` in `stru`.
@@ -73,7 +126,7 @@ def mmpbgbsa(stru_esm: StructureEnsemble, ligand: str, **kwargs) -> float:
             Note that the ligand can be a small molecule or a protein.
     """
     binding_values = binding_energy(stru=stru_esm, ligand=ligand, cluster_job_config=cpu_job_config, **kwargs)
-    return sum(binding_values)/len(binding_values)
+    return mean(binding_values)
 
 def spi(stru_esm: StructureEnsemble, ligand: str, region_pattern: str, **kwargs) -> float:
     """Calculates the spi metric for a StructureEnsemble using a pymol-formatted pocket selection string pattern.
@@ -93,6 +146,7 @@ METRICS_MAPPER: Dict[str, Callable] = {
     "active_site_rmsd": active_site_rmsd,
     "cavity": cavity,
     "ddg_fold": ddg_fold,
+    "dsi": dsi,
     "electric_field": electric_field,
     "mmpbgbsa": mmpbgbsa,
     "spi": spi,
@@ -100,19 +154,19 @@ METRICS_MAPPER: Dict[str, Callable] = {
 
 # endregion
 
-def post_result(experiment_id: str, mutant: str, replica_id: str, pdb_filename: str = None, **kwargs):
+def post_result(experiment_id: str, mutant_name: str, replica_id: str, pdb_filename: str = None, **kwargs):
     """Post the result to the mutexa.
 
     Args:
         experiment_id (int): The experiment ID associated with this result.
         pdb_filename (str): The name of the PDB file of the result.
-        mutant (str): The name of the mutant protein. e.g.: 'A##B C##D'
+        mutant_name (str): The name of the mutant protein. e.g.: 'A##B C##D'
         replica_id (str): The ID of the MD simulation relica of one mutant.
         kwargs: Keyword arguments containing metrics and other attributes.
     """
     payload = {
         "pdb_filename": pdb_filename,
-        "mutant": mutant,
+        "mutant": mutant_name,
         "replica_id": replica_id,
     }
     for metric in METRICS_MAPPER.keys():
@@ -137,13 +191,13 @@ def post_result(experiment_id: str, mutant: str, replica_id: str, pdb_filename: 
     finally:
         _LOGGER.info(f"Job result record:")
         _LOGGER.info(f"\texperiment_id: {experiment_id};")
-        _LOGGER.info(f"\tmutant: {mutant};")
+        _LOGGER.info(f"\tmutant: {mutant_name};")
         _LOGGER.info(f"\treplica_id: {replica_id};")
         for key, value in kwargs.items():
             _LOGGER.info(f"\t{key}: {value};")
         return
 
-def main(stru_esm: StructureEnsemble, metrics: List[Dict[str, Any]], mutant: str, replica_id: str, **kwargs):
+def main(stru_esm: StructureEnsemble, metrics: List[Dict[str, Any]], mutant_name: str, replica_id: str, **kwargs):
     """
     The main function running the analysis script.
 
@@ -155,7 +209,7 @@ def main(stru_esm: StructureEnsemble, metrics: List[Dict[str, Any]], mutant: str
     """
     analysis_result_dict = {    # Record analysis result.
         "experiment_id": experiment_id,
-        "mutant": mutant,
+        "mutant_name": mutant_name,
         "replica_id": replica_id,
     }
     analysis_record_dict = dict()   # Record success or failure.
@@ -168,6 +222,8 @@ def main(stru_esm: StructureEnsemble, metrics: List[Dict[str, Any]], mutant: str
                 if (isinstance(analysis_callable, Callable)):
                     analysis_params.update({    # Compose analysis arguments.
                         "stru_esm": stru_esm,
+                        "stru": stru_esm.structure_0,
+                        "mutant": [generate_from_mutation_flag(mutant_name_split) for mutant_name_split in mutant_name.split()]
                     })
                     analysis_result_dict[analysis_tag] = analysis_callable(**analysis_params)    # Perform analysis and record result.
                     analysis_record_dict[analysis_tag] = True
@@ -190,6 +246,6 @@ if __name__ == "__main__":
     ref_pdb_filename = environ.get("ref_pdb_filename")
 
     stru_esm: StructureEnsemble = interface.amber.load_traj(prmtop_path=topology_filename, traj_path=trajectory_filename, ref_pdb=ref_pdb_filename)
-    main(stru_esm=stru_esm, metrics=metrics, mutant=mutant, replica_id=replica_id)
+    main(stru_esm=stru_esm, metrics=metrics, mutant_name=mutant, replica_id=replica_id)
 
     pass

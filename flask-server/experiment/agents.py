@@ -16,18 +16,20 @@ Three OpenAI Assistant Agents:
 from os import path
 import re
 from string import Template
-from json import load, dumps
-from typing import List, Tuple, Union
+from json import load, loads, dumps
+from typing import Any, Dict, List, Tuple, Union
 from typing_extensions import Annotated
+from datetime import datetime
 
 from config import BASEDIR
 from services import OpenAIAssistant
 
-from .models import Experiment
 from .agent_tool_functions import TOOL_FUNCTION_MAPPER
+from .analysis import METRICS_MAPPER
+from .models import Experiment, Result
 
 from enzy_htp import PDBParser
-from enzy_htp.core import _LOGGER
+from enzy_htp.core import _LOGGER, file_system as fs
 from enzy_htp.structure import Residue
 from enzy_htp.mutation.mutation_pattern import decode_position_pattern
 
@@ -182,6 +184,34 @@ class MetricsPlannerAssistant(OpenAIAssistant):
         processed_response_content = processed_response_content.replace(
             "pocket_selection_pattern", "region_pattern"
         )
+
+        editable_attrs = ["metrics", "constraints"]
+        is_matched = False
+        matched_head = str()
+        match_results: List[str] = list()
+
+        match_rule_heads = ["```\n", "```json\n"]
+        match_rule_tail = "\n```"
+        
+        for head in match_rule_heads:
+            match_rule = fr"{head}(.*?){match_rule_tail}"
+            match_results = re.search(match_rule, processed_response_content, re.DOTALL)
+            if (match_results):
+                is_matched = True
+                matched_head = head
+                break
+            continue
+        
+        if (is_matched):
+            json_text = match_results[0].replace(matched_head, "").replace(match_rule_tail, "")
+            configuration_mapper: Dict[str, Any] = loads(json_text)
+
+            updated_attrs, blocked_attrs, nonexistent_attrs, message = self.experiment.update_attributes(mapper=configuration_mapper, editable_attrs=editable_attrs)
+            # return True, updated_attrs
+        else:
+            # _LOGGER.info("Not matched results.")
+            # return False, list()
+            pass
         return processed_response_content
 
 class MutantPlannerAssistant(OpenAIAssistant):
@@ -203,7 +233,7 @@ class MutantPlannerAssistant(OpenAIAssistant):
         self.experiment = experiment
         instructions = str()
         tools = list()
-        with open(path.join(PROMPTS_DIRECTORY, "mutant_planner-v2.txt")) as fobj:
+        with open(path.join(PROMPTS_DIRECTORY, "mutant_planner-v3.txt")) as fobj:
             instructions = fobj.read()
         with open(path.join(PROMPTS_DIRECTORY, "mutant_planner_functions.json")) as json_fobj:
             tool_functions: List[dict] = load(json_fobj)
@@ -255,25 +285,226 @@ class MutantPlannerAssistant(OpenAIAssistant):
             processed_response_content (str): The response content after process.
         """
         # remember we want to be able to hide output from user
-        initial_processed_response_content = super().post_process(response_content, is_finishing)
+        # initial_processed_response_content = super().post_process(response_content, is_finishing)
         
-        pattern = "Output: *(.+)"
-        initial_processed_response_content = initial_processed_response_content.strip("`")
-        if is_finishing or initial_processed_response_content.startswith("Output"):
-            try:
-                mutation_pattern = re.match(pattern, initial_processed_response_content).group(1).strip("\"")
-                result_dict = {
-                    "mutation_pattern": mutation_pattern
-                }
-                processed_response_content = f"```json\n{dumps(result_dict)}\n```"
-                return processed_response_content
-            except Exception as exc:
-                _LOGGER.error(f"Failed to process `response_content`: {exc}")
-                return response_content
+        response_content = response_content.replace(    # The output interface is updated with Mutant Planner V3.
+            "output", "mutation_pattern"
+        ).replace(
+            "Output", "mutation_pattern"
+        )
+        re_pattern = '"mutation_pattern"\s*:\s*"*(.+)"'
+        processed_response_content = response_content
+        pattern_results: List[str] = re.findall(re_pattern, response_content)
+        if (pattern_results):
+            mutation_pattern = pattern_results[0]
+            self.experiment.update_mutation_pattern(mutation_pattern=mutation_pattern)
+            mutation_explainer_agent = MutationPatternExplainer(openai_secret_key=self.client.api_key, experiment=self.experiment)
+            is_valid, status_code, mutation_explanation = mutation_explainer_agent.ask_gpt(mutation_pattern)
+            processed_response_content = f"{response_content}\n{mutation_explanation}"
+            processed_response_content = f"Please confirm the mutations you want:\n```txt\n{mutation_pattern}\n```\n{mutation_explanation}"
         else:
-            self.detect_vicious_output(initial_processed_response_content)  # This is about detecting potential attach, we will finish this when need it.
-            processed_response_content = initial_processed_response_content   # by default result as is after stripping
-            return processed_response_content
+            pass
+        # pattern = "mutation_pattern: *(.+)"
+        # initial_processed_response_content = initial_processed_response_content.strip("`")
+        # if is_finishing or initial_processed_response_content.startswith("Output"):
+        #     try:
+        #         mutation_pattern = re.match(pattern, initial_processed_response_content).group(1).strip("\"")
+        #         result_dict = {
+        #             "mutation_pattern": mutation_pattern
+        #         }
+        #         processed_response_content = f"```json\n{dumps(result_dict)}\n```"
+        #         return processed_response_content
+        #     except Exception as exc:
+        #         _LOGGER.error(f"Failed to process `response_content`: {exc}")
+        #         return response_content
+        # else:
+        #     self.detect_vicious_output(initial_processed_response_content)  # This is about detecting potential attach, we will finish this when need it.
+        #     processed_response_content = initial_processed_response_content   # by default result as is after stripping
+        #     return processed_response_content
+        return processed_response_content
+
+class MutationPatternExplainer(OpenAIAssistant):
+    """The agent explains the mutation pattern to natural language."""
+    
+    experiment: Experiment
+
+    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
+        """
+        Initializes the MutantPlannerAssistant agent with the OpenAI API key.
+
+        Args:
+            openai_secret_key (str): API key for accessing OpenAI services.
+            thread_id (str, optional): The identifier of a context thread, which can be referenced in OpenAI API endpoints.
+            conversation_mode (bool): If True, retains the conversation context. Default is False.
+            experiment (Experiment): The Experiment instance calling this assistant.
+        """
+        self.experiment = experiment
+        instructions = str()
+        tools = list()
+        with open(path.join(PROMPTS_DIRECTORY, "mutation_pattern_explainer.txt")) as fobj:
+            instructions = fobj.read()
+        super().__init__(openai_secret_key, 
+            assistant_name="Mutation Pattern Explainer", 
+            instructions=instructions, 
+            model=MODEL_VERSION,
+            tools=tools,
+            tool_function_mapper=TOOL_FUNCTION_MAPPER,
+            thread_id=thread_id,
+            conversation_mode=conversation_mode,
+            tool_function_callable_kwargs={
+                "experiment": experiment
+            },
+        )
+        return
+
+class ResultExplainerAssistant(OpenAIAssistant):
+    """The agent acting as a Result Explainer."""
+    
+    experiment: Experiment
+    # completion_message: str = "Experiment has been set up successfully!"
+    
+    scientific_question: str
+    metrics: List[dict]
+    results: List[dict]
+    metadata: dict
+    downloadables: List[dict]
+
+    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
+        """
+        Initializes the MutantPlannerAssistant agent with the OpenAI API key.
+
+        Args:
+            openai_secret_key (str): API key for accessing OpenAI services.
+            thread_id (str, optional): The identifier of a context thread, which can be referenced in OpenAI API endpoints.
+            conversation_mode (bool): If True, retains the conversation context. Default is False.
+            experiment (Experiment): The Experiment instance calling this assistant.
+        """
+        self.experiment = experiment
+        instructions = str()
+        tools = list()
+        with open(path.join(PROMPTS_DIRECTORY, "result_explainer.txt")) as fobj:
+            instructions = fobj.read()
+        with open(path.join(PROMPTS_DIRECTORY, "result_explainer_functions.json")) as json_fobj:
+            tool_functions: List[dict] = load(json_fobj)
+            tools = [
+                {
+                    "type": "function",
+                    "function": tool_function
+                } for tool_function in tool_functions
+            ]
+        super().__init__(openai_secret_key, 
+            assistant_name="Result Explainer", 
+            instructions=instructions, 
+            model=MODEL_VERSION,
+            tools=tools,
+            tool_function_mapper=TOOL_FUNCTION_MAPPER,
+            thread_id=thread_id,
+            conversation_mode=conversation_mode,
+            tool_function_callable_kwargs={
+                "experiment": experiment
+            },
+        )
+        self.scientific_question = experiment.scientific_question
+
+        self.metrics = list()
+        with open(path.join(PROMPTS_DIRECTORY, "result_explainer_metrics.json")) as json_fobj:
+            metrics_pool: List[dict] = load(json_fobj)
+            metric_names = [metric["name"] for metric in experiment.metrics]
+            for metric in metrics_pool:
+                if (metric["name"] in metric_names):
+                    self.metrics.append(metric)
+                else:
+                    pass
+                continue
+
+        self.results = list()
+        for exp_result in Result.get_experiment_results(experiment_id=experiment.id):
+            metric_schema = {
+                "wt_path": exp_result.get("pdb_filename", str()),
+                "mutant": exp_result.get("mutant", "WT"),
+            }
+            for result_key, result_value in exp_result.items():
+                if (result_key in METRICS_MAPPER):
+                    metric = metric_schema.copy()
+                    metric["metric"] = result_key
+                    metric["value"] = result_value
+                    self.results.append(metric)
+                else:
+                    pass
+                continue
+        self.downloadables = [
+            {
+                "file_type": fs.get_file_ext(file_path),
+                "filename": file_path,
+            } for file_path in experiment.downloadable_files
+        ]
+        self.metadata = {
+            "simulation_engine": "Amber",
+            "temperature_K": 300,
+            "production_ns": 0.1,
+            "date": str(datetime.now()),
+        }
+        return
+    
+    def ask_gpt(self):
+        """Ask GPT for analysis of the experiment. The prompt is formulated automatically.
+
+        Returns:
+            is_valid (bool): Whether the API key is valid.
+            status_code (int): The HTTP status code from the API response.
+            response_content (str): The actual response from GPT or an error message.
+        """
+        prompt_dict = {
+            "scientific_question": self.scientific_question,
+            "metrics": self.metrics,
+            "results": self.results,
+            "downloadables": self.downloadables,
+            "metadata": self.metadata,
+        }
+        prompt = dumps(prompt_dict)
+        return super().ask_gpt(prompt)
+
+class QuestionSummarizerAssistant(OpenAIAssistant):
+    """The agent acting as a Question Summarizer."""
+    
+    experiment: Experiment
+
+    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
+        """
+        Initializes the MutantPlannerAssistant agent with the OpenAI API key.
+
+        Args:
+            openai_secret_key (str): API key for accessing OpenAI services.
+            thread_id (str, optional): The identifier of a context thread, which can be referenced in OpenAI API endpoints.
+            conversation_mode (bool): If True, retains the conversation context. Default is False.
+            experiment (Experiment): The Experiment instance calling this assistant.
+        """
+        self.experiment = experiment
+        instructions = str()
+        tools = list()
+        with open(path.join(PROMPTS_DIRECTORY, "question_summarizer.txt")) as fobj:
+            instructions = fobj.read()
+        with open(path.join(PROMPTS_DIRECTORY, "question_summarizer_functions.json")) as json_fobj:
+            tool_functions: List[dict] = load(json_fobj)
+            tools = [
+                {
+                    "type": "function",
+                    "function": tool_function
+                } for tool_function in tool_functions
+            ]
+        super().__init__(openai_secret_key, 
+            assistant_name="Question Summarizer", 
+            instructions=instructions, 
+            model=MODEL_VERSION,
+            tools=tools,
+            tool_function_mapper=TOOL_FUNCTION_MAPPER,
+            thread_id=thread_id,
+            conversation_mode=conversation_mode,
+            tool_function_callable_kwargs={
+                "experiment": experiment
+            },
+        )
+        return
 
 class TimezoneConsultantAssistant(OpenAIAssistant):
     """The agent acting as a Time Zone Consultant.
@@ -313,6 +544,9 @@ DefinedAgent = Annotated[
         QuestionAnalyzerAssistant,
         MetricsPlannerAssistant,
         MutantPlannerAssistant,
+        MutationPatternExplainer,
+        ResultExplainerAssistant,
+        QuestionSummarizerAssistant,
     ],
     "DefinedAgent",
 ]

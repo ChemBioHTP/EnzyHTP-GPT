@@ -317,7 +317,7 @@ if __name__ == "__main__":
                 # )
                 analysis_main(
                     stru_esm=stru_esm, metrics=metrics,
-                    mutant=mutant_name, replica_id=replica_id,
+                    mutant_name=mutant_name, replica_id=replica_id,
                 )
 
             # Send a request to the backend of Web Application to update status and progress.
