@@ -30,24 +30,121 @@ A web application that serves as an interface between a user and EnzyHTP's workf
 
 # 2. Server Manager: Production Deployment
 
-**ATTENTION: Please ask [Zhong, Yinjie](mailto:yinjie.zhong@vanderbilt.edu) for detailed information!!**
+**ATTENTION: Please ask [Zhong, Yinjie](mailto:yinjie.zhong@outlook.com) for detailed information!!**
 
 We use docker container to deploy the website to ensure environmental independence.
 
-## 2.1 Node Server (Frontend)
+## 2.1 All-in-One Solution
 
-To build the `enzyhtp.web.flask` (i.e., backend) docker image, enter and run the following `docker build` command.
+If you adopt this solution to deploy this website on Mutexa CSB Workstation, you can omit all other `2.X` contents.
+
+We have now facilitated an all-in-one solution with the `docker-compose.yml`. To use this, please follow the instructions below.
+
+This stack runs:
+
+* Frontend: Built with Node (Vite) inside the `web-builder` container (`npm ci && npm run build`) and outputs to `./web-client/dist`. Nginx serves that directory over ports 80/443. By default, the official Nginx image serves files from `/usr/share/nginx/html`. 
+* Backend: Flask app built from `flask-server/Dockerfile`, listening on 8000, mapped to host 12306 (editable in .env).
+* Database: MongoDB container with data persisted to your host via `MONGO_DATA_DIR`.
+* Startup order is enforced so Flask waits for Mongo to be healthy via `depends_on: condition: service_healthy`.
+
+### 2.1.1 Directories required.
 
 ```bash
-.../EnzyHTP-GPT$ docker build -t enzyhtp.web.node:2024.04.v02 .
+mkdir -p /mutexa/raid5/data/mongodb
+mkdir -p /mutexa/raid5/data/enzyhtp_gpt/ssl
+mkdir -p /mutexa/raid5/data/enzyhtp_gpt/files
+mkdir -p /mutexa/raid5/data/enzyhtp_gpt/nginx/log
 ```
 
-To run the docker container, enter and execute the following `docker run` command.
+> Permissions note: the frontend build writes to `./web-client/dist` via a bind mount, so write permissions are controlled by the host. If you see `EACCES` errors while building, grant your user write access to that directory or adjust ownership.
 
-In this command, port 443 of the host is mapped to port 3000 of the container, and the flask-server folder on the host is mapped to the working directory in the container, that is, any modifications in this folder will be instantly synchronized to the working directory, so that the service manager only needs to restart the container to complete the update.
+Grant permission as follows.
 
 ```bash
-docker run -d --name enzyhtp.web.node -v /path/to/EnzyHTP-GPT/src:/usr/src/app/src -v /path/to/EnzyHTP-GPT/public:/usr/src/app/public -p 12580:3000 enzyhtp.web.node:2024.04.v02
+$ chmod o+w /mutexa/raid5/data/mongodb
+$ chmod g+w /mutexa/raid5/data/mongodb
+$ chmod o+w ./web-client
+$ chmod g+w ./web-client
+```
+
+### 2.1.2 Environment File
+
+Copy the `.env.example` to `.env` file in the project root.
+
+### 2.1.3 Start and Stop
+
+```bash
+# Build and start in the background
+$ docker compose --env-file ./.env up -d --build
+
+# Show status (health, ports, etc.)
+$ docker compose ps
+
+# Tail logs
+$ docker compose logs -f mongo
+$ docker compose logs -f flask
+$ docker compose logs -f web-builder
+$ docker compose logs -f nginx
+
+# Stop everything
+$ docker compose down
+```
+
+Health checks are defined per service; `depends_on: service_healthy` ensures Mongo passes its healthcheck before Flask starts.
+
+**Check if your website works now. If so, your deployment is done!**
+
+#### 2.1.4 Frontend Rebuild
+
+Rebuild after changing the frontend code:
+
+```bash
+$ docker compose exec web-builder bash -lc "npm run build"
+```
+
+Vite’s default build output directory is `dist`; you can change it via `build.outDir` in your Vite config if needed.
+
+**Check if your website works now. If so, your rebuild is done!**
+**The following is additional information, please refer to it when needed.**
+
+## 2.1.5 Nginx notes
+
+- Static files are served from `/usr/share/nginx/html` inside the official Nginx container, which we bind-mount from `./web-client/dist` (read-only).
+- Put certs under `SSL_DIR` and reference them in `nginx.conf` as `/etc/nginx/ssl/...`.
+- Reverse-proxy the backend to `http://flask:8000` (service DNS name within the Compose network).
+- Optionally add a lightweight health endpoint (e.g., `/healthz`) in Nginx for stricter checks.
+
+## 2.1.6 MongoDB notes
+
+- Data persists to the host directory specified by `MONGO_DATA_DIR`.
+- The healthcheck uses `mongosh` to run `db.adminCommand({ ping: 1 })` and mark the service healthy.
+- When upgrading across major MongoDB versions, follow Mongo’s upgrade notes and back up first.
+
+## 2.1.7 Troubleshooting
+
+**Frontend build fails with `EACCES: permission denied, mkdir '/app/dist/...'`**  
+`./web-client/dist` is a bind mount controlled by host permissions. Fix by adjusting ownership/permissions on the host so the container user can write.
+
+**Nginx serves the welcome page or returns 403**
+
+- Ensure `./web-client/dist` exists and contains the built assets.
+- Verify the bind mount: `./web-client/dist:/usr/share/nginx/html:ro` (the official Nginx image serves from `/usr/share/nginx/html`).
+
+**Flask can’t connect to Mongo on startup**  
+Increase Mongo’s `healthcheck` `retries`/`start_period` and keep `depends_on: condition: service_healthy` so Flask starts only after Mongo is healthy.
+
+**What does `:ro` do?**  
+It mounts a bind/volume as read-only inside the container (host remains writable).
+
+## 2.1.8 Day-2 operations
+
+```bash
+# Pull newer base images and restart
+docker compose pull
+docker compose up -d
+
+# Rebuild frontend only
+docker compose exec web-builder bash -lc "npm run build"
 ```
 
 ## 2.2 Flask Server (Backend)
