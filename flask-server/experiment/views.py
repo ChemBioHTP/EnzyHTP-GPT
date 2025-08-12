@@ -504,7 +504,7 @@ class ExperimentApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        editable_attrs = ["name", "description", "metrics", "constraints"] # Only fields in the list are editable.
+        editable_attrs = ["name", "description", "metrics", "constraints", "md_length"] # Only fields in the list are editable.
         stringfied_list_attrs = ["metrics", "constraints"]
         
         info_mapper = dict()

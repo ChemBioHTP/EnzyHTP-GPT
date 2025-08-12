@@ -122,7 +122,7 @@ class Experiment():
         self.pdb_filename = kwargs.get("pdb_filename", None)
         # self.results: List[dict] = kwargs.get("results", list())
         self.slurm_job_uuid = kwargs.get("slurm_job_uuid", None)
-        self.md_length = kwargs.get("md_timespan", DEFAULT_MD_LENGTH)
+        self.md_length = kwargs.get("md_length", DEFAULT_MD_LENGTH)   # Length of MD Simulation in nanoseconds.
         self.status: int = kwargs.get("status", StatusCode.CREATED)
         self.progress: float = kwargs.get("progress", 0.0)
         self.mutation_pattern = kwargs.get("mutation_pattern", "WT")
@@ -1053,7 +1053,8 @@ class Experiment():
                 "metrics": dumps(self.metrics),
                 "access_token": create_access_token(identity=self.user_id, expires_delta=TOKEN_EXPIRES_DELTA),
                 "mutation_pattern": self.mutation_pattern,
-                "constraints_str": dumps(self.constraints)
+                "constraints_str": dumps(self.constraints),
+                "md_length": self.md_length
             })
 
             files = [
