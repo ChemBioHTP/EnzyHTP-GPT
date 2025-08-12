@@ -20,6 +20,7 @@ from json import loads
 # Here put enzy_htp modules.
 from enzy_htp import interface, _LOGGER
 from enzy_htp.analysis import binding_energy, ddg_fold_of_mutants, ele_field_strength_at_along, rmsd, spi_metric
+from enzy_htp.analysis.cavity import ensemble_cavity_volumes
 from enzy_htp.mutation import assign_mutant
 from enzy_htp.mutation_class import Mutation, generate_from_mutation_flag
 from enzy_htp.core.clusters.accre_r9 import AccreR9
@@ -56,8 +57,17 @@ def active_site_rmsd(stru_esm: StructureEnsemble, region_pattern: str, **kwargs)
     rmsd_values = rmsd(stru_esm=stru_esm, region_pattern=region_pattern)
     return mean(rmsd_values)
 
-def cavity(stru_esm: StructureEnsemble, region_pattern: str, **kwargs) -> float:
-    pass
+def cavity(stru_esm: StructureEnsemble, ligand: str, **kwargs) -> float:
+    """The cavity volume of a binding pocket of the protein, defined by where the ligand located in the `structure_0`.
+    
+    Args:
+        stru_esm (StructureEnsemble): The StructureEnsemble instance to analyze.
+        ligand (str): The target ligand of the calculation represented as a selection pattern.
+            Note that the ligand has to be part of Structure().
+            Note that the ligand can be a small molecule or a protein.
+    """
+    cavity_volumes = ensemble_cavity_volumes(stru_esm=stru_esm, contain_ligand=ligand, frame_0_based=True)
+    return mean(cavity_volumes)
 
 def ddg_fold(stru: Structure, mutant: List[Mutation], **kwargs):
     """Calculate the change of dG_fold of the protein mutants in a mutant space.
