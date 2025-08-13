@@ -69,9 +69,11 @@ $ chmod g+w ./web-client
 
 ### 2.1.2 Environment File
 
-Copy the `.env.example` to `.env` file in the project root.
+Copy the `.env.example` to `.env` file in the current directory, and make modifications as needed.
 
 ### 2.1.3 Start and Stop
+
+Enter and Execute the following commands in the current directory.
 
 ```bash
 # Build and start in the background
@@ -107,20 +109,20 @@ Vite’s default build output directory is `dist`; you can change it via `build.
 **Check if your website works now. If so, your rebuild is done!**
 **The following is additional information, please refer to it when needed.**
 
-## 2.1.5 Nginx notes
+### 2.1.5 Nginx notes
 
 - Static files are served from `/usr/share/nginx/html` inside the official Nginx container, which we bind-mount from `./web-client/dist` (read-only).
 - Put certs under `SSL_DIR` and reference them in `nginx.conf` as `/etc/nginx/ssl/...`.
 - Reverse-proxy the backend to `http://flask:8000` (service DNS name within the Compose network).
 - Optionally add a lightweight health endpoint (e.g., `/healthz`) in Nginx for stricter checks.
 
-## 2.1.6 MongoDB notes
+### 2.1.6 MongoDB notes
 
 - Data persists to the host directory specified by `MONGO_DATA_DIR`.
 - The healthcheck uses `mongosh` to run `db.adminCommand({ ping: 1 })` and mark the service healthy.
 - When upgrading across major MongoDB versions, follow Mongo’s upgrade notes and back up first.
 
-## 2.1.7 Troubleshooting
+### 2.1.7 Troubleshooting
 
 **Frontend build fails with `EACCES: permission denied, mkdir '/app/dist/...'`**  
 `./web-client/dist` is a bind mount controlled by host permissions. Fix by adjusting ownership/permissions on the host so the container user can write.
@@ -136,7 +138,7 @@ Increase Mongo’s `healthcheck` `retries`/`start_period` and keep `depends_on: 
 **What does `:ro` do?**  
 It mounts a bind/volume as read-only inside the container (host remains writable).
 
-## 2.1.8 Day-2 operations
+### 2.1.8 Day-2 operations
 
 ```bash
 # Pull newer base images and restart
