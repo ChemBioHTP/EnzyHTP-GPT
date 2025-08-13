@@ -40,6 +40,7 @@ const columns = ref([
     title: "Name",
     dataIndex: "name",
     width: 250,
+    ellipsis: true,
     sorter: {
       compare: (a, b) => a.name - b.name,
     },
@@ -52,16 +53,18 @@ const columns = ref([
   {
     title: "Status",
     dataIndex: "status_text",
-    minWidth: 100,
+    width: 110,
   },
   {
     title: "Description",
     dataIndex: "description",
     minWidth: 200,
+    ellipsis: true,
   },
   {
     title: "Metrics",
     dataIndex: "metrics",
+    ellipsis: true,
     customRender: ({ record }) => {
       return record.metrics?.map(item => item.name).join(", ");
     },
@@ -69,7 +72,7 @@ const columns = ref([
   {
     title: "Date Created",
     dataIndex: "created_time",
-    width: 250,
+    width: 220,
     sorter: {
       compare: (a, b) => {
         const timeA = new Date(a.created_time).getTime();
@@ -81,7 +84,7 @@ const columns = ref([
   {
     title: "Date Updated",
     dataIndex: "updated_time",
-    width: 250,
+    width: 220,
     sorter: {
       compare: (a, b) => {
         const timeA = new Date(a.updated_time).getTime();
@@ -120,15 +123,15 @@ const handleTableChange = (pag, filters, sorter) => {
 const handleRowClick = record => {
   return {
     onClick: () => {
-      if (record._status == 0) {
-        router.push({ path: "/result", query: { id: record.id, type: "Results", status: record._status } });
+      if (record.status == 0) {
+        router.push({ path: "/result", query: { id: record.id, type: "Results", status: record.status } });
         return;
       }
-      if (record._status <= -1 && record._status >= -8) {
-        router.push({ path: "/result", query: { id: record.id, type: "Results", status: record._status } });
+      if (record.status <= -1 && record.status >= -8) {
+        router.push({ path: "/result", query: { id: record.id, type: "Results", status: record.status } });
         return;
       }
-      if (record._status == -9 || record._status > 0) {
+      if (record.status == -9 || record.status > 0) {
         router.push({ path: "/setup", query: { id: record.id } });
       }
     },
@@ -141,11 +144,11 @@ const tableData = computed(() => {
     case 0:
       return experimentStore.experiments;
     case 1:
-      return experimentStore.experiments.filter(item => [-9, -8, -7, -6, -5, -4, -3, -2, -1].includes(item._status));
+      return experimentStore.experiments.filter(item => [-9, -8, -7, -6, -5, -4, -3, -2, -1].includes(item.status));
     case 2:
-      return experimentStore.experiments.filter(item => [1, 2, 3].includes(item._status));
+      return experimentStore.experiments.filter(item => [1, 2, 3].includes(item.status));
     case 3:
-      return experimentStore.experiments.filter(item => item._status === 0);
+      return experimentStore.experiments.filter(item => item.status === 0);
     default:
       return experimentStore.experiments;
   }

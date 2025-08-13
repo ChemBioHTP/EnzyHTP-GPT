@@ -5,13 +5,7 @@
         <h3>Summary</h3>
         <div class="flex-wrap mt15 img-wrap">
           <img :src="item" alt="" v-for="(item, index) in resultData.result_images" class="result-img">
-          <img :src="item" alt="" v-for="(item, index) in resultData.result_images" class="result-img">
-          <img :src="item" alt="" v-for="(item, index) in resultData.result_images" class="result-img">
-          <img :src="item" alt="" v-for="(item, index) in resultData.result_images" class="result-img">
-
-        </div>
-        <div class="interpretation">
-          <p v-html="formattedText(resultData.result_interpretation)"></p>
+          <div class="interpretation" v-html="formattedText(resultData.result_interpretation)"></div>
         </div>
       </a-spin>
     </div>
@@ -59,8 +53,7 @@ const safeParseWithNaN = (str) => {
   try {
     return new Function(`return (${str})`)();
   } catch (e) {
-    console.error("解析失败:", e);
-    return null;
+    return str;
   }
 };
 if (route.query.status == '0') {
@@ -68,9 +61,9 @@ if (route.query.status == '0') {
   getExperimentResult(route.query.id).then(res => {
     spinning.value = false;
     if (res) {
-      let result = safeParseWithNaN(res)
+      let result = typeof res === "string" ? safeParseWithNaN(res) : res
       console.log(result);
-      if (result && result.is_successful && result.is_authenticated) {
+      if (result && result.is_authenticated) {
         resultData.value = result
       }
     }
@@ -89,6 +82,8 @@ if (route.query.status == '0') {
     border-left: 1px solid #e0e0e0;
     padding: 30px 17px;
     margin-left: 15px;
+    height: 60vh;
+    overflow: auto;
   }
 }
 
@@ -127,7 +122,7 @@ if (route.query.status == '0') {
     /* 允许换行 */
     gap: 10px;
     /* 设置图片之间的间隔 */
-    height: 300px;
+    max-height: 55vh;
     overflow: auto;
   }
 
@@ -145,8 +140,6 @@ if (route.query.status == '0') {
     color: #000;
     margin-top: 40px;
     line-height: 140%;
-    max-height: 400px;
-    overflow: auto;
   }
 }
 

@@ -8,7 +8,7 @@
         <div class="mt10">
           <span class="title">{{ experiment?.name }}</span>
           <span :class="[
-            getClass(experiment?._status ?? experiment?.status)
+            getClass(experiment?.status)
           ]"></span>
           <span class="status">
             {{ experiment?.status_text }}

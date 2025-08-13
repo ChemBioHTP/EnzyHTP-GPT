@@ -81,7 +81,7 @@ const showList = computed(() => {
     return experimentStore.experiments;
   } else {
     return experimentStore.experiments.filter(item =>
-      statusList.value[selectSatus.value].status.includes(item._status)
+      statusList.value[selectSatus.value].status.includes(item.status)
     );
   }
 });
@@ -96,15 +96,15 @@ const change = index => {
 const openExperiment = item => {
   selectExperiment.value = item.id;
   console.log(item);
-  if (item._status == 0) {
-    router.push({ path: "/result", query: { id: item.id, type: "Results", status: item._status } });
+  if (item.status == 0) {
+    router.push({ path: "/result", query: { id: item.id, type: "Results", status: item.status } });
     return;
   }
-  if (item._status <= -1 && item._status >= -8) {
-    router.push({ path: "/result", query: { id: item.id, type: "Results", status: item._status } });
+  if (item.status <= -1 && item.status >= -8) {
+    router.push({ path: "/result", query: { id: item.id, type: "Results", status: item.status } });
     return;
   }
-  if (item._status == -9 || item._status > 0) {
+  if (item.status == -9 || item.status > 0) {
     router.push({ path: "/setup", query: { id: item.id } });
   }
 };

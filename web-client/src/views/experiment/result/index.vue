@@ -38,8 +38,8 @@ const getExperiment = async () => {
     experiment.value = res;
     experimentStore.setExperiment(res);
     let item = experimentStore.experiments.find(item => item.id == route.query.id);
-    if (item) {
-      item._status = res.status;
+    if (item && res.status != undefined) {
+      item.status = res.status;
     }
   });
 };
@@ -81,12 +81,12 @@ onMounted(() => {
 <template>
   <a-flex class="container">
     <div class="box">
-      <a-spin :spinning="spinning">
+      <a-spin :spinning="spinning" class="container">
         <HeadInfo :experiment="experimentStore.experiment" />
         <InputResult v-model="selected" />
         <InputComponent v-show="selected === 'Input'" :node="model.node" :messageList="model.messageList"
           :mutations="model.mutations" />
-        <ResultComponent :progress="Number(experiment.progress*100)" :mutations="model.mutations"
+        <ResultComponent :progress="Number(experiment.progress * 100)" :mutations="model.mutations"
           v-show="selected === 'Results'" :status="experiment.status" />
       </a-spin>
     </div>

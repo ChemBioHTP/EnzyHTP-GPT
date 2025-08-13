@@ -4,13 +4,13 @@
 		<DownloadOutlined class="download-icon" @click="handleDownload" v-if="showDownload" />
 	</a-flex>
 	<a-row class="file-header">
-		<a-col :span="8">Name</a-col>
-		<a-col :span="16">Format</a-col>
+		<a-col :span="16">Name</a-col>
+		<a-col :span="8">Format</a-col>
 	</a-row>
 	<div class="file-list" v-if="list">
 		<a-row v-for="(value, key) in list" class="item">
-			<a-col :span="8">{{ key }}</a-col>
-			<a-col :span="16">{{ value }}</a-col>
+			<a-col :span="16">{{ key }}</a-col>
+			<a-col :span="8">{{ value }}</a-col>
 		</a-row>
 	</div>
 </template>
