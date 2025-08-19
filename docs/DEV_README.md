@@ -60,9 +60,13 @@ The project is organized into the following main directories:
 2.  **EnzyHTP Installation**: Clone the EnzyHTP library and configure it using the provided script:
     ```bash
     git clone https://github.com/ChemBioHTP/EnzyHTP.git ~/bin/EnzyHTP
+    cd ~/bin/EnzyHTP
+    git checkout develop
+    cd /path/to/EnzyHTP-GPT
     bash flask-server/enzyhtp_env_config.sh --path ~/bin/EnzyHTP
     ```
 3.  **Database**: The application uses MongoDB. For local development, you can install it following the official documentation or use the containerized deployment method described in `flask-server/README.md`.
+4. **Postman**: Download and log into Postman. If you are in the MutexaGPT postman group, you can see the **EnzyHTP Web API** Collection, which is where the API endpoints are recorded. If not, contact [Shao, Qianzhen](mailto:shaoqz@icloud.com) or [Zhong, Yinjie](mailto:yinjie.zhong.cn@gmail.com) to request for the permission, or you can just import the `XXX.postman_collection.json` file into your postman as a collection.
 
 ### 4.2. Running the Backend
 
@@ -120,6 +124,22 @@ The backend exposes a RESTful API for managing users, experiments, and other res
 *   `GET /<experiment_id>/deploy`: Download a deployment package for running simulations on a separate SLURM cluster.
 
 For detailed information on request and response formats, please refer to the `docs/20250419_Web APIs.postman_collection.json` file.
+
+#### 4.3.3 Slurm API tokens.
+
+Our website correspond with Vanderbilt ACCRE through Slurm API, whose gateway is `https://ssam.accre.vanderbilt.edu/`.
+
+> Username: yanglab_enzyhtp_app
+> Password: defuse/graffiti/doorbell/jubilance/managing/coastland
+
+After logging in, you may notice three tabs on the top-left corner of the page: `Home`, `Slurm` & `Token`.
+
+In the `Token` page, press `Create Token` button, enter a name, then you can see a `token` and a `refresh token`.
+
+Use postman, log in your account, and use `Experiment.Slurm.Token.POST` to update the `token` and `refrest_token`.
+
+Use the `Experiment.Slurm.Token.PUT` API, you can refresh the token. No additional params required.
+
 
 ## 5. Frontend Setup
 
