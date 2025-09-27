@@ -33,6 +33,17 @@ chmod o+w ./web-client
 chmod g+w ./web-client
 ```
 
+Setup SSL Certificates
+
+```bash
+cd flask-server/certs
+bash generate_cert.sh
+```
+
+Setup OAuth
+
+Configuration files for OAuth clients should be put under `flask-server/oauth_clients`. These are not included in the repository and must be obtained from the project maintainers.
+
 ### 1.2. Environment Variables
 
 Copy the `.env.example` file to `.env` and customize the environment variables as needed.
@@ -65,7 +76,7 @@ cp .env.example .env
 
 ### 1.4. Frontend Rebuild
 
-To rebuild the frontend after making changes to the `web-client` code:
+To build/rebuild the frontend in a new development (or after making changes to the `web-client` code):
 
 ```bash
 docker compose exec web-builder bash -lc "npm run build"
@@ -113,6 +124,6 @@ While Docker Compose is recommended, it is also possible to run the services as 
 
 ## 3. Troubleshooting
 
--   **Frontend build fails with `EACCES: permission denied`**: This is likely a host permission issue on the `./web-client/dist` directory. Ensure the user running the Docker container has write permissions.
+-   **Frontend build fails with `EACCES: permission denied`**: This is likely a host permission issue on the `./web-client/dist` directory. Ensure the user running the Docker container has write permissions. Avoid manually creating an empty dist, the builder will create it with the right permission.
 -   **Nginx serves the welcome page or 403 errors**: Ensure the `web-client/dist` directory is not empty and contains the built frontend assets. Verify the volume mount in your Nginx container points to the correct directory.
 -   **Flask can't connect to Mongo**: Ensure the MongoDB container is healthy before the Flask container starts. The `docker-compose.yml` file uses `depends_on` to manage service startup order.
