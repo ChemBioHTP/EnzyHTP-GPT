@@ -93,7 +93,7 @@
         + Description:
             The cavity volume of a binding pocket of the protein
         + Required argument:
-            - None
+            - substrate_selection_pattern: the PyMol style selection pattern defining the substrate. Refer to *PyMol selection pattern*
         + Optional argument:
             - None
         + Related Properties 

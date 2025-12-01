@@ -1,0 +1,88 @@
+name: enzyhtp-web
+
+services:
+  mongo:
+    image: mongo:latest
+    container_name: enzyhtp.web.mongo
+    restart: unless-stopped
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - ${MONGO_DATA_DIR:-./.data/mongodb}:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  flask:
+    build:
+      context: ./flask-server
+      dockerfile: Dockerfile
+    image: enzyhtp.web.flask:${FLASK_IMAGE_TAG:-latest}
+    container_name: enzyhtp.web.flask
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    # If your Flask needs a DB connection string, you can pass it in here through environment variables (example)
+    environment:
+      - TZ=US/Central
+      - MONGO_URI=${MONGO_URI:-mongodb://mongo:27017/enzyhtp_gpt}
+      # Other environment variables you read in flask-server/server.py or config.py can also be added here
+    volumes:
+      # Code hot update/reflection (same as your original docker run)
+      - ./flask-server:/var/www/flask-server
+      - ${SSL_DIR}:/var/www/ssl
+      - ${FILES_DIR}:/var/www/files
+      - ${ENZYHTP_BIN}:/var/bin/EnzyHTP
+      - ${AMBER22_DIR}:/sb/apps/amber22
+    ports:
+      # Keep your original backend direct connection port (for debugging), 
+      # and use Nginx reverse proxy to connect to the container network.
+      - "${FLASK_HOST_PORT:-12306}:8000"
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "curl -fsS http://127.0.0.1:8000/ || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+  # Front-end builder: Use Node to execute `npm ci && npm run build` in the container, and put the product into a named volume
+  web-builder:
+    image: node:latest
+    container_name: enzyhtp.web.builder
+    working_dir: /app
+    restart: unless-stopped
+    # Build first and then tail so you can enter the container and rebuild at any time
+    command: bash -lc "npm ci && npm run build && tail -f /dev/null"
+    # command: bash -lc "rm -r /app/node_modules/ && rm -r /app/dist/"
+    volumes:
+      - ./web-client:/app
+      - ./web-client/dist:/app/dist   # 产物直接写到宿主目录
+
+  # Front-end server: Nginx directly mounts the dist file produced by web-builder
+  nginx:
+    image: nginx:latest
+    container_name: enzyhtp.web.nginx
+    restart: unless-stopped
+    depends_on:
+      - web-builder
+      - flask
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Your custom Nginx configuration
+      - ${NGINX_CONF:-./nginx.conf}:/etc/nginx/nginx.conf:ro
+      # SSL and logs are consistent with the original
+      - ${SSL_DIR}:/etc/nginx/ssl:ro
+      - ${NGINX_LOG_DIR}:/var/log/nginx
+      # Front-end static resources (from the dist product of web-builder)
+      - ./web-client/dist:/usr/share/nginx/html:ro  # Nginx 直接读取 dist
+    # Optional: Health check (requires '/' route in your nginx.conf)
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "curl -kfsS https://127.0.0.1/ || curl -fsS http://127.0.0.1/"]
+      interval: 20s
+      timeout: 5s
+      retries: 5

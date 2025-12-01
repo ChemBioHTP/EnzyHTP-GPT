@@ -81,6 +81,7 @@ dependencies:
   - fribidi=1.0.10=h36c2ea0_0
   - frozenlist=1.4.0=py39h5eee18b_0
   - gettext=0.21.1=h27087fc_0
+  - goodvibes=3.2
   - giflib=5.2.1=h5eee18b_3
   - gl2ps=1.4.2=h0708190_0
   - glew=2.1.0=h9c3ff4c_2
@@ -216,6 +217,7 @@ dependencies:
   - mysql-libs=8.0.33=hca2cd23_6
   - ncurses=6.4=h59595ed_2
   - nettle=3.9.1=h7ab15ed_0
+  - networkx
   - nlohmann_json=3.11.2=h27087fc_0
   - nomkl=3.0=0
   - nspr=4.35=h27087fc_0
