@@ -1,0 +1,451 @@
+.tile {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 360px;
+}
+
+.tile .content-3 {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  position: relative;
+  width: 100%;
+}
+
+.tile .content-4 {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  position: relative;
+}
+
+.tile .title {
+  align-self: stretch;
+  font-family: var(--fixed-heading-styles-heading-03-font-family);
+  font-size: var(--fixed-heading-styles-heading-03-font-size);
+  font-style: var(--fixed-heading-styles-heading-03-font-style);
+  font-weight: var(--fixed-heading-styles-heading-03-font-weight);
+  letter-spacing: var(--fixed-heading-styles-heading-03-letter-spacing);
+  line-height: var(--fixed-heading-styles-heading-03-line-height);
+  margin-top: -1px;
+  position: relative;
+}
+
+.tile .description {
+  align-self: stretch;
+  font-family: var(--body-styles-body-01-font-family);
+  font-size: var(--body-styles-body-01-font-size);
+  font-style: var(--body-styles-body-01-font-style);
+  font-weight: var(--body-styles-body-01-font-weight);
+  letter-spacing: var(--body-styles-body-01-letter-spacing);
+  line-height: var(--body-styles-body-01-line-height);
+  position: relative;
+}
+
+.tile .title-description-wrapper {
+  align-items: flex-start;
+  display: flex;
+  flex: 1;
+  flex-grow: 1;
+  gap: 16px;
+  padding: 16px;
+  position: relative;
+}
+
+.tile .title-description {
+  align-items: flex-start;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 16px;
+  position: relative;
+}
+
+.tile .title-2 {
+  align-self: stretch;
+  font-family: var(--fixed-heading-styles-heading-03-font-family);
+  font-size: var(--fixed-heading-styles-heading-03-font-size);
+  font-style: var(--fixed-heading-styles-heading-03-font-style);
+  font-weight: var(--fixed-heading-styles-heading-03-font-weight);
+  letter-spacing: var(--fixed-heading-styles-heading-03-letter-spacing);
+  line-height: var(--fixed-heading-styles-heading-03-line-height);
+  margin-top: -1px;
+  position: relative;
+}
+
+.tile .description-2 {
+  align-self: stretch;
+  font-family: var(--body-styles-body-01-font-family);
+  font-size: var(--body-styles-body-01-font-size);
+  font-style: var(--body-styles-body-01-font-style);
+  font-weight: var(--body-styles-body-01-font-weight);
+  letter-spacing: var(--body-styles-body-01-letter-spacing);
+  line-height: var(--body-styles-body-01-line-height);
+  position: relative;
+}
+
+.tile .instance-node-3 {
+  background-blend-mode: multiply !important;
+  height: 16px !important;
+  left: 328px !important;
+  position: absolute !important;
+  top: 16px !important;
+  width: 16px !important;
+}
+
+.tile .interactive-icon {
+  align-items: flex-end;
+  align-self: stretch;
+  display: flex;
+  height: 48px;
+  justify-content: flex-end;
+  position: relative;
+  width: 100%;
+}
+
+.tile .icon-4 {
+  align-items: center;
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  display: flex;
+  flex-direction: column;
+  height: 48px;
+  justify-content: center;
+  padding: 3px;
+  position: relative;
+  width: 48px;
+}
+
+.tile .instance-node-4 {
+  background-blend-mode: multiply !important;
+  height: 20px !important;
+  position: relative !important;
+  width: 20px !important;
+}
+
+.tile .button-2 {
+  flex: 0 0 auto !important;
+}
+
+.tile .instance-node-5 {
+  background-blend-mode: multiply !important;
+  height: 16px !important;
+  position: relative !important;
+  width: 16px !important;
+}
+
+.tile.state-17-focus-selected {
+  background-color: var(--layerlayer-01);
+  border: 2px solid;
+  border-color: var(--focusfocus);
+}
+
+.tile.state-17-disabled {
+  background-color: var(--layerlayer-01);
+}
+
+.tile.state-17-focus {
+  background-color: var(--layerlayer-01);
+}
+
+.tile.state-17-hover-selected {
+  background-color: var(--layerlayer-hover-01);
+  border: 1px solid;
+  border-color: var(--borderborder-inverse);
+}
+
+.tile.state-17-enabled-expanded {
+  background-color: var(--layerlayer-01);
+}
+
+.tile.state-17-enabled-selected {
+  background-color: var(--layerlayer-01);
+  border: 1px solid;
+  border-color: var(--borderborder-inverse);
+}
+
+.tile.state-17-focus-expanded {
+  background-color: var(--layerlayer-01);
+}
+
+.tile.state-17-enabled {
+  background-color: var(--layerlayer-01);
+}
+
+.tile.multi-select.state-17-focus {
+  border: 2px solid;
+  border-color: var(--focusfocus);
+}
+
+.tile.state-17-hover.expandable {
+  background-color: var(--layerlayer-hover-01);
+}
+
+.tile.state-17-hover.single-select {
+  background-color: var(--layerlayer-hover-01);
+}
+
+.tile.state-17-enabled.accessible-true {
+  border: 1px solid;
+  border-color: var(--borderborder-tile-01);
+}
+
+.tile.accessible-true.state-17-disabled {
+  border: 1px solid;
+  border-color: var(--borderborder-tile-01);
+}
+
+.tile.state-17-hover-expanded.accessible-true {
+  border: 1px solid;
+  border-color: var(--borderborder-tile-01);
+}
+
+.tile.state-17-enabled-expanded.accessible-true {
+  border: 1px solid;
+  border-color: var(--borderborder-tile-01);
+}
+
+.tile.state-17-hover.expandable-interactive {
+  background-color: var(--layerlayer-01);
+}
+
+.tile.state-17-hover-expanded.expandable-interactive {
+  background-color: var(--layerlayer-01);
+}
+
+.tile.state-17-hover.multi-select {
+  background-color: var(--layerlayer-hover-01);
+}
+
+.tile.single-select.state-17-focus {
+  border: 2px solid;
+  border-color: var(--focusfocus);
+}
+
+.tile.state-17-hover-expanded.expandable {
+  background-color: var(--layerlayer-hover-01);
+}
+
+.tile.clickable.state-17-hover {
+  background-color: var(--layerlayer-hover-01);
+}
+
+.tile.expandable.state-17-focus {
+  border: 2px solid;
+  border-color: var(--focusfocus);
+}
+
+.tile.clickable.state-17-focus {
+  border: 2px solid;
+  border-color: var(--focusfocus);
+}
+
+.tile.state-17-focus-expanded.expandable {
+  border: 2px solid;
+  border-color: var(--focusfocus);
+}
+
+.tile.state-17-hover.accessible-true {
+  border: 1px solid;
+  border-color: var(--borderborder-tile-01);
+}
+
+.tile.state-17-focus-expanded.expandable-interactive.accessible-true {
+  border: 1px solid;
+  border-color: var(--borderborder-tile-01);
+}
+
+.tile.expandable-interactive.accessible-true.state-17-focus {
+  border: 1px solid;
+  border-color: var(--borderborder-tile-01);
+}
+
+.tile.single-select .content-4 {
+  width: 360px;
+}
+
+.tile.expandable-interactive .content-4 {
+  flex: 1;
+  flex-grow: 1;
+}
+
+.tile.expandable .content-4 {
+  flex: 1;
+  flex-grow: 1;
+}
+
+.tile.base .content-4 {
+  flex: 1;
+  flex-grow: 1;
+}
+
+.tile.clickable .content-4 {
+  flex: 1;
+  flex-grow: 1;
+}
+
+.tile.state-17-focus-selected .title {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-disabled .title {
+  color: var(--texttext-disabled);
+}
+
+.tile.state-17-hover .title {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-focus .title {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-hover-selected .title {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-hover-expanded .title {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-enabled-expanded .title {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-enabled-selected .title {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-focus-expanded .title {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-enabled .title {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-focus-selected .description {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-disabled .description {
+  color: var(--texttext-disabled);
+}
+
+.tile.state-17-hover .description {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-focus .description {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-hover-selected .description {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-hover-expanded .description {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-enabled-expanded .description {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-enabled-selected .description {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-focus-expanded .description {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-enabled .description {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-focus-selected .title-2 {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-disabled .title-2 {
+  color: var(--texttext-disabled);
+}
+
+.tile.state-17-hover .title-2 {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-focus .title-2 {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-hover-selected .title-2 {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-hover-expanded .title-2 {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-enabled-expanded .title-2 {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-enabled-selected .title-2 {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-focus-expanded .title-2 {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-enabled .title-2 {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-focus-selected .description-2 {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-disabled .description-2 {
+  color: var(--texttext-disabled);
+}
+
+.tile.state-17-hover .description-2 {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-focus .description-2 {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-hover-selected .description-2 {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-hover-expanded .description-2 {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-enabled-expanded .description-2 {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-enabled-selected .description-2 {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-focus-expanded .description-2 {
+  color: var(--texttext-primary);
+}
+
+.tile.state-17-enabled .description-2 {
+  color: var(--texttext-primary);
+}

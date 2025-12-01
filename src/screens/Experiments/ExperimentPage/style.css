@@ -1,0 +1,52 @@
+.element-experiment {
+  background-color: #f4f4f4;
+  display: flex;
+  text-align: left;
+  flex-direction: row;
+  justify-content: center;
+  width: 100%;
+}
+
+.element-experiment .div-2 {
+  background-color: var(--layerlayer-01);
+  height: 900px;
+  position: absolute;
+  border-right-style: solid;
+  border-right-width: 1px;
+  border-color: var(--theme-border-border-subtle-00);
+  width: var(--breakpoints-viewport-size);
+}
+
+.element-experiment .div-profile {
+  background-color: var(--layerlayer-01);
+  height: 40px;
+  width: 200px;
+  position: absolute;
+  background-color: var(--backgroundbackground);
+  right: 0px;
+  top: 48px;
+}
+
+.element-experiment .button-logout {
+  background-color: brown !important;
+  width: 100%;
+}
+
+.element-experiment .navigation-header-instance {
+  left: 0 !important;
+  position: absolute !important;
+  top: 0 !important;
+  width: 1584px !important;
+}
+
+.element-experiment .navigation-side-nav-instance {
+  left: 0 !important;
+  position: absolute !important;
+  top: 48px !important;
+}
+
+.element-experiment .navigation-side-nav-2 {
+  left: 48px !important;
+  position: absolute !important;
+  top: 48px !important;
+}

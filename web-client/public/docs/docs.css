@@ -1,0 +1,103 @@
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+header {
+    margin-left: 2vw;
+}
+
+header > .logo > img {
+    margin-top: 2vh;
+    margin-right: 1vw;
+    width: 2vw;
+    line-height: 36px;
+}
+
+header > .logo > h1 {
+    display: inline;
+    line-height: 36px;
+}
+
+header > p {
+    text-align: center;
+    color: darkgray;
+    cursor: pointer;
+}
+
+#paragraphs {
+    width: 70%;
+}
+
+#paragraphs h2 {
+    text-align: center;
+    margin-top: 2em;
+    margin-bottom: 1em;
+    font-size: 36px;
+    line-height: 2rem;
+}
+
+#paragraphs h4 {
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+    font-size: 24px;
+    line-height: 2rem;
+}
+
+footer {
+    margin-top: 6vh;
+    text-align: center;
+}
+
+footer > #docs > a {
+    color: lightslategray;
+    cursor: pointer;
+}
+
+footer > .logo > img {
+    margin-left: 2vw;
+    margin-right: 2vw;
+    width: 5vw;
+}
+
+@media screen and (max-width: 1200px) {
+
+    header > .logo > img {
+        width: 3vw;
+    }
+
+    #paragraphs {
+        width: 80%;
+    }
+
+    #footer {
+        margin-top: 6vh;
+    }
+
+    #footer > div > img {
+        width: 10vw;
+    }
+}
+
+@media screen and (max-width: 900px) {
+
+    header > .logo > img {
+        width: 5vw;
+    }
+
+    #paragraphs {
+        width: 80%;
+    }
+    
+    .logo > img {
+        width: 15vw;
+    }
+}
+
+@media screen and (max-width: 800px) {
+
+    .logo > img {
+        width: 20vw;
+    }
+}

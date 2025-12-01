@@ -1,0 +1,82 @@
+.slot {
+  align-items: flex-start;
+  background-color: var(--tagpurple-background);
+  border: 1px solid;
+  border-color: var(--tagpurple-text);
+  display: flex;
+  position: relative;
+}
+
+.slot .class-6 {
+  background-blend-mode: multiply !important;
+  height: 16px !important;
+  position: relative !important;
+  width: 16px !important;
+}
+
+.slot .class-7 {
+  background-blend-mode: multiply !important;
+  height: 24px !important;
+  position: relative !important;
+  width: 24px !important;
+}
+
+.slot .text {
+  position: relative;
+}
+
+.slot .text-wrapper-6 {
+  align-self: stretch;
+  color: var(--tagpurple-text);
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 28px;
+  margin-top: -1px;
+  position: relative;
+}
+
+.slot .text-wrapper-7 {
+  align-self: stretch;
+  color: var(--tagpurple-text);
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.16px;
+  line-height: 18px;
+  position: relative;
+}
+
+.slot.size-3-default {
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.slot.size-3-small {
+  gap: 8px;
+  padding: 4px;
+  width: 320px;
+}
+
+.slot.size-3-default .text {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.slot.size-3-small .text {
+  color: var(--tagpurple-text);
+  flex: 1;
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.32px;
+  line-height: 16px;
+  margin-top: -1px;
+}

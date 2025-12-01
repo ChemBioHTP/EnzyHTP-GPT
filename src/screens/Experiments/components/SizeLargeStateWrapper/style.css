@@ -1,0 +1,227 @@
+.size-large-state-wrapper {
+  align-items: flex-start;
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  width: 288px;
+}
+
+.size-large-state-wrapper .label-margin {
+  align-items: flex-start;
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  padding: 0px 0px 4px;
+  position: relative;
+  width: 100%;
+}
+
+.size-large-state-wrapper .label-text {
+  align-self: stretch;
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.32px;
+  line-height: 16px;
+  margin-top: -1px;
+  position: relative;
+}
+
+.size-large-state-wrapper .div {
+  position: relative;
+}
+
+.size-large-state-wrapper .text-input-box {
+  align-self: stretch;
+  background-color: #e8e8e8;
+  position: relative;
+  width: 100%;
+}
+
+.size-large-state-wrapper .DEPRECATED-text-input-base {
+  align-self: stretch !important;
+  width: 100% !important;
+}
+
+.size-large-state-wrapper .DEPRECATED-text-instance {
+  z-index: 1 !important;
+}
+
+.size-large-state-wrapper .class {
+  color: #a8a8a8 !important;
+}
+
+.size-large-state-wrapper .class-2 {
+  color: #161616 !important;
+}
+
+.size-large-state-wrapper .class-3 {
+  color: var(--texttext-disabled) !important;
+}
+
+.size-large-state-wrapper .helper-text-line {
+  position: relative;
+}
+
+.size-large-state-wrapper .instance-node {
+  background-blend-mode: multiply !important;
+  height: 16px !important;
+  left: 0 !important;
+  position: absolute !important;
+  top: 0 !important;
+  width: 16px !important;
+}
+
+.size-large-state-wrapper .warning-message-goes {
+  align-self: stretch;
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.32px;
+  line-height: 16px;
+  position: relative;
+}
+
+.size-large-state-wrapper .active {
+  color: #525252;
+}
+
+.size-large-state-wrapper .disabled {
+  color: var(--texttext-disabled);
+}
+
+.size-large-state-wrapper .focus {
+  color: #525252;
+}
+
+.size-large-state-wrapper .warning {
+  color: #525252;
+}
+
+.size-large-state-wrapper .skeleton {
+  color: #525252;
+}
+
+.size-large-state-wrapper .enabled {
+  color: #525252;
+}
+
+.size-large-state-wrapper .error {
+  color: #525252;
+}
+
+.size-large-state-wrapper .filled-true {
+  align-self: stretch;
+  color: #525252;
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.32px;
+  line-height: 16px;
+  margin-top: -1px;
+}
+
+.size-large-state-wrapper .state-skeleton {
+  background-color: #e8e8e8;
+  height: 8px;
+  width: 40px;
+}
+
+.size-large-state-wrapper .size-0-large {
+  height: 48px;
+}
+
+.size-large-state-wrapper .size-0-medium {
+  height: 40px;
+}
+
+.size-large-state-wrapper .size-0-small {
+  height: 32px;
+}
+
+.size-large-state-wrapper .state-0-active {
+  align-self: stretch;
+  color: #525252;
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.32px;
+  line-height: 16px;
+}
+
+.size-large-state-wrapper .state-0-disabled {
+  align-self: stretch;
+  color: var(--texttext-disabled);
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.32px;
+  line-height: 16px;
+}
+
+.size-large-state-wrapper .state-0-focus {
+  align-self: stretch;
+  color: #525252;
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.32px;
+  line-height: 16px;
+}
+
+.size-large-state-wrapper .state-0-warning {
+  color: #525252;
+}
+
+.size-large-state-wrapper .state-0-skeleton {
+  background-color: #e8e8e8;
+  color: #525252;
+  height: 8px;
+  width: 120px;
+}
+
+.size-large-state-wrapper .state-0-enabled {
+  align-self: stretch;
+  color: #525252;
+  font-family: "IBM Plex Sans", Helvetica;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.32px;
+  line-height: 16px;
+}
+
+.size-large-state-wrapper .state-0-error {
+  color: #525252;
+}
+
+.size-large-state-wrapper .state-1-active {
+  color: #161616;
+}
+
+.size-large-state-wrapper .state-1-disabled {
+  color: #161616;
+}
+
+.size-large-state-wrapper .state-1-focus {
+  color: #161616;
+}
+
+.size-large-state-wrapper .state-1-warning {
+  color: #161616;
+}
+
+.size-large-state-wrapper .state-1-skeleton {
+  color: #161616;
+}
+
+.size-large-state-wrapper .state-1-enabled {
+  color: #161616;
+}
+
+.size-large-state-wrapper .state-1-error {
+  color: #da1e28;
+}

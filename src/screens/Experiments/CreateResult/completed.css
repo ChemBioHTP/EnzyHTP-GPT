@@ -1,0 +1,111 @@
+.workspace {
+    z-index: 99;
+    margin-left: 20%;
+    margin-top: 25vh;
+    width: 65vw;
+    height: 75vh;
+    display: grid;
+    grid-template-areas: 
+        "matrics-title download-title"
+        "dist-kde download-table"
+        "mutations mutations";
+    grid-template-rows: 7vh 14vh 18vh;
+    grid-template-columns: 25vw 25vw;
+}
+
+.title {
+    font-family: "IBM Plex Sans";
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.matrics-title {
+    grid-area: matrics-title;
+    /* background-color: aqua; */
+    font-family: "IBM Plex Sans";
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.download-icon {
+    transform: rotate(-90deg);
+    height: 30%;
+    margin-left: 50%;
+}
+
+.download-title {
+    grid-area: download-title;
+    /* background-color: burlywood; */
+}
+
+.download-table {
+    grid-area: download-table;
+    /* background-color: pink; */
+}
+
+table {
+    background-color: white;
+}
+
+table > * > * {
+    width: 80%;
+    height: 1.5rem;
+    line-height: 1.2rem;
+}
+
+table .checkbox {
+    width: 10%;
+    margin: 20%;
+    border: 1px black solid;
+}
+
+table .table-header {
+    background-color:#c9c9c9;
+}
+
+table .table-header > th {
+    font-weight: 600;
+}
+
+table .table-row {
+    border-top: 1px rgb(134, 118, 118) solid;
+}
+
+table td,
+table th {
+    line-height: 2rem;
+}
+
+th:first-child, td:first-child {
+    padding-left: 20px;
+}
+
+table td {
+    font-size: 14px;
+    color: grey;
+}
+
+.dist-kde {
+    grid-area: dist-kde;
+    /* background-color: red; */
+    display: flex;
+    align-items: center;
+}
+
+.dist-kde > img {
+    height: 92%;
+    margin-right: 6%;
+}
+
+.mutations {
+    margin-top: 3vh;
+    margin-bottom: -3vh;
+    grid-area: mutations;
+    /* background-color: greenyellow; */
+}

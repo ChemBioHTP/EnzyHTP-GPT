@@ -122,7 +122,8 @@ coverage.xml
 *.pot
 
 # Flask stuff:
-instance/
+!instance/
+*.db
 .webassets-cache
 
 # Scrapy stuff:
@@ -200,5 +201,13 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+# Actual OAuth Client Secret Json File(s) except template.
+*_login_client.json
+!template_login_client.json
+
+# SSL Certificates except generation script.
+*.crt
+*.key
+!generate_cert.sh
 
 # End of https://www.gitignore.io/api/osx

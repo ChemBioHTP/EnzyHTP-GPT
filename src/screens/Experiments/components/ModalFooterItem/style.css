@@ -1,0 +1,44 @@
+.modal-footer-item {
+  align-items: flex-start;
+  display: flex;
+  gap: 1px;
+  position: relative;
+  width: 640px;
+}
+
+.modal-footer-item .button-instance {
+  z-index: unset !important;
+}
+
+.modal-footer-item .button-1 {
+  flex: 2;
+}
+
+.modal-footer-item .button-2 {
+  flex: 1;
+}
+
+.modal-footer-item .instance-node {
+  align-self: stretch !important;
+  display: flex !important;
+  flex: 1 !important;
+  flex-grow: 1 !important;
+  background-color: var(--accessibilityblack);
+}
+
+.modal-footer-item .instance-node1 {
+  align-self: stretch !important;
+  display: flex !important;
+  flex: 1 !important;
+  flex-grow: 1 !important;
+  background-color: var(--backgroundbackground-active);
+}
+
+.modal-footer-item .spacer {
+  background-blend-mode: multiply;
+  background-color: var(--transparenttransparent);
+  flex: 1;
+  flex-grow: 1;
+  height: 64px;
+  position: relative;
+}

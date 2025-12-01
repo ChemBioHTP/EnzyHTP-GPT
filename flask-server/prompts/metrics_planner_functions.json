@@ -1,0 +1,12 @@
+[
+  {
+    "name": "summon_next_agent",
+    "description": "Suggest an optional completion of all tasks of the current agent and an optional summon of the next agent in the workflow.",
+    "strict": false,
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    }
+  }
+]
