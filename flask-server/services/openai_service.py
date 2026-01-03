@@ -763,6 +763,7 @@ class OpenAIAssistant(OpenAIChat):
             elif error_code in ("rate_limit_exceeded", "rate_limit"):
                 is_valid = True
                 status_code = 429
+                user_message = f"OpenAI: {user_message}"
             elif error_code in ("authentication_error", "invalid_api_key", "permission_denied"):
                 is_valid = False
                 status_code = 401
