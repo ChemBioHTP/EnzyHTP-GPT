@@ -28,3 +28,5 @@
 - Ensure required host dirs from `.env` exist and are writable; Docker build expects to write `web-client/dist` from inside the `web-builder` container.
 - Frontend axios sends `Authorization` header from `pinia-plugin-persistedstate` token cache and uses `Content-Type: application/x-www-form-urlencoded` by default; file uploads use multipart on PUT.
 - EnzyHTP dependency: backend assumes EnzyHTP (develop branch) is available and configured; `enzyhtp_env_config.sh` or `docker_env_config.sh` help wire it into the conda env/container.
+- Use "init_mutexa" alias to activate the conda environment for EnzyHTP-GPT development.
+
