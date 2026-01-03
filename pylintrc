@@ -147,7 +147,9 @@ disable=abstract-method,
         xrange-builtin,
         zip-builtin-not-iterating,
         logging-fstring-interpolation,
-        unspecified-encoding，
+        unspecified-encoding,
+        C,
+        unused-import,
 
 
 [REPORTS]

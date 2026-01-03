@@ -303,7 +303,7 @@ class EventHandler(AssistantEventHandler):
     
     @override
     def on_timeout(self):
-        raise APITimeoutError()
+        raise APITimeoutError() # pylint: disable=no-value-for-parameter
     
     @override
     def on_text_created(self, text: Text) -> None:
