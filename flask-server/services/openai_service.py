@@ -193,6 +193,15 @@ COMPLETED_STATUS = "completed"
 PENDING_STATUS_LIST = ["queued", "in_progress", "requires_action", "cancelling"]
 ACTION_REQUIRED_STATUS = "requires_action"
 
+
+class AssistantRunError(RuntimeError):
+    """Represents an Assistant run that ended without a usable reply."""
+
+    def __init__(self, code: str, message: str, status: str = None):
+        super().__init__(message)
+        self.code = code
+        self.status = status
+
 class FunctionParameter():
     """Function Tool Parameter."""
 
@@ -632,7 +641,21 @@ class OpenAIAssistant(OpenAIChat):
             event_handler=EventHandler(self)
         ) as stream:
             stream.until_done()
-        return
+            run = getattr(stream, "current_run", None)
+
+        if run is None:
+            raise AssistantRunError(
+                code="run_missing",
+                message="Assistant run missing after streaming",
+                status=None,
+            )
+        if run.status != COMPLETED_STATUS:
+            last_error = getattr(run, "last_error", None)
+            error_code = getattr(last_error, "code", None) or getattr(last_error, "type", None) or "run_failed"
+            error_message = getattr(last_error, "message", None) or f"Assistant run ended with status '{run.status}'."
+            raise AssistantRunError(code=error_code, message=error_message, status=run.status)
+
+        return run
 
     def __retrieve_response_content(
             self, 
@@ -679,11 +702,14 @@ class OpenAIAssistant(OpenAIChat):
                 return msgs[0].content[0].text.value
 
         # raise if the last message is not from assistant
-        raise RuntimeError(
-            f"No assistant reply received within {wait_seconds:.1f}s; "
-            "latest message is still not from assistant."
-            "full thread:"
-            f"{msgs}"
+        latest_role = msgs[0].role if msgs else "none"
+        raise AssistantRunError(
+            code="no_reply",
+            message=(
+                f"No assistant reply received within {wait_seconds:.1f}s; "
+                f"latest message role: {latest_role}"
+            ),
+            status="no_reply",
         )
 
     def ask_gpt(self, prompt: str) -> Tuple[bool, int, str]:
@@ -724,6 +750,35 @@ class OpenAIAssistant(OpenAIChat):
             
             # Successfully received a response from OpenAI.
             return (True, 200, response_content)
+        except AssistantRunError as e:
+            error_code = getattr(e, "code", None) or "run_failed"
+            is_valid = False
+            status_code = 500
+            user_message = str(e)
+
+            if error_code in ("insufficient_quota", "billing_hard_limit_exceeded"):
+                is_valid = True
+                status_code = 429
+                user_message = "OpenAI balance appears exhausted. Please check billing or try again later."
+            elif error_code in ("rate_limit_exceeded", "rate_limit"):
+                is_valid = True
+                status_code = 429
+            elif error_code in ("authentication_error", "invalid_api_key", "permission_denied"):
+                is_valid = False
+                status_code = 401
+                user_message = "Authentication Failed: Invalid OpenAI Secret Key."
+            elif error_code in ("server_error", "internal_server_error"):
+                is_valid = False
+                status_code = 500
+                user_message = "OpenAI Internal Server Error. Unable to verify."
+            elif error_code == "no_reply":
+                is_valid = False
+                status_code = 504
+                user_message = "OpenAI Assistant did not return a reply. Please try again shortly."
+            else:
+                user_message = f"OpenAI Assistant run failed: {user_message}"
+
+            return (is_valid, status_code, user_message)
         except RateLimitError as e:
             return (True, 429, "Rate Limit Error: You exceeded your current OpenAI API quota or Rate Limit, please check your plan and billing details.")
         except BadRequestError as e:

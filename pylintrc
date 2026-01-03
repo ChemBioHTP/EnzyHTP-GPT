@@ -150,6 +150,8 @@ disable=abstract-method,
         unspecified-encoding,
         C,
         unused-import,
+        unused-variable,
+        unrecognized-option,
 
 
 [REPORTS]
