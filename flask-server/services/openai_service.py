@@ -649,7 +649,7 @@ class OpenAIAssistant(OpenAIChat):
                 message="Assistant run missing after streaming",
                 status=None,
             )
-        if run.status != COMPLETED_STATUS:
+        if run.status not in [COMPLETED_STATUS] + PENDING_STATUS_LIST:
             last_error = getattr(run, "last_error", None)
             error_code = getattr(last_error, "code", None) or getattr(last_error, "type", None) or "run_failed"
             error_message = getattr(last_error, "message", None) or f"Assistant run ended with status '{run.status}'."

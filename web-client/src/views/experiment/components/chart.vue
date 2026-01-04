@@ -247,11 +247,15 @@ onMounted(() => { });
 
       <a-flex align="center" justify="center">
         <span class="word-count">{{ inputMessage.length }}/200</span>
-        <a-button type="text" :icon="h('img', { src: Cube, class: 'icon' })" class="show-button button"
-          @click="showGUI = true" />
+        <a-tooltip title="show 3D structure">
+          <a-button type="text" :icon="h('img', { src: Cube, class: 'icon' })" class="show-button button"
+            @click="showGUI = true" />
+        </a-tooltip>
           <!-- :disabled="!toolData.require_pdb_file" -->
-        <a-button type="primary" @click="sendMessage(inputMessage)" :loading="loading" :disabled="disabled"
-          :icon="h(SendOutlined)" class="send-button button" />
+        <a-tooltip title="send">
+          <a-button type="primary" @click="sendMessage(inputMessage)" :loading="loading" :disabled="disabled"
+            :icon="h(SendOutlined)" class="send-button button" />
+        </a-tooltip>
       </a-flex>
     </a-flex>
   </div>
