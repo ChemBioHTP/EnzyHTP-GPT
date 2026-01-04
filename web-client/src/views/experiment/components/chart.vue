@@ -28,10 +28,10 @@ const emit = defineEmits(["send"]);
 
 // 预设的对话选项
 const defaultPrompts = [
-  "placeholder",
-  "placeholder",
-  "placeholder",
-  "placeholder",
+  "Help me find mutations that make the active site cavity larger.",
+  "I am studying a bidomain enzyme. This enzyme showed cold-adaption behavior, that is, the catalytic activity reduces much slower in lower temperatures. We found that just by changing the linker, the cold-adaption changes, can you help me perform some modeling to find linkers that provide stronger cold-adaption?",
+  "I'm building a machine-learning model to predict protein melting temperatures (Tm) and would like to incorporate MD-derived properties as features—could you help with that?",
+  "How do mutations influence the binding of substrate in Kemp elimiase?",
 ];
 
 const messageType = new Map([
@@ -333,6 +333,8 @@ onMounted(() => { });
     border-radius: 5px 10px 10px 5px;
     cursor: pointer;
     transition: background-color 0.2s;
+    overflow: hidden;
+    word-break: break-word;
   }
 }
 
