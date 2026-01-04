@@ -126,9 +126,8 @@ onMounted(() => {
                         <div class="tips">
                             <div class="sub-title">Review your workflow</div>
                             <p class="description">
-                                Use natural language or HTP to describe what mutation you want
-                                to apply to the wild type. You can apply multiple mutants to the
-                                wild type.
+                                Use natural language to describe your enzyme engineering ideas to the AI.
+                                The AI will clarify your intentions and performs necessary computational tasks.
                             </p>
                         </div>
                         <!--  -->
