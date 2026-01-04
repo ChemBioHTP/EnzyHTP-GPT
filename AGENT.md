@@ -1,5 +1,5 @@
 # EnzyHTP-GPT at a glance
-- Full-stack app for conversational enzyme engineering. Backend is Flask (`flask-server/`) with OpenAI-driven agents and SLURM integration; main frontend is Vue 3/Vite (`web-client/`). A legacy React app still lives under `src/`.
+- Full-stack app for conversational enzyme engineering. Backend is Flask (`flask-server/`) with OpenAI-driven agents and SLURM integration; main frontend is Vue 3/Vite (`web-client/`).
 - Key docs live in `docs/`: architecture (01), backend setup (02), frontend setup (03), API reference (04 + Postman collection), agent workflow (05), deployment (06). `CONTRIBUTING.md` covers contribution flow.
 - Deploy stack via `docker-compose.yml` (services: `mongo`, `flask`, `web-builder` for Vite builds, `nginx` serving `web-client/dist`). Nginx config is `nginx.conf`.
 - Configuration template: `.env.example` (image tag/ports plus host paths for Mongo data, SSL, file store, nginx logs, EnzyHTP/AMBER). Default ports: Mongo 27017, Flask exposed on `${FLASK_HOST_PORT:-12306}` -> 8000 in-container, Nginx on 80/443.
@@ -8,7 +8,6 @@
 - **Docker (preferred)**: `cp .env.example .env`, adjust host paths (`MONGO_DATA_DIR`, `SSL_DIR`, `FILES_DIR`, `NGINX_LOG_DIR`, `ENZYHTP_BIN`, `AMBER22_DIR`, optional `MONGO_URI`). Then `docker compose --env-file ./.env up -d --build`. Rebuild frontend: `docker compose exec web-builder bash -lc "npm run build"`. Logs: `docker compose logs -f flask` etc.
 - **Backend dev (Flask)**: `conda env create -f flask-server/environment.yml`, configure EnzyHTP path with `bash flask-server/enzyhtp_env_config.sh --path ~/bin/EnzyHTP`, ensure Mongo reachable (`MONGO_URI` defaults to `mongodb://localhost:27017/enzyhtp_gpt`), then `cd flask-server && flask run` (serves on 5000 by default). File storage defaults to `flask-server/static/experiments` and `static/scratch` (set via env).
 - **Frontend dev (Vue)**: `cd web-client && npm install && npm run dev` (Node 18+, served on 3000). Axios uses relative `baseURL`, so proxy/serve through same origin or dev proxy as needed. Production build: `npm run build` -> `web-client/dist`.
-- **Legacy React app**: root `package.json` and `src/` are an older CRA UI; not wired into Docker. `npm run start-frontend` (CRA dev server) if you need to inspect it; `node_server.js` serves the CRA `build/` folder.
 
 ## Backend specifics
 - Entry point: `flask-server/server.py` registers blueprints `auth` and `experiment`, sets Mongo, JWT, mail, APScheduler (daily SLURM token refresh via `services/accre_slurm_service.py`).
