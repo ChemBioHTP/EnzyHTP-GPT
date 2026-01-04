@@ -1,1 +1,0 @@
-export { CheckmarkOutline } from "./CheckmarkOutline";

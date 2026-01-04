@@ -1,1 +1,0 @@
-export { DirectionHorizontalWrapper } from "./DirectionHorizontalWrapper";

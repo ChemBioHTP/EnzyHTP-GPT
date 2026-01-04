@@ -1,1 +1,0 @@
-export { CheckmarkFilled } from "./CheckmarkFilled";

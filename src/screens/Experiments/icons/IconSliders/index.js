@@ -1,1 +1,0 @@
-export { IconSliders } from "./IconSliders";
