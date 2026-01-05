@@ -60,6 +60,9 @@ const handleDownload = () => {
 }
 
 .mutation-list {
+  max-height: clamp(200px, 50vh, 1000px); // 随视口高度自适应
+  overflow-y: auto;
+
   .item {
     background: #fff;
     border-top: 1px solid #dbdbdb;
