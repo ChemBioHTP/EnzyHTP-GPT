@@ -127,7 +127,7 @@ onMounted(() => {
                             <div class="sub-title">Review your simulation plan</div>
                             <p class="description">
                                 This is the simulation plan configured by MutexaGPT. Please review it before running the experiment.
-                                You can also check some configuration manually in this page.
+                                You can also change some configurations manually on this page.
                             </p>
                         </div>
                         <!--  -->
