@@ -40,9 +40,9 @@ const props = defineProps({
   .description {
     margin-left: 30px;
     margin-top: 10px;
-    // 超出两行省略号显示
+    // 超出10行省略号显示
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 10;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
