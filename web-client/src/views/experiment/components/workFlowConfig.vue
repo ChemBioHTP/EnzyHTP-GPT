@@ -84,7 +84,7 @@
   >
     <div class="position-relative">
       <p>
-        Choose a workflow to determine the processes to apply to the wild type.
+        Configure the workflow for your experiment below.
       </p>
       <a-form layout="vertical" class="mt24">
         <a-form-item label="Workflow">
@@ -397,25 +397,24 @@ const MMPBSAModel = reactive({
 const list = ref([
   {
     title: "Structure preparation",
-    description: "Remove water, loop fixing, protonate.",
+    description: "Remove water, Protonation.",
   },
   {
     title: "Structure operation",
-    description: "Coordinate manipulation,mutation.",
+    description: "Mutation. Mutation-perturbed-protonation.",
   },
-  { title: "Conformation exploration", description: "MD simulation" },
-  { title: "Energy calculation", description: "QM/MM...", disabled: false },
+  { title: "Conformational Sampling", description: "Parameterization, MD simulation." },
+  { title: "Metrics calculation", description: "Target metrics (See below)", disabled: false },
 ]);
 
 const workFlowList = ref([
   "Remove water",
-  "Loop fixing",
-  "Protonate",
-  "Mutate",
+  "Protonation",
+  "Mutation",
+  "Mutation-perturbed-protonation",
   "Parameterization",
   "MD simulation",
   "Calculate metrics",
-  "Stability",
 ]);
 
 const metricsList = ref([

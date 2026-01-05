@@ -124,10 +124,10 @@ onMounted(() => {
                     <VerticalStepper :steps="steps" v-model="currentStep" @change="handleStep" class="steps mt30" />
                     <div class="workflow-content mt30">
                         <div class="tips">
-                            <div class="sub-title">Review your workflow</div>
+                            <div class="sub-title">Review your simulation plan</div>
                             <p class="description">
-                                Use natural language to describe your enzyme engineering ideas to the AI.
-                                The AI will clarify your intentions and performs necessary computational tasks.
+                                This is the simulation plan configured by MutexaGPT. Please review it before running the experiment.
+                                You can also check some configuration manually in this page.
                             </p>
                         </div>
                         <!--  -->
