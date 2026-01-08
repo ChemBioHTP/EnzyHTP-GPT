@@ -94,8 +94,8 @@
             The cavity volume of a binding pocket of the protein
         + Required argument:
             (NOTE!: only of the two arguments is required, either one works)
-            - substrate_selection_pattern: the PyMol style selection pattern defining the substrate. Refer to *PyMol selection pattern* (this argument repels with pocket_compositing_residue_pattern)
-            - pocket_compositing_residue_pattern: the PyMol style selection pattern defining the residues composing the pocket. Refer to *PyMol selection pattern* (this argument repels with substrate_selection_pattern)
+            - ligand_selection_pattern: the PyMol style selection pattern defining the ligand that is contained in the cavity of interest. Refer to *PyMol selection pattern* (this argument repels with pocket_compositing_residue_pattern)
+            - pocket_compositing_residue_pattern: the PyMol style selection pattern defining the residues composing the pocket. Refer to *PyMol selection pattern* (this argument repels with ligand_selection_pattern)
         + Optional argument:
             - None
         + Related Properties 
