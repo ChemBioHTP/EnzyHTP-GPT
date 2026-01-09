@@ -50,7 +50,14 @@
         <div class="title">Provide Secret API Key</div>
         <div class="tip">
           <span>Copy and paste your API key from OpenAI.</span>
-          <span class="theme-color">Learn more</span>
+          <a
+            class="theme-color"
+            href="https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Learn more
+          </a>
         </div>
       </div>
       <a-form
