@@ -66,7 +66,7 @@
     <a-flex justify="space-between" align="center">
       <div>
         <span class="title">Geometry constraint</span>
-        <span class="description ml50">Whole enzyme</span>
+        <span class="description ml50">{{ constraintText }}</span>
       </div>
       <img v-if="show" src="@/assets/img/eye.svg" alt="" class="icon" />
       <img v-else src="@/assets/img/edit.svg" alt="" class="icon" />
@@ -351,7 +351,7 @@
   </a-drawer>
 </template>
 <script setup>
-import { ref, reactive, watch } from "vue";
+import { ref, reactive, watch, computed } from "vue";
 import { updateExperimentProfile } from "@/api/experiment";
 import { useRoute } from "vue-router";
 const route = useRoute();
@@ -364,6 +364,10 @@ const props = defineProps({
   show: {
     type: Boolean,
     default: false,
+  },
+  constraints: {
+    type: Array,
+    default: () => [],
   },
 });
 
@@ -406,6 +410,28 @@ const list = ref([
   { title: "Conformational Sampling", description: "Parameterization, MD simulation." },
   { title: "Metrics calculation", description: "Target metrics (See below)", disabled: false },
 ]);
+
+const constraintText = computed(() => {
+  if (!Array.isArray(props.constraints) || !props.constraints.length) {
+    return "No constraint";
+  }
+
+  return props.constraints
+    .map(item => {
+      if (!item) return "";
+      const type = item.type ? String(item.type) : "constraint";
+      const args = item.arguments;
+      if (Array.isArray(args) && args.length) {
+        return `${type}: ${args.join(", ")}`;
+      }
+      if (args) {
+        return `${type}: ${args}`;
+      }
+      return type;
+    })
+    .filter(Boolean)
+    .join("; ");
+});
 
 const workFlowList = ref([
   "Remove water",

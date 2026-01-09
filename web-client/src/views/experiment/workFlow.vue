@@ -131,7 +131,10 @@ onMounted(() => {
                             </p>
                         </div>
                         <!--  -->
-                        <WorkFlowConfig :metrics="experiment?.metrics" />
+                        <WorkFlowConfig
+                          :metrics="experiment?.metrics"
+                          :constraints="experiment?.constraints"
+                        />
                     </div>
                     <div class="list">
                         <MutationGenerrated :mutations="model.mutations" />
