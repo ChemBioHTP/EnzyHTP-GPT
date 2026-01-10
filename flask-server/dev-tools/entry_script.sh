@@ -1,13 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name=mutexa_dev_tool
-#SBATCH --account=yang_lab_int
-#SBATCH --partition=interactive
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --mem=12G
-#SBATCH --time=1-00:00:00
-#SBATCH --no-requeue
-#SBATCH --export=NONE
-#SBATCH --qos=mutant_int
 
-ls -l /home/${slurm_user}
+# source ~/.bashrc
+# conda create -n enzy_htp python=3.9 -y
+# conda activate enzy_htp
+# cd ~/bin/EnzyHTP
+# source dev-tools/conda-install
+
+source ~/.bashrc
+conda activate enzyhtp
+python -c "import enzy_htp; print('EnzyHTP version:', enzy_htp.__version__)" > log 2>&1

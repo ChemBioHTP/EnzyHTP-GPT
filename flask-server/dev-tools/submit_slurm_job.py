@@ -1,4 +1,10 @@
-#!/usr/bin/env python3
+"""Dev tool to submit a Slurm job with a local entry script and optional files.
+Used only for development and testing purposes.
+To use:
+1. change content of the dev-tools/entry_script.sh to run different commands on ACCRE.
+2. obtain the job uuid in stdout after submission.
+3. check under /data/yang_lab/yanglab_enzyhtp_app/web_slurm_jobs/<job_uuid> on ACCRE for job status and outputs.
+"""
 import os
 import sys
 from json import loads
@@ -9,7 +15,7 @@ sys.path.insert(0, BASE_DIR)
 
 from config import MONGO_URI, SLURM_API_URL  # noqa: E402
 from services.accre_slurm_service import SlurmJobRequest, SlurmJobData  # noqa: E402
-from requests import get as req_get, post as req_post  # noqa: E402
+from requests import get as req_get, post as req_post, delete as req_delete  # noqa: E402
 from pymongo import MongoClient  # noqa: E402
 
 # Edit these variables directly for dev testing.
@@ -86,7 +92,17 @@ def fetch_slurm_job_info(job_uuid: str, slurm_token: str) -> Tuple[int, dict]:
     return response.status_code, {}
 
 
-def main() -> int:
+def delete_slurm_job(job_uuid: str, slurm_token: str) -> Tuple[int, str]:
+    if not slurm_token:
+        return 403, "Empty slurm token."
+    headers = {"Authorization": f"Bearer {slurm_token}"}
+    cancel_response = req_post(f"{SLURM_API_URL}/{job_uuid}/cancel", headers=headers)
+    delete_response = req_delete(f"{SLURM_API_URL}/{job_uuid}", headers=headers)
+    if delete_response.status_code == 200:
+        return 200, "The Slurm Job has successfully been deleted."
+    return delete_response.status_code, f"Unable to delete the Slurm Job. cancel_status={cancel_response.status_code}"
+
+def submit_slurm_job_main():
     entry_script_path = os.path.abspath(ENTRY_SCRIPT_PATH)
     if not os.path.isfile(entry_script_path):
         print(f"Entry script not found: {entry_script_path}")
@@ -106,8 +122,12 @@ def main() -> int:
         job_name=JOB_NAME,
         qos=QOS,
     )
+    return status, message, job_uuid
 
+def main() -> int:
+    status, message, job_uuid = submit_slurm_job_main()
     print(f"status={status} job_uuid={job_uuid} message={message}")
+    print(f"Check ACCRE /data/yang_lab/yanglab_enzyhtp_app/web_slurm_jobs/{job_uuid} for job status and outputs.")
     # if job_uuid:
     #     info_status, job_info = fetch_slurm_job_info(job_uuid, slurm_token)
     #     remote_job_id = job_info.get("remote_job_id") or job_info.get("job_id", "")

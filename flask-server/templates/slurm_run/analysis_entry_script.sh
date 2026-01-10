@@ -11,7 +11,7 @@
 
 source ~/.bashrc
 source ~/bin/enzyhtp_env.sh
-conda activate enzyhtp
+conda activate enzy_htp
 
 export USER="${slurm_user}"
 export file_dir=$(cd "$(dirname "$0")/input";pwd)
