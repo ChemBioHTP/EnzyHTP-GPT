@@ -15,6 +15,7 @@ Each function has two return values: is_successful (bool) & output (str).
 # Here put the import lib.
 from typing import List, Tuple, Union
 from os import path
+from statistics import mean, pstdev, stdev
 
 from enzy_htp import PDBParser
 from enzy_htp.core import _LOGGER
@@ -120,10 +121,51 @@ def find_residue_by_name(experiment: Experiment, name: str, **kwargs) -> Tuple[b
     else:
         return False, str()
 
+def _coerce_numeric_values(values: List[Union[int, float, str]]) -> List[float]:
+    numeric_values: List[float] = []
+    for value in values or []:
+        try:
+            numeric_values.append(float(value))
+        except (TypeError, ValueError):
+            continue
+    return numeric_values
+
+def calculate_mean(values: List[Union[int, float, str]], **kwargs) -> Tuple[bool, str]:
+    """Compute the arithmetic mean of a list of numeric values."""
+    numeric_values = _coerce_numeric_values(values)
+    if (not numeric_values):
+        return False, "No numeric values provided."
+    return True, str(mean(numeric_values))
+
+def calculate_standard_deviation(values: List[Union[int, float, str]], ddof: Union[int, str] = 1, **kwargs) -> Tuple[bool, str]:
+    """Compute the standard deviation of a list of numeric values."""
+    numeric_values = _coerce_numeric_values(values)
+    if (not numeric_values):
+        return False, "No numeric values provided."
+    try:
+        ddof_value = int(ddof)
+    except (TypeError, ValueError):
+        return False, "ddof must be an integer."
+    if (ddof_value < 0):
+        return False, "ddof must be >= 0."
+    if (len(numeric_values) <= ddof_value):
+        return False, f"Need at least {ddof_value + 1} values to compute standard deviation."
+    if (ddof_value == 0):
+        std_value = pstdev(numeric_values)
+    elif (ddof_value == 1):
+        std_value = stdev(numeric_values)
+    else:
+        mean_value = mean(numeric_values)
+        variance = sum((value - mean_value) ** 2 for value in numeric_values) / (len(numeric_values) - ddof_value)
+        std_value = variance ** 0.5
+    return True, str(std_value)
+
 TOOL_FUNCTION_MAPPER = {
     "summon_next_agent": summon_next_agent,
     "summon_upload_box": summon_upload_box,
     "find_target_protein_path": find_target_protein_path,
     "find_residue_around": find_residue_around,
     "find_residue_by_name": find_residue_by_name,
+    "calculate_mean": calculate_mean,
+    "calculate_standard_deviation": calculate_standard_deviation,
 }
