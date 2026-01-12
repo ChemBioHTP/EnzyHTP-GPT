@@ -444,6 +444,12 @@ class ResultExplainerAssistant(OpenAIAssistant):
             "metadata": self.metadata,
         }
         prompt = dumps(prompt_dict)
+        experiment_id = self.experiment.id if self.experiment else "unknown"
+        _LOGGER.info(
+            "ResultExplainer prompt payload (experiment_id=%s): %s",
+            experiment_id,
+            prompt,
+        )
         return super().ask_gpt(prompt)
 
 class QuestionSummarizerAssistant(OpenAIAssistant):
