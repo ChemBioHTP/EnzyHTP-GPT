@@ -22,7 +22,7 @@ from json import loads, dumps
 from plum import dispatch
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 from pathlib import Path
-from pandas import DataFrame
+from pandas import DataFrame, to_numeric
 from os import path
 import os
 import uuid
@@ -634,6 +634,19 @@ class Experiment():
         Args:
             result_record_dict (dict): A dict containing the result information of one mutant.
         """
+        for metric in METRICS_MAPPER.keys():
+            if metric not in result_record:
+                continue
+            value = result_record.get(metric)
+            if isinstance(value, str):
+                stripped = value.strip()
+                if stripped == "" or stripped.lower() == "none":
+                    result_record[metric] = None
+                else:
+                    try:
+                        result_record[metric] = float(stripped)
+                    except ValueError:
+                        result_record[metric] = None
         result_record.update({
             "experiment_id": self.id,
             "pdb_filename": self.pdb_filename,
@@ -1260,7 +1273,9 @@ class Result():
         identifier_cols = ["mutant", "pdb_filename"]
         keep_cols = identifier_cols + metrics_cols
         result_df = result_df[keep_cols]
-
+        for metric in metrics_cols:
+            result_df[metric] = to_numeric(result_df[metric], errors="coerce")
+        result_df = result_df.dropna(axis=1, how="all")
         # Group by mutant and pdb_filename, then compute mean (ignores NaNs)
         grouped_df = (
             result_df

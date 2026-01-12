@@ -57,16 +57,26 @@ def active_site_rmsd(stru_esm: StructureEnsemble, region_pattern: str, **kwargs)
     rmsd_values = rmsd(stru_esm=stru_esm, region_pattern=region_pattern)
     return mean(rmsd_values)
 
-def cavity(stru_esm: StructureEnsemble, ligand: str, **kwargs) -> float:
+def cavity(stru_esm: StructureEnsemble, ligand_selection_pattern: str=None, pocket_compositing_residue_pattern: str=None, **kwargs) -> float:
     """The cavity volume of a binding pocket of the protein, defined by where the ligand located in the `structure_0`.
     
     Args:
         stru_esm (StructureEnsemble): The StructureEnsemble instance to analyze.
-        ligand (str): The target ligand of the calculation represented as a selection pattern.
+        ligand_selection_pattern (str): The target ligand of the calculation represented as a selection pattern.
             Note that the ligand has to be part of Structure().
             Note that the ligand can be a small molecule or a protein.
+        pocket_compositing_residue_pattern (str): A pymol-formatted sele str which defines the pocket region.
     """
-    cavity_volumes = ensemble_cavity_volumes(stru_esm=stru_esm, contain_ligand=ligand, frame_0_based=True)
+    if ligand_selection_pattern:
+        cavity_volumes = ensemble_cavity_volumes(stru_esm=stru_esm, contain_ligand=ligand_selection_pattern, frame_0_based=True)
+    elif pocket_compositing_residue_pattern:
+        # convert pattern to List[Residue]
+        stru = stru_esm.structure_0
+        pocket_residues = select_stru(stru=stru, pattern=pocket_compositing_residue_pattern).involved_residues
+        cavity_volumes = ensemble_cavity_volumes(stru_esm=stru_esm, composing_residues=pocket_residues, frame_0_based=True)
+    else:
+        _LOGGER.error("Either `ligand_selection_pattern` or `pocket_compositing_residue_pattern` has to be provided for cavity volume calculation.")
+        return 0
     return mean(cavity_volumes)
 
 def ddg_fold(stru: Structure, mutant: List[Mutation], **kwargs):
@@ -249,7 +259,7 @@ def main(stru_esm: StructureEnsemble, metrics: List[Dict[str, Any]], mutant_name
 if __name__ == "__main__":
     mutant = environ.get("mutant")
     replica_id = environ.get("replica_id")
-    metrics = loads(environ.get("mertics"))
+    metrics = loads(environ.get("metrics"))
 
     topology_filename = environ.get("topology_filename")
     trajectory_filename = environ.get("trajectory_filename")
