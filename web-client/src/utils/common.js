@@ -1,5 +1,5 @@
 export const downloadFile = (res, fileName = "downloaded-file.zip") => {
-  const blob = new Blob([res], { type: "application/zip" });
+  const blob = res instanceof Blob ? res : new Blob([res]);
   // 创建一个 URL 对象
   const url = URL.createObjectURL(blob);
   // 创建一个虚拟链接元素
