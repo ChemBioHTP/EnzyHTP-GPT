@@ -93,10 +93,10 @@ onMounted(() => {
     const viewer = await molstar.Viewer.create("viewer-container", {
       layoutIsExpanded: false,
       layoutShowControls: false,
-      layoutShowSequence: false,
+      layoutShowSequence: true,
       layoutShowLog: false,
       layoutShowToolbar: true, // 显示工具栏
-      layoutShowLeftPanel: false,
+      layoutShowLeftPanel: true,
       layoutShowStructure: false, // 是否显示结构面板
       layoutShowParameters: false, // 是否显示参数面板
     });

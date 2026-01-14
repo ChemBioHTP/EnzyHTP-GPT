@@ -13,19 +13,21 @@ import os
 import re
 import prompts
 import pandas as pd
+from csv import DictWriter
 from os import path
 from flask import Response, request, send_file
 from flask_login import login_required, current_user
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from flask_restful import Resource
 from json import JSONDecodeError, dumps, loads
-from typing import Any, List, Tuple
+from typing import Any, List, Optional, Tuple
 from string import Template
 from datetime import datetime
 from werkzeug.datastructures import ImmutableMultiDict
 
 # Here put local imports.
 from .models import Experiment, Result
+from .analysis import METRICS_MAPPER
 from .experiment_config import StatusCode
 from .agents import ResultExplainerAssistant
 from auth.models import User
@@ -66,6 +68,49 @@ from enzy_htp.core import (
 )
 
 db = mongo.db
+
+RAW_RESULTS_FILENAME = "raw_results.csv"
+
+def _format_csv_value(value: Any) -> Any:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, (dict, list)):
+        return dumps(value)
+    if (value is None):
+        return ""
+    return value
+
+def _ensure_raw_results_csv(experiment: Experiment) -> Optional[str]:
+    raw_results = Result.get_experiment_raw_results(experiment_id=experiment.id)
+    if (not raw_results):
+        return None
+    output_path = path.join(experiment.directory, RAW_RESULTS_FILENAME)
+    base_fields = [
+        "experiment_id",
+        "mutant",
+        "replica_id",
+        "pdb_filename",
+        "created_time",
+        "updated_time",
+    ]
+    metric_fields = []
+    for metric in METRICS_MAPPER.keys():
+        for result in raw_results:
+            value = result.get(metric)
+            if (value is None):
+                continue
+            if (isinstance(value, str) and value.strip() == ""):
+                continue
+            metric_fields.append(metric)
+            break
+    fieldnames = base_fields + metric_fields
+    with open(output_path, "w", newline="") as csvfile:
+        writer = DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for result in raw_results:
+            row = {field: _format_csv_value(result.get(field)) for field in fieldnames}
+            writer.writerow(row)
+    return output_path
 
 #region Experiment Response Body and Handlers.
 
@@ -416,15 +461,36 @@ class ExperimentApi(Resource):
         replica_id = request.form.get("replica_id", 0)
         trajectory_file = request.files.get("trajectory", None)
         topology_file = request.files.get("topology", None)
-
-        is_mutant_constructed, mutant_pdb_filepath, make_mutant_message = experiment.make_mutant_pdb_file(mutant_name=mutant_name)
+        store_only = request.args.get("store_only", "").strip().lower() in ("1", "true", "yes")
 
         if (mutant_name is None or trajectory_file is None or topology_file is None):
             response_info = ExperimentBehaviourResponseInfo(experiment, user,
                 is_successful=False, 
                 message=f"'mutant' string, 'replica_id' code, 'trajectory' file and 'topology' file are all required.")
             return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
-        elif (not is_mutant_constructed):
+
+        safe_mutant_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", mutant_name)
+        safe_replica_id = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(replica_id))
+        traj_dir = path.join(experiment.directory, "trajectories", safe_mutant_name, f"replica_{safe_replica_id}")
+        fs.safe_mkdir(traj_dir)
+        trajectory_save_path = path.join(traj_dir, trajectory_file.filename)
+        topology_save_path = path.join(traj_dir, topology_file.filename)
+        trajectory_file.save(trajectory_save_path)
+        topology_file.save(topology_save_path)
+        trajectory_file.stream.seek(0)
+        topology_file.stream.seek(0)
+
+        if (store_only):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                message="Trajectory and topology files are stored.",
+                is_successful=True,
+            )
+            return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
+
+        is_mutant_constructed, mutant_pdb_filepath, make_mutant_message = experiment.make_mutant_pdb_file(mutant_name=mutant_name)
+        if (not is_mutant_constructed):
             response_info = ExperimentBehaviourResponseInfo(experiment, user,
                 is_successful=False, 
                 message=make_mutant_message)
@@ -652,6 +718,7 @@ class ResultApi(Resource):
             is_valid, status, experiment.result_interpretation = result_explainer.ask_gpt()
             experiment.update_attributes({"result_interpretation": experiment.result_interpretation})
         
+        _ensure_raw_results_csv(experiment)
         downloadable_files_dict = dict()
         for file in experiment.downloadable_files:
             downloadable_files_dict[file] = fs.get_file_ext(file)
@@ -706,6 +773,7 @@ class DownloadableApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
+        _ensure_raw_results_csv(experiment)
         deploy_pack_io = BytesIO()
         with ZipFile(deploy_pack_io, "w") as deploy_pack_zip:
             for filepath in experiment.downloadable_files:

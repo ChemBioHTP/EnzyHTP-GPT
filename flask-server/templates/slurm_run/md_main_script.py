@@ -146,7 +146,7 @@ cpu_job_config = {
 }
 
 PROGRESS_UPDATE_URL = f"https://{app_host}/api/experiment/{experiment_id}"
-TRAJ_UPLOAD_URL = f"https://{app_host}/api/experiment/{experiment_id}"
+TRAJ_UPLOAD_URL = f"https://{app_host}/api/experiment/{experiment_id}?store_only=1"
 
 def synchronize_job_status(status: int = None, progress: float = None) -> None:
     """Synchronize the Job Status to the Web Server. If the web server is not accessible, log the status and error information.
@@ -184,22 +184,28 @@ def post_trajectory_and_topology_file(mutant: str, replica_id: Union[int, str], 
         topology_file (FileStorage): The FileStorage instance of the Amber prmtop file.
         traj_file (FileStorage): The FileStorage instance of the new trajectory file.
     """
+    if (not trajectory_filepath or not topology_filepath):
+        return
+    if (not path.isfile(trajectory_filepath) or not path.isfile(topology_filepath)):
+        _LOGGER.warning("Trajectory/topology file missing, skipping upload.")
+        return
     try:
         data = {
             "mutant": mutant,
             "replica_id": str(replica_id),
         }
-        files = {
-            "trajectory": open(trajectory_filepath, mode="rb"),
-            "topology": open(topology_filepath, mode="rb"),
-        }
-        response = post(TRAJ_UPLOAD_URL,
-            headers={
-                "Authorization": f"Bearer {access_token}"
-            },
-            data=data,
-            files=files,
-            timeout=300)
+        with open(trajectory_filepath, mode="rb") as traj_handle, open(topology_filepath, mode="rb") as topo_handle:
+            files = {
+                "trajectory": traj_handle,
+                "topology": topo_handle,
+            }
+            response = post(TRAJ_UPLOAD_URL,
+                headers={
+                    "Authorization": f"Bearer {access_token}"
+                },
+                data=data,
+                files=files,
+                timeout=300)
         if (response.ok):
             return
         else:
@@ -310,11 +316,11 @@ if __name__ == "__main__":
             for replica_id, stru_esm in enumerate(md_result):
                 mutant_name = get_mutant_name_str(mutant=mutant)
 
-                # post_trajectory_and_topology_file(
-                #     mutant=mutant_name, replica_id=replica_id,
-                #     trajectory_filepath = stru_esm.coordinate_list,
-                #     topology_filepath = stru_esm.topology_source_file
-                # )
+                post_trajectory_and_topology_file(
+                    mutant=mutant_name, replica_id=replica_id,
+                    trajectory_filepath=stru_esm.coordinate_list,
+                    topology_filepath=stru_esm.topology_source_file
+                )
                 analysis_main(
                     stru_esm=stru_esm, metrics=metrics,
                     mutant_name=mutant_name, replica_id=replica_id,

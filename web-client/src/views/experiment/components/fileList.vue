@@ -4,13 +4,13 @@
 		<DownloadOutlined class="download-icon" @click="handleDownload" v-if="showDownload" />
 	</a-flex>
 	<a-row class="file-header">
-		<a-col :span="16">Name</a-col>
-		<a-col :span="8">Format</a-col>
+		<a-col :span="16" class="file-name">Name</a-col>
+		<a-col :span="8" class="file-format">Format</a-col>
 	</a-row>
 	<div class="file-list" v-if="list">
 		<a-row v-for="(value, key) in list" class="item">
-			<a-col :span="16">{{ key }}</a-col>
-			<a-col :span="8">{{ value }}</a-col>
+			<a-col :span="16" class="file-name">{{ key }}</a-col>
+			<a-col :span="8" class="file-format">{{ value }}</a-col>
 		</a-row>
 	</div>
 </template>
@@ -67,13 +67,37 @@ const handleDownload = () => {
 	}
 }
 
+.file-header .file-name {
+	padding-right: 12px;
+}
+
+.file-header .file-format {
+	padding-left: 12px;
+}
+
 .file-list {
 	.item {
 		background: #fff;
 		border-top: 1px solid #dbdbdb;
 		padding: 10px 16px;
-		height: 50px;
-		line-height: 30px;
+		line-height: 20px;
+	}
+
+	.item > div {
+		min-width: 0;
+	}
+
+	.file-name {
+		padding-right: 12px;
+		white-space: normal;
+		word-break: break-word;
+		overflow-wrap: anywhere;
+	}
+
+	.file-format {
+		padding-left: 12px;
+		white-space: normal;
+		word-break: break-word;
 	}
 }
 </style>

@@ -423,7 +423,7 @@ class ResultExplainerAssistant(OpenAIAssistant):
         self.metadata = {
             "simulation_engine": "Amber",
             "temperature_K": 300,
-            "production_ns": 0.1,
+            "md_production_length_in_ns": experiment.md_length if experiment else None,
             "date": str(datetime.now()),
         }
         return

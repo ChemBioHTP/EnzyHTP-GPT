@@ -521,18 +521,10 @@ class Experiment():
         """
         files = Path(self.directory).rglob("*")
         file_paths = list()
-        # file_dict = {
-        #     "Fixed wild type": ".pdb",
-        #     "Parameter files": ".in",
-        #     "Constraint files": ".rs",
-        # }
         for file_path_obj in files:
-            file_path = (file_path_obj.relative_to(self.directory)).as_posix()
-            if (path.isdir(file_path)):
-                pass
-            else:
-                file_paths.append(file_path)
-            continue
+            if (not file_path_obj.is_file()):
+                continue
+            file_paths.append((file_path_obj.relative_to(self.directory)).as_posix())
         return file_paths
 
     #endregion
@@ -1286,6 +1278,38 @@ class Result():
 
         # Convert to list of dictionaries
         return grouped_df.to_dict(orient="records")
+
+    @classmethod
+    def get_experiment_raw_results(cls, experiment_id: str) -> List[Dict[str, Any]]:
+        """Get a list of raw results of an Experiment by `experiment_id`.
+
+        Args:
+            experiment_id (str): The ID of the experiment.
+
+        Returns:
+            raw_results (List[Dict[str, Any]]): A list of raw result records.
+        """
+        result_list = []
+        experiment = Experiment.get(experiment_id)
+
+        if (not experiment):
+            return []
+
+        if (experiment.type == Experiment.GROUP_TYPE):
+            for sub_experiment in experiment.subordinate_experiments:
+                results_cursor = db.results.find({"experiment_id": sub_experiment.id})
+                result_list.extend(result for result in results_cursor)
+        else:
+            results_cursor = db.results.find({"experiment_id": experiment_id})
+            result_list = [result for result in results_cursor]
+
+        raw_results = []
+        for result in result_list:
+            if (not isinstance(result, dict)):
+                continue
+            result.pop("_id", None)
+            raw_results.append(result)
+        return raw_results
 
     def insert_or_update(self):
         """Insert or Update the current Result instance to the database."""
