@@ -133,7 +133,7 @@ gpu_job_config = {
         "account" : "csb_gpu_acc",
         "partition" : "batch_gpu",
         "nodes": "1",
-        "node_cores" : "nvidia_rtx_a6000:2",
+        "node_cores" : "nvidia_geforce_rtx_2080_ti:1",
     }
 }
 cpu_job_config = {
