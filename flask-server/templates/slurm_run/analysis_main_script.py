@@ -39,7 +39,7 @@ cluster = AccreR9()
 cpu_job_config = {
     "cluster" : cluster,
     "res_keywords" : {
-        "account" : "yang_lab_csb",
+        "account" : "yang_lab",
         "partition" : "batch",
         "walltime" : "10-00:00:00",
     }

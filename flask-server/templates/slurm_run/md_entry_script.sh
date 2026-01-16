@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=mutexa_md_${username}
-#SBATCH --account=yang_lab_csb
+#SBATCH --account=yang_lab
 #SBATCH --partition=production
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
