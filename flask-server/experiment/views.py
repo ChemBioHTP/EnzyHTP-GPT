@@ -1110,6 +1110,8 @@ class AssistantsApi(Resource):
             is_successful=True,
             configuration_stages=experiment.configuration_stages,
             assistant_messages=assistant_messages,
+            require_pdb_file=experiment.requires_pdb_upload,
+            confirm_button=experiment.summon_next_agent,
         )
         return Response(response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
@@ -1160,7 +1162,7 @@ class AssistantsApi(Resource):
             is_successful=is_openai_key_valid, 
             message=f"Received response from OpenAI. Updates to the experiment configuration may be triggered.",
             response_content=processed_response_content,
-            require_pdb_file=experiment.summon_upload_pdb,
+            require_pdb_file=experiment.requires_pdb_upload,
             confirm_button=experiment.summon_next_agent,
             tool_call_result=current_assistant.latest_tool_call_result,
             # configuration_updated=configuration_updated,
@@ -1237,7 +1239,7 @@ class AssistantsApi(Resource):
                 completion_message=completion_message,
                 message=f"{message} Received response from OpenAI.",
                 response_content=response_content,
-                require_pdb_file=experiment.summon_upload_pdb,
+                require_pdb_file=experiment.requires_pdb_upload,
                 confirm_button=experiment.summon_next_agent,
                 # configuration_updated=configuration_updated,
                 # updated_attributes=(updated_attrs+updated_attributes_from_response),
@@ -1249,7 +1251,7 @@ class AssistantsApi(Resource):
                 experiment, user,
                 is_successful=False,
                 message=message,
-                require_pdb_file=experiment.summon_upload_pdb,
+                require_pdb_file=experiment.requires_pdb_upload,
                 confirm_button=experiment.summon_next_agent,
                 configuration_stages=experiment.configuration_stages,
             )

@@ -131,7 +131,7 @@ class Experiment():
         self.current_thread_id = kwargs.get("current_thread_id", str())
         self.chat_messages: List[Dict[str, str]] = kwargs.get("chat_messages", list())
         self.summon_next_agent = kwargs.get("summon_next_agent", False)
-        self.summon_upload_pdb = kwargs.get("summon_upload_box", False)
+        self.summon_upload_pdb = kwargs.get("summon_upload_pdb", kwargs.get("summon_upload_box", False))
 
         self.group_experiment_id = kwargs.get("group_experiment_id", None)
         self.sub_experiment_ids = kwargs.get("sub_experiment_ids", list() if self.type == self.GROUP_TYPE else None)
@@ -336,6 +336,10 @@ class Experiment():
             return True
         else:
             return False
+
+    @property
+    def requires_pdb_upload(self) -> bool:
+        return self.summon_upload_pdb and not self.has_pdb_file
 
     @property
     def directory(self) -> str:

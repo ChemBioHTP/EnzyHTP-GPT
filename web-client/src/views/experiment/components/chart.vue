@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, watch, h, onMounted } from "vue";
+import { ref, nextTick, watch, h, onMounted, computed } from "vue";
 import { getAssistants ,get_pdb_file} from "@/api/experiment";
 import { useRoute } from "vue-router";
 import { SendOutlined } from "@ant-design/icons-vue";
@@ -72,8 +72,13 @@ const isTyping = ref(false);
 const currentResponse = ref("");
 const disabled = ref(true);
 const showGUI = ref(false);
-
 const toolData = ref({});
+const displayMessages = computed(() => {
+  if (props.preivew) {
+    return messages.value.filter(item => item.role);
+  }
+  return messages.value;
+});
 
 // 发送消息
 const sendMessage = async text_value => {
@@ -188,6 +193,7 @@ watch(
   }
 );
 
+
 onMounted(() => { });
 </script>
 
@@ -202,7 +208,7 @@ onMounted(() => { });
           The AI will clarify your intentions and performs necessary computational tasks.
         </p>
       </div>
-      <div v-for="(msg, index) in messages" :key="index" :class="['message', msg.role]">
+      <div v-for="(msg, index) in displayMessages" :key="index" :class="['message', msg.role]">
         <div v-if="msg.role">
           <a-flex align="center">
             <img :src="msg.role == 'user' ? user : assistant" alt="" srcset="" />
@@ -211,7 +217,8 @@ onMounted(() => { });
           <div class="message-content" v-html="formattedText(msg.text_value)"></div>
         </div>
         <!--  -->
-        <toolCallResult v-else :data="msg.data" :experiment_id="$route.query.id" @confirmFn="confirmFn" :key="index" />
+        <toolCallResult v-else-if="!props.preivew" :data="msg.data" :experiment_id="$route.query.id"
+          @confirmFn="confirmFn" :key="index" />
         <!-- v-if="messages.length > 1 && !props.preivew" -->
       </div>
       <!-- AI 输入动画 -->
