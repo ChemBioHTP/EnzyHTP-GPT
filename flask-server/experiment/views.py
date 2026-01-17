@@ -809,6 +809,51 @@ class DownloadableFileApi(Resource):
             response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False)
             return Response(response=response_info.serialize(), status=204, mimetype=JSONIFY_MIMETYPE)
 
+class PdbFilesApi(Resource):
+    """Route: `/<experiment_id>/pdb_files`"""
+
+    @login_required
+    def get(self, experiment_id: str):
+        """List available PDB files for visualization.
+
+        Args:
+            experiment_id (str): The identifier of an experiment instance.
+        """
+        user: User = current_user
+        experiment = Experiment.get(experiment_id)
+
+        if (experiment is None):
+            return notfound_response(user, experiment_id)
+        if (experiment.user_id != user.id):
+            return forbidden_response(user, experiment)
+
+        pdb_files = list()
+        if (experiment.type == experiment.GROUP_TYPE):
+            for sub_exp in experiment.subordinate_experiments:
+                if (sub_exp is None or not sub_exp.pdb_filename):
+                    continue
+                pdb_files.append({
+                    "experiment_id": sub_exp.id,
+                    "name": sub_exp.name,
+                    "pdb_filename": sub_exp.pdb_filename,
+                })
+        else:
+            if (experiment.pdb_filename):
+                pdb_files.append({
+                    "experiment_id": experiment.id,
+                    "name": experiment.name,
+                    "pdb_filename": experiment.pdb_filename,
+                })
+
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment,
+            user=user,
+            is_successful=True,
+            message="PDB file list fetched.",
+            pdb_files=pdb_files,
+        )
+        return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
+
 class PdbFileApi(Resource):
     """Route: `/<experiment_id>/pdb_file`"""
 
@@ -823,17 +868,46 @@ class PdbFileApi(Resource):
         # user: User = current_user
         experiment = Experiment.get(experiment_id)
 
+        if (experiment is None):
+            return Response(
+                response=dumps({
+                    "is_successful": False,
+                    "message": f"Unable to find the experiment with id '{experiment_id}'.",
+                }),
+                status=404,
+                mimetype=JSONIFY_MIMETYPE,
+            )
+
         # if (experiment is None):
         #     return notfound_response(user, experiment_id)
         # if (experiment.user_id != user.id):
         #     return forbidden_response(user, experiment)    
-        if not experiment.has_pdb_file:
+        target_experiment = experiment
+        if (experiment.type == Experiment.GROUP_TYPE):
+            requested_sub_id = request.args.get("sub_experiment_id")
+            if (requested_sub_id):
+                requested_sub = Experiment.get(requested_sub_id)
+                if (requested_sub and requested_sub_id in experiment.sub_experiment_ids and requested_sub.has_pdb_file):
+                    target_experiment = requested_sub
+                else:
+                    target_experiment = None
+            else:
+                sub_experiments = [
+                    sub_exp for sub_exp in experiment.subordinate_experiments
+                    if (sub_exp and sub_exp.has_pdb_file)
+                ]
+                if (sub_experiments):
+                    sub_experiments.sort(key=lambda sub_exp: sub_exp.pdb_filename or "")
+                    target_experiment = sub_experiments[0]
+                else:
+                    target_experiment = None
+
+        if (not target_experiment or not target_experiment.has_pdb_file):
             return no_pdb_response(User.get(experiment.user_id), experiment)
-        else:
-            return send_file(path_or_file=experiment.pdb_filepath, mimetype="text/plain",
-                as_attachment=False, 
-                download_name=experiment.pdb_filename, 
-                attachment_filename=experiment.pdb_filename)
+        return send_file(path_or_file=target_experiment.pdb_filepath, mimetype="text/plain",
+            as_attachment=False, 
+            download_name=target_experiment.pdb_filename, 
+            attachment_filename=target_experiment.pdb_filename)
 
     @login_required
     def post(self, experiment_id: str):

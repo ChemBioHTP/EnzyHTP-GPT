@@ -1,10 +1,12 @@
 import { fileURLToPath, URL } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import vue from "@vitejs/plugin-vue";
 import vueJsx from "@vitejs/plugin-vue-jsx";
 
 // https://vite.dev/config/
 export default defineConfig(({ mode, command }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const keepConsole = env.VITE_KEEP_CONSOLE === "true" || env.VITE_KEEP_CONSOLE === "1";
   return {
     plugins: [vue(), vueJsx()],
     css: {
@@ -33,7 +35,7 @@ export default defineConfig(({ mode, command }) => {
       },
     },
     esbuild: {
-      drop: ["console", "debugger"],
+      drop: keepConsole ? ["debugger"] : ["console", "debugger"],
     }
   };
 });

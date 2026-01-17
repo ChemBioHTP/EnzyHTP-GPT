@@ -52,6 +52,10 @@ export const get_pdb_file = (experiment_id) => {
   return axios.get(`/api/experiment/${experiment_id}/pdb_file`, {}, { responseType: "blob" });
 };
 
+export const get_pdb_files = (experiment_id, data) => {
+  return axios.get(`/api/experiment/${experiment_id}/pdb_files`, data);
+};
+
 export const pdb_fileValidation = (data) => { 
   return axios.post(`/api/experiment/validation/pdb_file`, data, {url:"pur/contract/upload"});
 };
