@@ -114,7 +114,8 @@
             The domain seperation index of the two domains of a bidomain enzyme. This index describes how seperate the two domains are in the dynamic motion of the enzyme.
             A study by Ning et al showed it is predictive for the cold-adaption ability (the ability to maintain activity at lower temperature) of bidomain enzymes. 
         + Required argument:
-            - linker_sequence: the sequence of the linker. (use to define the sequence range of the two domains)
+            - domain1_sequence: The sequence of the first domain. The backend will locate this exact sequence in the chain to determine the sequence range of the first domain.
+            - domain2_sequence: The sequence of the second domain. The backend will locate this exact sequence in the chain to determine the sequence range of the second domain.
         + Optional argument:
             - None
         + Related Properties 
