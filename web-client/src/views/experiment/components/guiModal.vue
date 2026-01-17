@@ -206,13 +206,13 @@ onMounted(() => {
     console.log("[guiModal] onMounted: create molstar viewer");
     viewerRef.value = await molstar.Viewer.create("viewer-container", {
       layoutIsExpanded: false,
-      layoutShowControls: false,
-      layoutShowSequence: false,
+      // layoutShowControls: false,
+      // layoutShowSequence: false,
       layoutShowLog: false,
       layoutShowToolbar: true, // 显示工具栏
-      layoutShowLeftPanel: false,
-      layoutShowStructure: false, // 是否显示结构面板
-      layoutShowParameters: false, // 是否显示参数面板
+      // layoutShowLeftPanel: false,
+      collapseLeftPanel: true,
+      // layoutShowParameters: false, // 是否显示参数面板
     });
     console.log("[guiModal] onMounted: molstar viewer created", {
       hasViewer: !!viewerRef.value,
