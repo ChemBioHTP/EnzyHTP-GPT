@@ -15,6 +15,7 @@ import prompts
 import pandas as pd
 from csv import DictWriter
 from os import path
+from pathlib import Path
 from flask import Response, request, send_file
 from flask_login import login_required, current_user
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
@@ -142,6 +143,32 @@ def _ensure_raw_results_csv(experiment: Experiment) -> Optional[str]:
             row = {field: _format_csv_value(result.get(field)) for field in fieldnames}
             writer.writerow(row)
     return output_path
+
+def _collect_downloadable_files(experiment: Experiment) -> dict[str, str]:
+    """Return a map of archive name to absolute path for downloadable files."""
+    file_map: dict[str, str] = {}
+
+    def add_files(base_dir: str, prefix: str = "") -> None:
+        if (not base_dir or not path.isdir(base_dir)):
+            return
+        for file_path_obj in Path(base_dir).rglob("*"):
+            if (not file_path_obj.is_file()):
+                continue
+            relative = file_path_obj.relative_to(base_dir).as_posix()
+            arcname = f"{prefix}{relative}" if prefix else relative
+            file_map[arcname] = str(file_path_obj)
+        return
+
+    if (experiment.type == Experiment.GROUP_TYPE):
+        add_files(experiment.directory)
+        for sub_experiment in experiment.subordinate_experiments:
+            if (not sub_experiment):
+                continue
+            add_files(sub_experiment.directory, prefix=f"sub_experiments/{sub_experiment.id}/")
+    else:
+        add_files(experiment.directory)
+
+    return file_map
 
 #region Experiment Response Body and Handlers.
 
@@ -757,8 +784,8 @@ class ResultApi(Resource):
         
         _ensure_raw_results_csv(experiment)
         downloadable_files_dict = dict()
-        for file in experiment.downloadable_files:
-            downloadable_files_dict[file] = fs.get_file_ext(file)
+        for arcname in _collect_downloadable_files(experiment).keys():
+            downloadable_files_dict[arcname] = fs.get_file_ext(arcname)
 
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
@@ -812,9 +839,10 @@ class DownloadableApi(Resource):
         
         _ensure_raw_results_csv(experiment)
         deploy_pack_io = BytesIO()
+        file_map = _collect_downloadable_files(experiment)
         with ZipFile(deploy_pack_io, "w") as deploy_pack_zip:
-            for filepath in experiment.downloadable_files:
-                deploy_pack_zip.write(filename=path.join(experiment.directory, filepath), arcname=filepath, compress_type=ZIP_DEFLATED)   # Add PDB file into zip.
+            for arcname, abs_path in file_map.items():
+                deploy_pack_zip.write(filename=abs_path, arcname=arcname, compress_type=ZIP_DEFLATED)
         
         deploy_pack_io.seek(0)
         zipfile_prefix = re.sub(r'[\\/:"*?<>|]', "", experiment.name)
@@ -839,12 +867,12 @@ class DownloadableFileApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        file_abs_path = path.join(experiment.directory, filepath)
-        if (path.isfile(file_abs_path)):
+        file_map = _collect_downloadable_files(experiment)
+        file_abs_path = file_map.get(filepath)
+        if (file_abs_path and path.isfile(file_abs_path)):
             return send_file(file_abs_path, mimetype="application/octet-stream", as_attachment=True, download_name=path.basename(filepath))
-        else:
-            response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False)
-            return Response(response=response_info.serialize(), status=204, mimetype=JSONIFY_MIMETYPE)
+        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False)
+        return Response(response=response_info.serialize(), status=204, mimetype=JSONIFY_MIMETYPE)
 
 class PdbFilesApi(Resource):
     """Route: `/<experiment_id>/pdb_files`"""
