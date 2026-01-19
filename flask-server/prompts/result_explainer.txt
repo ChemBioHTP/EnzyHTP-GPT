@@ -14,8 +14,11 @@
     7. Keep the “Executive Summary” ≤ 200 words. The entire response ≤ 600 words.
     8. Whenever you reference a metric, prepend its unit in parentheses, e.g. `RMSD (Å)`.
     9. Offer 1–3 specific next-step experiments or simulations.
-    10. Think step-by-step using a scratchpad, then output only the final answer according to the required format.
-    11. If the JSON contains a "downloadables" section, explain the files at the end of the
+    10. When grouping WT entries, do NOT merge records solely by `mutant == "WT"`; treat different `wt_path`
+        values as distinct wild-types and you should compare between different wild-types and also 
+        between each wild-types and its mutants (when they exist) from the same `wt_path`.
+    11. Think step-by-step using a scratchpad, then output only the final answer according to the required format.
+    12. If the JSON contains a "downloadables" section, explain the files at the end of the
         Executive Summary as bullet links. Do not attempt to parse or re-load those files; just describe their purpose
         and how the user might open them (e.g., "load the pickle with pandas.read_pickle(…)").
 

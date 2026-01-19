@@ -71,6 +71,37 @@ db = mongo.db
 
 RAW_RESULTS_FILENAME = "raw_results.csv"
 
+def _aggregate_group_status_progress(experiment: Experiment) -> Tuple[int, float]:
+    """Aggregate status/progress for group experiments from sub experiments."""
+    if (experiment.type != Experiment.GROUP_TYPE):
+        return experiment.status, experiment.progress
+
+    sub_experiments = [sub for sub in experiment.subordinate_experiments if sub]
+    if (not sub_experiments):
+        return experiment.status, experiment.progress
+
+    statuses = [sub.status for sub in sub_experiments]
+    progress_values = []
+    for sub in sub_experiments:
+        try:
+            progress_values.append(float(sub.progress))
+        except (TypeError, ValueError):
+            progress_values.append(0.0)
+    progress = sum(progress_values) / len(progress_values) if progress_values else 0.0
+
+    if all(status == StatusCode.EXIT_OK for status in statuses):
+        status = StatusCode.EXIT_OK
+    elif any(status in StatusCode.error_including_pause_statuses for status in statuses):
+        status = StatusCode.EXIT_WITH_ERROR
+    elif any(status in StatusCode.queued_status for status in statuses):
+        status = StatusCode.RUNNING
+    elif all(status == StatusCode.CANCELLED for status in statuses):
+        status = StatusCode.CANCELLED
+    else:
+        status = max(statuses)
+
+    return status, progress
+
 def _format_csv_value(value: Any) -> Any:
     if isinstance(value, datetime):
         return value.isoformat()
@@ -146,7 +177,13 @@ class ExperimentIndexResponse():
             del exp_dict["user_id"]
             if ("chat_messages") in exp_dict.keys():
                 del exp_dict["chat_messages"]
-            exp_dict["status_text"] = StatusCode.status_text_mapper.get(exp.status)
+            if (exp.type == Experiment.GROUP_TYPE):
+                group_status, group_progress = _aggregate_group_status_progress(exp)
+                exp_dict["status"] = group_status
+                exp_dict["progress"] = group_progress
+                exp_dict["status_text"] = StatusCode.status_text_mapper.get(group_status)
+            else:
+                exp_dict["status_text"] = StatusCode.status_text_mapper.get(exp.status)
             self.experiments.append(exp_dict)
             continue
 
