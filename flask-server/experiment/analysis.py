@@ -213,21 +213,22 @@ def mmpbgbsa(stru_esm: StructureEnsemble, ligand: str, **kwargs) -> float:
     binding_values = binding_energy(stru=stru_esm, ligand=ligand, non_armer_cpu_num=2, **kwargs)
     return mean(binding_values)
 
-def spi(stru_esm: StructureEnsemble, ligand: str, region_pattern: str, **kwargs) -> float:
+def spi(stru_esm: StructureEnsemble, substrate_selection_pattern: str, pocket_selection_pattern: str = None, **kwargs) -> float:
     """Calculates the spi metric for a StructureEnsemble using a pymol-formatted pocket selection string pattern.
     
     Args:
         stru_esm (StructureEnsemble): The StructureEnsemble instance to analyze.
-        ligand: The target ligand of the calculation represented as a selection pattern.
-            Note that the ligand has to be part of Structure().
-            Note that the ligand can be a small molecule or a protein.
-        region_pattern: A pymol-formatted sele str which defines the denominator in the spi metric.
+        substrate_selection_pattern: The target substrate of the calculation represented as a selection pattern.
+            Note that the substrate has to be part of Structure().
+            Note that the substrate can be a small molecule or a protein.
+        pocket_selection_pattern: A pymol-formatted sele str which defines the denominator in the spi metric.
     """
-    ligand: Ligand = select_stru(stru=stru_esm.structure_0, pattern=ligand)
-    spi_values: List[float] = spi_metric(stru_esm, ligand, region_pattern)
+    ligand: Ligand = select_stru(stru=stru_esm.structure_0, pattern=substrate_selection_pattern)
+    if not pocket_selection_pattern:
+        pocket_selection_pattern = f"br. ({substrate_selection_pattern}) around 5"
+    spi_values: List[float] = spi_metric(stru_esm, ligand, pocket_selection_pattern)
     return mean(spi_values)
 
-# TODO (Zhong): cavity, ddg_fold and electric_field.
 METRICS_MAPPER: Dict[str, Callable] = {
     "active_site_rmsd": active_site_rmsd,
     "cavity": cavity,
