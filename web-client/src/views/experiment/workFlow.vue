@@ -134,6 +134,7 @@ onMounted(() => {
                         <WorkFlowConfig
                           :metrics="experiment?.metrics"
                           :constraints="experiment?.constraints"
+                          :md-length="experiment?.md_length"
                         />
                     </div>
                     <div class="list">

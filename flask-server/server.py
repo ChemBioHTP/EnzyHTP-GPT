@@ -34,13 +34,16 @@ app.register_blueprint(experiment_blueprint, url_prefix="/api/experiment")
 scheduler.init_app(app)
 scheduler.start()
 
-# Schedule token update task to run daily at 2:00 AM
+# Schedule token refresh task to run daily at 2:00 AM
 from services.accre_slurm_service import SlurmJobRequest
 @scheduler.task('cron', id='update_slurm_tokens', hour=2, minute=0)
 def update_slurm_tokens_task():
     try:
-        updated, message = SlurmJobRequest.update_slurm_tokens()
-        app.logger.info(f"SLURM token update task executed. Success: {updated}, Message: {message}")
+        refreshed, status_code, message = SlurmJobRequest.refresh_slurm_token()
+        app.logger.info(
+            f"SLURM token refresh task executed. Success: {refreshed}, "
+            f"Status: {status_code}, Message: {message}"
+        )
     except Exception as e:
         app.logger.error(f"Failed to update SLURM tokens: {str(e)}")
 
