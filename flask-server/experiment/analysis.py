@@ -18,14 +18,24 @@ from enzy_htp.mutation_class import Mutation
 from enzy_htp.structure import Structure, StructureEnsemble, Ligand
 from enzy_htp.structure.structure_selection import select_stru
 
-def active_site_rmsd(stru_esm: StructureEnsemble, region_pattern: str, **kwargs) -> float:
+def active_site_rmsd(
+    stru_esm: StructureEnsemble,
+    pocket_selection_pattern: Optional[str] = None,
+    **kwargs,
+) -> Optional[float]:
     """Calculate the RMSD value of a StructureEnsemble instance with specified region pattern.
-    
+
     Args:
         stru_esm (StructureEnsemble): A collection of different geometries of the same enzyme structure.
-        region_pattern (str): A pymol-formatted selection string which defines the region for calculating RMSD value.
+        pocket_selection_pattern (str): A pymol-formatted selection string which defines the region
+            for calculating RMSD value.
     """
-    rmsd_values = rmsd(stru_esm=stru_esm, region_pattern=region_pattern)
+    if not pocket_selection_pattern:
+        pocket_selection_pattern = kwargs.pop("region_pattern", None)
+    if not pocket_selection_pattern:
+        _LOGGER.error("`pocket_selection_pattern` is required for active site RMSD calculation.")
+        return None
+    rmsd_values = rmsd(stru_esm=stru_esm, region_pattern=pocket_selection_pattern)
     return mean(rmsd_values)
 
 def cavity(stru_esm: StructureEnsemble, ligand_selection_pattern: str=None, pocket_compositing_residue_pattern: str=None, **kwargs) -> float:
@@ -201,16 +211,30 @@ def electric_field(stru_esm: StructureEnsemble, atom_1: str, atom_2: str, unit: 
         continue
     return mean(ef_values)
 
-def mmpbgbsa(stru_esm: StructureEnsemble, ligand: str, **kwargs) -> float:
-    """Calculate the binding energy of `ligand` in `stru`.
-    
+def mmpbgbsa(
+    stru_esm: StructureEnsemble,
+    ligand_selection_pattern: Optional[str] = None,
+    **kwargs,
+) -> Optional[float]:
+    """Calculate the binding energy of `ligand_selection_pattern` in `stru`.
+
     Args:
         stru_esm (StructureEnsemble): The StructureEnsemble instance to analyze.
-        ligand: The target ligand of the calculation represented as a selection pattern.
+        ligand_selection_pattern: The target ligand of the calculation represented as a selection pattern.
             Note that the ligand has to be part of Structure().
             Note that the ligand can be a small molecule or a protein.
     """
-    binding_values = binding_energy(stru=stru_esm, ligand=ligand, non_armer_cpu_num=2, **kwargs)
+    if not ligand_selection_pattern:
+        ligand_selection_pattern = kwargs.pop("ligand", None)
+    if not ligand_selection_pattern:
+        _LOGGER.error("`ligand_selection_pattern` is required for MMPB/GBSA calculation.")
+        return None
+    binding_values = binding_energy(
+        stru=stru_esm,
+        ligand=ligand_selection_pattern,
+        non_armer_cpu_num=2,
+        **kwargs,
+    )
     return mean(binding_values)
 
 def spi(stru_esm: StructureEnsemble, substrate_selection_pattern: str, pocket_selection_pattern: str = None, **kwargs) -> float:

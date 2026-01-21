@@ -31,6 +31,7 @@ from .models import Experiment, Result
 from .analysis import METRICS_MAPPER
 from .experiment_config import StatusCode
 from .agents import ResultExplainerAssistant
+from .manual_md_pack import build_manual_md_package
 from auth.models import User
 from auth.views import (
     unauth_handler as unauth_handler_in_auth, 
@@ -56,6 +57,7 @@ from config import (
     SLURM_DEPLOY_SCRIPT_FILENAME, 
     SLURM_DEPLOY_SCRIPT, 
     MAX_MUTANT_COUNT,
+    MANUAL_MD_DEPLOY_TIMEOUT,
 
     # PLHD_RESULT_IMG_PATHS,
     # PLHD_RESULT_INTERPRETATION,
@@ -1644,6 +1646,13 @@ class SlurmDeployApi(Resource):
         Args:
             experiment_id (str): The identifier of an experiment instance.
         """
+        try:
+            import uwsgi
+            if MANUAL_MD_DEPLOY_TIMEOUT > 0:
+                uwsgi.set_user_harakiri(int(MANUAL_MD_DEPLOY_TIMEOUT))
+        except Exception:
+            pass
+
         user: User = current_user
         experiment = Experiment.get(experiment_id)
 
@@ -1652,21 +1661,23 @@ class SlurmDeployApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        # is_successful, mutant_count, message = experiment.make_mutants_pdb_files()
-        
-        deploy_script = Template(SLURM_DEPLOY_SCRIPT).safe_substitute({
-            "pdb_filename": experiment.pdb_filename
-        })
+        try:
+            deploy_pack_io, zip_name = build_manual_md_package(experiment)
+        except Exception as exc:
+            _LOGGER.error(f"Failed to build manual MD package: {exc}")
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                is_successful=False,
+                message="Failed to build manual MD package.",
+            )
+            return Response(response=response_info.serialize(), status=500, mimetype=JSONIFY_MIMETYPE)
 
-        deploy_pack_io = BytesIO()
-        deploy_pack_zip = ZipFile(deploy_pack_io, "w")
-
-        deploy_pack_zip.writestr(SLURM_DEPLOY_SCRIPT_FILENAME, deploy_script.encode("utf-8"), compress_type=ZIP_DEFLATED)       # Add bash into zip.
-        deploy_pack_zip.write(experiment.pdb_filepath, arcname=experiment.pdb_filename, compress_type=ZIP_DEFLATED)   # Add PDB file into zip.
-        
-        deploy_pack_zip.close()
-        deploy_pack_io.seek(0)
-        zipfile_prefix = re.sub(r'[\\/:"*?<>|]', '', experiment.name)
-        return send_file(deploy_pack_io, mimetype="application/zip", as_attachment=True, download_name=f"{zipfile_prefix} Deploy Pack.zip")
+        return send_file(
+            deploy_pack_io,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=zip_name,
+        )
 
 #endregion

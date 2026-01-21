@@ -38,13 +38,19 @@ MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/enzyhtp_gpt")
 # File system
 FILE_SYSTEM_FOLDER = os.environ.get("FILE_SYSTEM_FOLDER", os.path.join(BASEDIR, "static"))
 EXPERIMENT_FILE_DIRECTORY = os.path.join(FILE_SYSTEM_FOLDER, "experiments")
+NCAA_LIB_PATH = os.path.join(EXPERIMENT_FILE_DIRECTORY, "ncaa_lib")
 SCRATCH_FOLDER = os.path.join(FILE_SYSTEM_FOLDER, "scratch")
+TEMP_FOLDER = os.path.join(FILE_SYSTEM_FOLDER, "temp")
 
-for folder in [FILE_SYSTEM_FOLDER, EXPERIMENT_FILE_DIRECTORY, SCRATCH_FOLDER]:
+for folder in [FILE_SYSTEM_FOLDER, EXPERIMENT_FILE_DIRECTORY, NCAA_LIB_PATH, SCRATCH_FOLDER, TEMP_FOLDER]:
     if (not os.path.isdir(folder)):
         os.mkdir(folder)
 
 eh_config['system.SCRATCH_DIR'] = SCRATCH_FOLDER
+eh_config['system.NCAA_LIB_PATH'] = NCAA_LIB_PATH
+os.environ.setdefault("TMPDIR", TEMP_FOLDER)
+eh_config['amber.DEFAULT_NCAA_PARAM_LIB_PATH'] = NCAA_LIB_PATH
+eh_config['amber.DEFAULT_PARAMETERIZER_TEMP_DIR'] = SCRATCH_FOLDER
 
 # Uri
 OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI = os.environ.get("OAUTH_VENDOR_LOGIN_CALLBACK_REDIRECT_URI", "/api/auth/profile")
@@ -81,6 +87,7 @@ SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH = os.path.join(BASEDIR, "templates", "sl
 MAX_MUTANT_COUNT = 6
 
 DEFAULT_MD_LENGTH = 0.05  # MD Production Timespan in ns.
+MANUAL_MD_DEPLOY_TIMEOUT = int(os.environ.get("MANUAL_MD_DEPLOY_TIMEOUT", "600"))
 
 # Run MD by Yourself.
 SLURM_DEPLOY_SCRIPT_FILENAME = "perform_md_sim.sh"

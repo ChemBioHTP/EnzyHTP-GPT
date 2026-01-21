@@ -1,4 +1,6 @@
 # Here put the import lib.
+import os
+import subprocess
 from flask import Flask, jsonify, render_template
 
 app = Flask(__name__)
@@ -11,6 +13,25 @@ app.config.from_object(config)
 
 from context import mongo, login_manager, jwt, mail, ssl_context, scheduler
 login_manager.login_message_category = "info"  # Set login message category to info.
+
+# Force antechamber to run in a writable cwd for temp files.
+try:
+    from enzy_htp.core import env_manager as eh_env_manager
+except Exception:
+    eh_env_manager = None
+
+if eh_env_manager and not getattr(eh_env_manager, "_antechamber_cwd_patched", False):
+    antechamber_cwd = os.environ.get("ENZYHTP_ANTECHAMBER_CWD", getattr(config, "TEMP_FOLDER", ""))
+    if antechamber_cwd:
+        os.makedirs(antechamber_cwd, exist_ok=True)
+        eh_env_manager._antechamber_cwd_patched = True
+
+        def _run_with_antechamber_cwd(cmd, *args, **kwargs):
+            if isinstance(cmd, str) and "antechamber" in cmd:
+                kwargs.setdefault("cwd", antechamber_cwd)
+            return subprocess.run(cmd, *args, **kwargs)
+
+        eh_env_manager.run = _run_with_antechamber_cwd
 
 # Create MongoDB Connection.
 mongo.init_app(app=app)
