@@ -1,7 +1,7 @@
 <template>
 	<a-flex justify="space-between">
 		<div class="file-title">Downloadable files</div>
-		<DownloadOutlined class="download-icon" @click="handleDownload" v-if="showDownload" />
+		<DownloadOutlined class="download-icon" :class="{ disabled: downloading }" @click="handleDownload" v-if="showDownload" />
 	</a-flex>
 	<a-row class="file-header">
 		<a-col :span="16" class="file-name">Name</a-col>
@@ -33,12 +33,38 @@ const props = defineProps({
 });
 
 const route = useRoute();
+const downloading = ref(false);
 
 const handleDownload = () => {
-	message.success("Downloading");
-	downloadable(route.query.id).then((res) => {
-		downloadFile(res, "Downloadable-files.zip")
+	if (downloading.value) {
+		return;
+	}
+	const key = `download-${Date.now()}`;
+	let lastPercent = -1;
+	const updateMessage = content => {
+		message.loading({ content, key, duration: 0 });
+	};
+	downloading.value = true;
+	updateMessage("Downloading...");
+	downloadable(route.query.id, {}, {
+		onDownloadProgress: event => {
+			if (!event.total) {
+				return;
+			}
+			const percent = Math.round((event.loaded / event.total) * 100);
+			if (percent !== lastPercent) {
+				lastPercent = percent;
+				updateMessage(`Downloading... ${percent}%`);
+			}
+		},
 	})
+		.then((res) => {
+			downloadFile(res, "Downloadable-files.zip");
+		})
+		.finally(() => {
+			message.destroy(key);
+			downloading.value = false;
+		});
 };
 
 </script>
@@ -52,6 +78,11 @@ const handleDownload = () => {
 .download-icon {
 	cursor: pointer;
 	font-size: 16px;
+}
+.download-icon.disabled {
+	cursor: not-allowed;
+	opacity: 0.6;
+	pointer-events: none;
 }
 
 .file-header {

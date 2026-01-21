@@ -19,6 +19,7 @@ const route = useRoute();
 const router = useRouter();
 const experiment = ref({});
 const spinning = ref(false);
+const downloading = ref(false);
 const headers = ref({ Authorization: getToken() });
 const experimentStore = useExperimentStore();
 
@@ -84,11 +85,36 @@ const handleBack = () => {
 };
 
 const handleDownload = () => {
-  message.success("Downloading");
-  deploy(route.query.id).then(res => {
-    console.log(res);
-    downloadFile(res, "downloaded-file.zip")
-  });
+  if (downloading.value) {
+    return;
+  }
+  const key = `download-${Date.now()}`;
+  let lastPercent = -1;
+  const updateMessage = content => {
+    message.loading({ content, key, duration: 0 });
+  };
+  downloading.value = true;
+  updateMessage("Downloading...");
+  deploy(route.query.id, {}, {
+    onDownloadProgress: event => {
+      if (!event.total) {
+        return;
+      }
+      const percent = Math.round((event.loaded / event.total) * 100);
+      if (percent !== lastPercent) {
+        lastPercent = percent;
+        updateMessage(`Downloading... ${percent}%`);
+      }
+    },
+  })
+    .then(res => {
+      console.log(res);
+      downloadFile(res, "downloaded-file.zip");
+    })
+    .finally(() => {
+      message.destroy(key);
+      downloading.value = false;
+    });
 };
 
 onMounted(() => {
@@ -111,7 +137,7 @@ onMounted(() => {
             Please download the files, conduct the MD simulation using your
             tools.
           </p>
-          <a-button type="primary" class="message-button" ghost @click="handleDownload">
+          <a-button type="primary" class="message-button" ghost :loading="downloading" @click="handleDownload">
             <a-flex class="button-content" justify="space-between" align="center">
               <span>Download MD input files</span>
               <DownloadOutlined class="ml30" />
