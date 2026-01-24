@@ -6,7 +6,7 @@
         <div class="title">Provide Secret API Key</div>
         <div class="tip">
           <span>Copy and paste your API key from OpenAI.</span>
-          <div class="tip-warning">The OpenAI account for this key must have available funds. (>$1)</div>
+          <div class="tip-warning">NOTE: The OpenAI account for this key must have available funds. (>$1)</div>
           <a
             class="theme-color"
             href="https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key"
@@ -120,6 +120,6 @@ const signOut = async () => {
   color: #fff;
 }
 .tip-warning {
-  color: #d93025;
+  color: #2534d9;
 }
 </style>
