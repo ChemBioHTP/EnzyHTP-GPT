@@ -1,1 +1,0 @@
-export { IconSend } from "./IconSend";

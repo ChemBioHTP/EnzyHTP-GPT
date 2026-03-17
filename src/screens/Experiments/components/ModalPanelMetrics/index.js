@@ -1,1 +1,0 @@
-export { ModalPanelMetrics } from "./ModalPanelMetrics";

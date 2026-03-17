@@ -1,1 +1,0 @@
-export { TagCloseButton } from "./TagCloseButton";

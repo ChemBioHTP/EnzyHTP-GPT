@@ -41,6 +41,17 @@ const getMessages = (show = true) => {
   getAssistantList(route.query.id).then(res => {
     model.messageList = res.assistant_messages ?? [];
     node.value = res.configuration_stages ?? [];
+    if (res.require_pdb_file || res.confirm_button) {
+      model.messageList = [
+        ...model.messageList,
+        {
+          data: {
+            require_pdb_file: res.require_pdb_file,
+            confirm_button: res.confirm_button,
+          },
+        },
+      ];
+    }
     spinning.value = false;
   });
 };

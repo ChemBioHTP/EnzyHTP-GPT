@@ -1,1 +1,0 @@
-export { DataTableRowItem } from "./DataTableRowItem";

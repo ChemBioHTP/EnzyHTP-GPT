@@ -51,6 +51,7 @@ class SlurmJobRequest:
         depend (str): Defer job until condition on jobid is satisfied. Format: type:jobid[:time]
         constraint (str): Specify a list of Constraints.
         gres (str): Flags related to GRES management.
+        qos (str): Quality of Service.
     """
     SLURM_TOKEN_NAME = "slurm_token"
 
@@ -64,7 +65,7 @@ class SlurmJobRequest:
             exclude: List[str] = list(), array: list = list(),
             mail_user: str = None, mail_type: str = None,
             depend: str = str(), constraint: str = str(),
-            gres: str = str(), **kwargs):
+            gres: str = str(), qos: str = str(), **kwargs):
         """The configuration information to start a slurm job on Vanderbilt ACCRE.
         
         Args:
@@ -103,6 +104,7 @@ class SlurmJobRequest:
         self.depend = depend
         self.constraint = constraint
         self.gres = gres
+        self.qos = qos
 
     def serialize(self) -> str:
         """Serialize the current instance to json string, None or Empty value will be omitted."""

@@ -62,7 +62,7 @@
           </div>
         </div>
         <div class="mt10">
-          <WorkFlowConfig :show="true"/>
+          <WorkFlowConfig :show="true" :constraints="constraints" />
         </div>
       </div>
       <div class="list">
@@ -93,6 +93,10 @@ const props = defineProps({
     default: () => [],
   },
   mutations: {
+    type: Array,
+    default: () => [],
+  },
+  constraints: {
     type: Array,
     default: () => [],
   },

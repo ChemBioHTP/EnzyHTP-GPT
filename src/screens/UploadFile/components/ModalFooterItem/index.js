@@ -1,1 +1,0 @@
-export { ModalFooterItem } from "./ModalFooterItem";

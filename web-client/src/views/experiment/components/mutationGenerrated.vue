@@ -1,12 +1,12 @@
 <template>
   <div>
     <a-flex justify="space-between">
-      <div class="mutation-title">Mutation generated</div>
+      <div class="mutation-title">Mutant generated</div>
       <DownloadOutlined class="download-icon" @click="handleDownload"  v-if="showDownload"/>
       </a-flex>
     <a-row class="mutation-header">
       <a-col :span="8">Number</a-col>
-      <a-col :span="16">Pattern</a-col>
+      <a-col :span="16">Name</a-col>
     </a-row>
     <div class="mutation-list" v-if="mutations.length">
       <a-row v-for="(item, index) in mutations" class="item">
@@ -60,6 +60,9 @@ const handleDownload = () => {
 }
 
 .mutation-list {
+  max-height: clamp(200px, 50vh, 1000px); // 随视口高度自适应
+  overflow-y: auto;
+
   .item {
     background: #fff;
     border-top: 1px solid #dbdbdb;

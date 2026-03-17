@@ -50,7 +50,7 @@
       </div>
       <!-- </a-spin> -->
     </a-upload-dragger>
-    <guiModal v-model="showGUI" v-if="showGUI"></guiModal>
+    <guiModal v-model="showGUI" v-if="showGUI" :experiment_id="props.experiment_id"></guiModal>
   </div>
 </template>
 <script setup>

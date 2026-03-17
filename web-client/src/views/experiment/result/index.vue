@@ -85,7 +85,7 @@ onMounted(() => {
         <HeadInfo :experiment="experimentStore.experiment" />
         <InputResult v-model="selected" />
         <InputComponent v-show="selected === 'Input'" :node="model.node" :messageList="model.messageList"
-          :mutations="model.mutations" />
+          :mutations="model.mutations" :constraints="experiment.constraints" />
         <ResultComponent :progress="Number(experiment.progress * 100)" :mutations="model.mutations"
           v-show="selected === 'Results'" :status="experiment.status" />
       </a-spin>

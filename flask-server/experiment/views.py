@@ -13,21 +13,25 @@ import os
 import re
 import prompts
 import pandas as pd
+from csv import DictWriter
 from os import path
+from pathlib import Path
 from flask import Response, request, send_file
 from flask_login import login_required, current_user
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from flask_restful import Resource
 from json import JSONDecodeError, dumps, loads
-from typing import Any, List, Tuple
+from typing import Any, List, Optional, Tuple
 from string import Template
 from datetime import datetime
 from werkzeug.datastructures import ImmutableMultiDict
 
 # Here put local imports.
 from .models import Experiment, Result
+from .analysis import METRICS_MAPPER
 from .experiment_config import StatusCode
 from .agents import ResultExplainerAssistant
+from .manual_md_pack import build_manual_md_package
 from auth.models import User
 from auth.views import (
     unauth_handler as unauth_handler_in_auth, 
@@ -53,6 +57,7 @@ from config import (
     SLURM_DEPLOY_SCRIPT_FILENAME, 
     SLURM_DEPLOY_SCRIPT, 
     MAX_MUTANT_COUNT,
+    MANUAL_MD_DEPLOY_TIMEOUT,
 
     # PLHD_RESULT_IMG_PATHS,
     # PLHD_RESULT_INTERPRETATION,
@@ -66,6 +71,106 @@ from enzy_htp.core import (
 )
 
 db = mongo.db
+
+RAW_RESULTS_FILENAME = "raw_results.csv"
+
+def _aggregate_group_status_progress(experiment: Experiment) -> Tuple[int, float]:
+    """Aggregate status/progress for group experiments from sub experiments."""
+    if (experiment.type != Experiment.GROUP_TYPE):
+        return experiment.status, experiment.progress
+
+    sub_experiments = [sub for sub in experiment.subordinate_experiments if sub]
+    if (not sub_experiments):
+        return experiment.status, experiment.progress
+
+    statuses = [sub.status for sub in sub_experiments]
+    progress_values = []
+    for sub in sub_experiments:
+        try:
+            progress_values.append(float(sub.progress))
+        except (TypeError, ValueError):
+            progress_values.append(0.0)
+    progress = sum(progress_values) / len(progress_values) if progress_values else 0.0
+
+    if all(status == StatusCode.EXIT_OK for status in statuses):
+        status = StatusCode.EXIT_OK
+    elif any(status in StatusCode.error_including_pause_statuses for status in statuses):
+        status = StatusCode.EXIT_WITH_ERROR
+    elif any(status in StatusCode.queued_status for status in statuses):
+        status = StatusCode.RUNNING
+    elif all(status == StatusCode.CANCELLED for status in statuses):
+        status = StatusCode.CANCELLED
+    else:
+        status = max(statuses)
+
+    return status, progress
+
+def _format_csv_value(value: Any) -> Any:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, (dict, list)):
+        return dumps(value)
+    if (value is None):
+        return ""
+    return value
+
+def _ensure_raw_results_csv(experiment: Experiment) -> Optional[str]:
+    raw_results = Result.get_experiment_raw_results(experiment_id=experiment.id)
+    if (not raw_results):
+        return None
+    output_path = path.join(experiment.directory, RAW_RESULTS_FILENAME)
+    base_fields = [
+        "experiment_id",
+        "mutant",
+        "replica_id",
+        "pdb_filename",
+        "created_time",
+        "updated_time",
+    ]
+    metric_fields = []
+    for metric in METRICS_MAPPER.keys():
+        for result in raw_results:
+            value = result.get(metric)
+            if (value is None):
+                continue
+            if (isinstance(value, str) and value.strip() == ""):
+                continue
+            metric_fields.append(metric)
+            break
+    fieldnames = base_fields + metric_fields
+    with open(output_path, "w", newline="") as csvfile:
+        writer = DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for result in raw_results:
+            row = {field: _format_csv_value(result.get(field)) for field in fieldnames}
+            writer.writerow(row)
+    return output_path
+
+def _collect_downloadable_files(experiment: Experiment) -> dict[str, str]:
+    """Return a map of archive name to absolute path for downloadable files."""
+    file_map: dict[str, str] = {}
+
+    def add_files(base_dir: str, prefix: str = "") -> None:
+        if (not base_dir or not path.isdir(base_dir)):
+            return
+        for file_path_obj in Path(base_dir).rglob("*"):
+            if (not file_path_obj.is_file()):
+                continue
+            relative = file_path_obj.relative_to(base_dir).as_posix()
+            arcname = f"{prefix}{relative}" if prefix else relative
+            file_map[arcname] = str(file_path_obj)
+        return
+
+    if (experiment.type == Experiment.GROUP_TYPE):
+        add_files(experiment.directory)
+        for sub_experiment in experiment.subordinate_experiments:
+            if (not sub_experiment):
+                continue
+            add_files(sub_experiment.directory, prefix=f"sub_experiments/{sub_experiment.id}/")
+    else:
+        add_files(experiment.directory)
+
+    return file_map
 
 #region Experiment Response Body and Handlers.
 
@@ -101,7 +206,13 @@ class ExperimentIndexResponse():
             del exp_dict["user_id"]
             if ("chat_messages") in exp_dict.keys():
                 del exp_dict["chat_messages"]
-            exp_dict["status_text"] = StatusCode.status_text_mapper.get(exp.status)
+            if (exp.type == Experiment.GROUP_TYPE):
+                group_status, group_progress = _aggregate_group_status_progress(exp)
+                exp_dict["status"] = group_status
+                exp_dict["progress"] = group_progress
+                exp_dict["status_text"] = StatusCode.status_text_mapper.get(group_status)
+            else:
+                exp_dict["status_text"] = StatusCode.status_text_mapper.get(exp.status)
             self.experiments.append(exp_dict)
             continue
 
@@ -416,15 +527,36 @@ class ExperimentApi(Resource):
         replica_id = request.form.get("replica_id", 0)
         trajectory_file = request.files.get("trajectory", None)
         topology_file = request.files.get("topology", None)
-
-        is_mutant_constructed, mutant_pdb_filepath, make_mutant_message = experiment.make_mutant_pdb_file(mutant_name=mutant_name)
+        store_only = request.args.get("store_only", "").strip().lower() in ("1", "true", "yes")
 
         if (mutant_name is None or trajectory_file is None or topology_file is None):
             response_info = ExperimentBehaviourResponseInfo(experiment, user,
                 is_successful=False, 
                 message=f"'mutant' string, 'replica_id' code, 'trajectory' file and 'topology' file are all required.")
             return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
-        elif (not is_mutant_constructed):
+
+        safe_mutant_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", mutant_name)
+        safe_replica_id = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(replica_id))
+        traj_dir = path.join(experiment.directory, "trajectories", safe_mutant_name, f"replica_{safe_replica_id}")
+        fs.safe_mkdir(traj_dir)
+        trajectory_save_path = path.join(traj_dir, trajectory_file.filename)
+        topology_save_path = path.join(traj_dir, topology_file.filename)
+        trajectory_file.save(trajectory_save_path)
+        topology_file.save(topology_save_path)
+        trajectory_file.stream.seek(0)
+        topology_file.stream.seek(0)
+
+        if (store_only):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                message="Trajectory and topology files are stored.",
+                is_successful=True,
+            )
+            return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
+
+        is_mutant_constructed, mutant_pdb_filepath, make_mutant_message = experiment.make_mutant_pdb_file(mutant_name=mutant_name)
+        if (not is_mutant_constructed):
             response_info = ExperimentBehaviourResponseInfo(experiment, user,
                 is_successful=False, 
                 message=make_mutant_message)
@@ -652,9 +784,10 @@ class ResultApi(Resource):
             is_valid, status, experiment.result_interpretation = result_explainer.ask_gpt()
             experiment.update_attributes({"result_interpretation": experiment.result_interpretation})
         
+        _ensure_raw_results_csv(experiment)
         downloadable_files_dict = dict()
-        for file in experiment.downloadable_files:
-            downloadable_files_dict[file] = fs.get_file_ext(file)
+        for arcname in _collect_downloadable_files(experiment).keys():
+            downloadable_files_dict[arcname] = fs.get_file_ext(arcname)
 
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
@@ -706,10 +839,12 @@ class DownloadableApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
+        _ensure_raw_results_csv(experiment)
         deploy_pack_io = BytesIO()
+        file_map = _collect_downloadable_files(experiment)
         with ZipFile(deploy_pack_io, "w") as deploy_pack_zip:
-            for filepath in experiment.downloadable_files:
-                deploy_pack_zip.write(filename=path.join(experiment.directory, filepath), arcname=filepath, compress_type=ZIP_DEFLATED)   # Add PDB file into zip.
+            for arcname, abs_path in file_map.items():
+                deploy_pack_zip.write(filename=abs_path, arcname=arcname, compress_type=ZIP_DEFLATED)
         
         deploy_pack_io.seek(0)
         zipfile_prefix = re.sub(r'[\\/:"*?<>|]', "", experiment.name)
@@ -734,12 +869,57 @@ class DownloadableFileApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        file_abs_path = path.join(experiment.directory, filepath)
-        if (path.isfile(file_abs_path)):
+        file_map = _collect_downloadable_files(experiment)
+        file_abs_path = file_map.get(filepath)
+        if (file_abs_path and path.isfile(file_abs_path)):
             return send_file(file_abs_path, mimetype="application/octet-stream", as_attachment=True, download_name=path.basename(filepath))
+        response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False)
+        return Response(response=response_info.serialize(), status=204, mimetype=JSONIFY_MIMETYPE)
+
+class PdbFilesApi(Resource):
+    """Route: `/<experiment_id>/pdb_files`"""
+
+    @login_required
+    def get(self, experiment_id: str):
+        """List available PDB files for visualization.
+
+        Args:
+            experiment_id (str): The identifier of an experiment instance.
+        """
+        user: User = current_user
+        experiment = Experiment.get(experiment_id)
+
+        if (experiment is None):
+            return notfound_response(user, experiment_id)
+        if (experiment.user_id != user.id):
+            return forbidden_response(user, experiment)
+
+        pdb_files = list()
+        if (experiment.type == experiment.GROUP_TYPE):
+            for sub_exp in experiment.subordinate_experiments:
+                if (sub_exp is None or not sub_exp.pdb_filename):
+                    continue
+                pdb_files.append({
+                    "experiment_id": sub_exp.id,
+                    "name": sub_exp.name,
+                    "pdb_filename": sub_exp.pdb_filename,
+                })
         else:
-            response_info = ExperimentBehaviourResponseInfo(experiment=experiment, user=user, is_successful=False)
-            return Response(response=response_info.serialize(), status=204, mimetype=JSONIFY_MIMETYPE)
+            if (experiment.pdb_filename):
+                pdb_files.append({
+                    "experiment_id": experiment.id,
+                    "name": experiment.name,
+                    "pdb_filename": experiment.pdb_filename,
+                })
+
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=experiment,
+            user=user,
+            is_successful=True,
+            message="PDB file list fetched.",
+            pdb_files=pdb_files,
+        )
+        return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
 class PdbFileApi(Resource):
     """Route: `/<experiment_id>/pdb_file`"""
@@ -755,17 +935,46 @@ class PdbFileApi(Resource):
         # user: User = current_user
         experiment = Experiment.get(experiment_id)
 
+        if (experiment is None):
+            return Response(
+                response=dumps({
+                    "is_successful": False,
+                    "message": f"Unable to find the experiment with id '{experiment_id}'.",
+                }),
+                status=404,
+                mimetype=JSONIFY_MIMETYPE,
+            )
+
         # if (experiment is None):
         #     return notfound_response(user, experiment_id)
         # if (experiment.user_id != user.id):
         #     return forbidden_response(user, experiment)    
-        if not experiment.has_pdb_file:
+        target_experiment = experiment
+        if (experiment.type == Experiment.GROUP_TYPE):
+            requested_sub_id = request.args.get("sub_experiment_id")
+            if (requested_sub_id):
+                requested_sub = Experiment.get(requested_sub_id)
+                if (requested_sub and requested_sub_id in experiment.sub_experiment_ids and requested_sub.has_pdb_file):
+                    target_experiment = requested_sub
+                else:
+                    target_experiment = None
+            else:
+                sub_experiments = [
+                    sub_exp for sub_exp in experiment.subordinate_experiments
+                    if (sub_exp and sub_exp.has_pdb_file)
+                ]
+                if (sub_experiments):
+                    sub_experiments.sort(key=lambda sub_exp: sub_exp.pdb_filename or "")
+                    target_experiment = sub_experiments[0]
+                else:
+                    target_experiment = None
+
+        if (not target_experiment or not target_experiment.has_pdb_file):
             return no_pdb_response(User.get(experiment.user_id), experiment)
-        else:
-            return send_file(path_or_file=experiment.pdb_filepath, mimetype="text/plain",
-                as_attachment=False, 
-                download_name=experiment.pdb_filename, 
-                attachment_filename=experiment.pdb_filename)
+        return send_file(path_or_file=target_experiment.pdb_filepath, mimetype="text/plain",
+            as_attachment=False, 
+            download_name=target_experiment.pdb_filename, 
+            attachment_filename=target_experiment.pdb_filename)
 
     @login_required
     def post(self, experiment_id: str):
@@ -1042,6 +1251,8 @@ class AssistantsApi(Resource):
             is_successful=True,
             configuration_stages=experiment.configuration_stages,
             assistant_messages=assistant_messages,
+            require_pdb_file=experiment.requires_pdb_upload,
+            confirm_button=experiment.summon_next_agent,
         )
         return Response(response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
@@ -1092,7 +1303,7 @@ class AssistantsApi(Resource):
             is_successful=is_openai_key_valid, 
             message=f"Received response from OpenAI. Updates to the experiment configuration may be triggered.",
             response_content=processed_response_content,
-            require_pdb_file=experiment.summon_upload_pdb,
+            require_pdb_file=experiment.requires_pdb_upload,
             confirm_button=experiment.summon_next_agent,
             tool_call_result=current_assistant.latest_tool_call_result,
             # configuration_updated=configuration_updated,
@@ -1169,7 +1380,7 @@ class AssistantsApi(Resource):
                 completion_message=completion_message,
                 message=f"{message} Received response from OpenAI.",
                 response_content=response_content,
-                require_pdb_file=experiment.summon_upload_pdb,
+                require_pdb_file=experiment.requires_pdb_upload,
                 confirm_button=experiment.summon_next_agent,
                 # configuration_updated=configuration_updated,
                 # updated_attributes=(updated_attrs+updated_attributes_from_response),
@@ -1181,7 +1392,7 @@ class AssistantsApi(Resource):
                 experiment, user,
                 is_successful=False,
                 message=message,
-                require_pdb_file=experiment.summon_upload_pdb,
+                require_pdb_file=experiment.requires_pdb_upload,
                 confirm_button=experiment.summon_next_agent,
                 configuration_stages=experiment.configuration_stages,
             )
@@ -1435,6 +1646,13 @@ class SlurmDeployApi(Resource):
         Args:
             experiment_id (str): The identifier of an experiment instance.
         """
+        try:
+            import uwsgi
+            if MANUAL_MD_DEPLOY_TIMEOUT > 0:
+                uwsgi.set_user_harakiri(int(MANUAL_MD_DEPLOY_TIMEOUT))
+        except Exception:
+            pass
+
         user: User = current_user
         experiment = Experiment.get(experiment_id)
 
@@ -1443,21 +1661,23 @@ class SlurmDeployApi(Resource):
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
         
-        # is_successful, mutant_count, message = experiment.make_mutants_pdb_files()
-        
-        deploy_script = Template(SLURM_DEPLOY_SCRIPT).safe_substitute({
-            "pdb_filename": experiment.pdb_filename
-        })
+        try:
+            deploy_pack_io, zip_name = build_manual_md_package(experiment)
+        except Exception as exc:
+            _LOGGER.error(f"Failed to build manual MD package: {exc}")
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                is_successful=False,
+                message="Failed to build manual MD package.",
+            )
+            return Response(response=response_info.serialize(), status=500, mimetype=JSONIFY_MIMETYPE)
 
-        deploy_pack_io = BytesIO()
-        deploy_pack_zip = ZipFile(deploy_pack_io, "w")
-
-        deploy_pack_zip.writestr(SLURM_DEPLOY_SCRIPT_FILENAME, deploy_script.encode("utf-8"), compress_type=ZIP_DEFLATED)       # Add bash into zip.
-        deploy_pack_zip.write(experiment.pdb_filepath, arcname=experiment.pdb_filename, compress_type=ZIP_DEFLATED)   # Add PDB file into zip.
-        
-        deploy_pack_zip.close()
-        deploy_pack_io.seek(0)
-        zipfile_prefix = re.sub(r'[\\/:"*?<>|]', '', experiment.name)
-        return send_file(deploy_pack_io, mimetype="application/zip", as_attachment=True, download_name=f"{zipfile_prefix} Deploy Pack.zip")
+        return send_file(
+            deploy_pack_io,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=zip_name,
+        )
 
 #endregion

@@ -190,6 +190,9 @@ Format:
 15. Input: "For the protein with the LIG substrate, mutate residues near the binding pocket (defined as within 5Å of LIG) to smaller residues, give all combinatorial mutations while the maximum number of mutations is 3." 
    **call function `summon_next_agent`**
    {"output" : "a:3[byres resn LIG around 5:smaller]"}
+16. Input: "N/A"
+    **call function `summon_next_agent`**
+    {"output" : "WT"}
 
 ## Default Assumptions  (apply **only** when the user omits a specific detail)
 
@@ -209,3 +212,8 @@ If, **after applying the Default Assumptions above**, essential information is s
 "Incomplete or ambiguous input found in mutation description! {describe the details of the incomplete or ambiguous input}"
 
 Please follow the above guidelines to assist users in generating their EnzyHTP mutation pattern accurately.
+
+## Handling non-mutation requests
+If the user input does not pertain to mutation planning (for example, input says "N/A"), return:
+{"output" : "WT"}
+

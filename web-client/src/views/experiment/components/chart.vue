@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, watch, h, onMounted } from "vue";
+import { ref, nextTick, watch, h, onMounted, computed } from "vue";
 import { getAssistants ,get_pdb_file} from "@/api/experiment";
 import { useRoute } from "vue-router";
 import { SendOutlined } from "@ant-design/icons-vue";
@@ -28,10 +28,10 @@ const emit = defineEmits(["send"]);
 
 // 预设的对话选项
 const defaultPrompts = [
-  "placeholder",
-  "placeholder",
-  "placeholder",
-  "placeholder",
+  "Help me find mutations that make the active site cavity larger.",
+  "I am studying a bidomain enzyme. This enzyme showed cold-adaption behavior, that is, the catalytic activity reduces much slower in lower temperatures. We found that just by changing the linker, the cold-adaption changes, can you help me perform some modeling to find linkers that provide stronger cold-adaption?",
+  "I'm building a machine-learning model to predict protein melting temperatures (Tm) and would like to incorporate MD-derived properties as features—could you help with that?",
+  "How do mutations influence the binding of substrate in Kemp elimiase?",
 ];
 
 const messageType = new Map([
@@ -72,8 +72,13 @@ const isTyping = ref(false);
 const currentResponse = ref("");
 const disabled = ref(true);
 const showGUI = ref(false);
-
 const toolData = ref({});
+const displayMessages = computed(() => {
+  if (props.preivew) {
+    return messages.value.filter(item => item.role);
+  }
+  return messages.value;
+});
 
 // 发送消息
 const sendMessage = async text_value => {
@@ -188,6 +193,7 @@ watch(
   }
 );
 
+
 onMounted(() => { });
 </script>
 
@@ -198,12 +204,11 @@ onMounted(() => { });
       <div class="tips" v-if="!props.defaultMessage.length">
         <div class="sub-title">Set up experiment with AI</div>
         <p class="description">
-          Use natural language or HTP to describe what mutation you want to
-          apply to the wild type. You can apply multiple mutants to the wild
-          type.
+          Use natural language to describe your enzyme engineering ideas to the AI.
+          The AI will clarify your intentions and performs necessary computational tasks.
         </p>
       </div>
-      <div v-for="(msg, index) in messages" :key="index" :class="['message', msg.role]">
+      <div v-for="(msg, index) in displayMessages" :key="index" :class="['message', msg.role]">
         <div v-if="msg.role">
           <a-flex align="center">
             <img :src="msg.role == 'user' ? user : assistant" alt="" srcset="" />
@@ -212,7 +217,8 @@ onMounted(() => { });
           <div class="message-content" v-html="formattedText(msg.text_value)"></div>
         </div>
         <!--  -->
-        <toolCallResult v-else :data="msg.data" :experiment_id="$route.query.id" @confirmFn="confirmFn" :key="index" />
+        <toolCallResult v-else-if="!props.preivew" :data="msg.data" :experiment_id="$route.query.id"
+          @confirmFn="confirmFn" :key="index" />
         <!-- v-if="messages.length > 1 && !props.preivew" -->
       </div>
       <!-- AI 输入动画 -->
@@ -248,11 +254,15 @@ onMounted(() => { });
 
       <a-flex align="center" justify="center">
         <span class="word-count">{{ inputMessage.length }}/200</span>
-        <a-button type="text" :icon="h('img', { src: Cube, class: 'icon' })" class="show-button button"
-          @click="showGUI = true" />
+        <a-tooltip title="show 3D structure">
+          <a-button type="text" :icon="h('img', { src: Cube, class: 'icon' })" class="show-button button"
+            @click="showGUI = true" />
+        </a-tooltip>
           <!-- :disabled="!toolData.require_pdb_file" -->
-        <a-button type="primary" @click="sendMessage(inputMessage)" :loading="loading" :disabled="disabled"
-          :icon="h(SendOutlined)" class="send-button button" />
+        <a-tooltip title="send">
+          <a-button type="primary" @click="sendMessage(inputMessage)" :loading="loading" :disabled="disabled"
+            :icon="h(SendOutlined)" class="send-button button" />
+        </a-tooltip>
       </a-flex>
     </a-flex>
   </div>
@@ -333,6 +343,8 @@ onMounted(() => { });
     border-radius: 5px 10px 10px 5px;
     cursor: pointer;
     transition: background-color 0.2s;
+    overflow: hidden;
+    word-break: break-word;
   }
 }
 

@@ -56,3 +56,5 @@ Once logged in, create a token in the `Token` tab and use the following API endp
 
 -   `POST /api/experiment/slurm/token`: Update the `token` and `refresh_token`.
 -   `PUT /api/experiment/slurm/token`: Refresh the token.
+
+The backend automatically refreshes the SLURM token daily via a scheduled task. Administrators typically only need to seed the initial `token` and `refresh_token` once using the POST endpoint.

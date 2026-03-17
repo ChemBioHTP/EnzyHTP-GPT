@@ -49,7 +49,11 @@ export const pdb_fileUpload = (experiment_id, data) => {
 };
 
 export const get_pdb_file = (experiment_id) => { 
-  return axios.get(`/api/experiment/${experiment_id}/pdb_file`);
+  return axios.get(`/api/experiment/${experiment_id}/pdb_file`, {}, { responseType: "blob" });
+};
+
+export const get_pdb_files = (experiment_id, data) => {
+  return axios.get(`/api/experiment/${experiment_id}/pdb_files`, data);
 };
 
 export const pdb_fileValidation = (data) => { 
@@ -64,10 +68,18 @@ export const slurm = (experiment_id,data) => {
   return axios.post(`/api/experiment/${experiment_id}/slurm`, data);
 };
 
-export const deploy = (experiment_id,data) => { 
-  return axios.get(`/api/experiment/${experiment_id}/deploy`, data);
+export const deploy = (experiment_id, params = {}, config = {}) => { 
+  return axios.get(
+    `/api/experiment/${experiment_id}/deploy`,
+    params,
+    { responseType: "blob", ...config }
+  );
 };
 
-export const downloadable = (experiment_id) => { 
-  return axios.get(`/api/experiment/${experiment_id}/downloadable`);
+export const downloadable = (experiment_id, params = {}, config = {}) => { 
+  return axios.get(
+    `/api/experiment/${experiment_id}/downloadable`,
+    params,
+    { responseType: "blob", ...config }
+  );
 };

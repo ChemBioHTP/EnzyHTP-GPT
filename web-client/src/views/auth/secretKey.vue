@@ -6,7 +6,15 @@
         <div class="title">Provide Secret API Key</div>
         <div class="tip">
           <span>Copy and paste your API key from OpenAI.</span>
-          <span class="theme-color">Learn more</span>
+          <div class="tip-warning">NOTE: The OpenAI account for this key must have available funds. (>$1)</div>
+          <a
+            class="theme-color"
+            href="https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Learn more
+          </a>
         </div>
       </div>
 
@@ -54,6 +62,7 @@
 </template>
 <script setup>
 import { reactive, ref } from "vue";
+import { message as antdMessage } from "ant-design-vue";
 import LoginLeft from "./components/LoginLeft.vue";
 import { logout ,updateProfile} from "@/api/auth";
 import Foot from "@/components/Foot.vue";
@@ -79,17 +88,22 @@ const onFinish = () => {
   // TODO: validate API key
   if (loading.value) return;
   loading.value = true;
-  updateProfile(form).then(res => {
-    loading.value = false;
-    if (res.is_successful === true && res.is_openai_secret_key_valid) {
-      message.success(res.message);
-      form.openai_secret_key = "";
-      model.openUpdateOpenAIKey = false;
-      router.push("/dashboard")
-      return;
-    }
-    message.error(res.message);
-  });
+  updateProfile(form)
+    .then(res => {
+      loading.value = false;
+      if (res.is_successful === true && res.is_openai_secret_key_valid) {
+        antdMessage.success(res.message);
+        form.openai_secret_key = "";
+        router.push("/dashboard");
+        return;
+      }
+      const errMsg = res?.message || res?.openai_response_description || "Invalid OpenAI Secret Key.";
+      antdMessage.error(errMsg);
+    })
+    .catch(() => {
+      loading.value = false;
+      antdMessage.error("Network or server error, please try again.");
+    });
 };
 
 const signOut = async () => {
@@ -104,5 +118,8 @@ const signOut = async () => {
 .sign-out-button {
   background-color: #393939;
   color: #fff;
+}
+.tip-warning {
+  color: #2534d9;
 }
 </style>
