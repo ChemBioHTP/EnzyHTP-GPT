@@ -1,1 +1,0 @@
-export { IconLeftHide } from "./IconLeftHide";

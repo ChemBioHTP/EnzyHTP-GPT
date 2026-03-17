@@ -22,7 +22,7 @@ from json import loads, dumps
 from plum import dispatch
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 from pathlib import Path
-from pandas import DataFrame
+from pandas import DataFrame, to_numeric
 from os import path
 import os
 import uuid
@@ -131,7 +131,7 @@ class Experiment():
         self.current_thread_id = kwargs.get("current_thread_id", str())
         self.chat_messages: List[Dict[str, str]] = kwargs.get("chat_messages", list())
         self.summon_next_agent = kwargs.get("summon_next_agent", False)
-        self.summon_upload_pdb = kwargs.get("summon_upload_box", False)
+        self.summon_upload_pdb = kwargs.get("summon_upload_pdb", kwargs.get("summon_upload_box", False))
 
         self.group_experiment_id = kwargs.get("group_experiment_id", None)
         self.sub_experiment_ids = kwargs.get("sub_experiment_ids", list() if self.type == self.GROUP_TYPE else None)
@@ -338,6 +338,10 @@ class Experiment():
             return False
 
     @property
+    def requires_pdb_upload(self) -> bool:
+        return self.summon_upload_pdb and not self.has_pdb_file
+
+    @property
     def directory(self) -> str:
         """The directory where the file of this experiment is saved."""
         directory_path = path.join(EXPERIMENT_FILE_DIRECTORY, self.id)
@@ -521,18 +525,10 @@ class Experiment():
         """
         files = Path(self.directory).rglob("*")
         file_paths = list()
-        # file_dict = {
-        #     "Fixed wild type": ".pdb",
-        #     "Parameter files": ".in",
-        #     "Constraint files": ".rs",
-        # }
         for file_path_obj in files:
-            file_path = (file_path_obj.relative_to(self.directory)).as_posix()
-            if (path.isdir(file_path)):
-                pass
-            else:
-                file_paths.append(file_path)
-            continue
+            if (not file_path_obj.is_file()):
+                continue
+            file_paths.append((file_path_obj.relative_to(self.directory)).as_posix())
         return file_paths
 
     #endregion
@@ -634,6 +630,19 @@ class Experiment():
         Args:
             result_record_dict (dict): A dict containing the result information of one mutant.
         """
+        for metric in METRICS_MAPPER.keys():
+            if metric not in result_record:
+                continue
+            value = result_record.get(metric)
+            if isinstance(value, str):
+                stripped = value.strip()
+                if stripped == "" or stripped.lower() == "none":
+                    result_record[metric] = None
+                else:
+                    try:
+                        result_record[metric] = float(stripped)
+                    except ValueError:
+                        result_record[metric] = None
         result_record.update({
             "experiment_id": self.id,
             "pdb_filename": self.pdb_filename,
@@ -1260,7 +1269,9 @@ class Result():
         identifier_cols = ["mutant", "pdb_filename"]
         keep_cols = identifier_cols + metrics_cols
         result_df = result_df[keep_cols]
-
+        for metric in metrics_cols:
+            result_df[metric] = to_numeric(result_df[metric], errors="coerce")
+        result_df = result_df.dropna(axis=1, how="all")
         # Group by mutant and pdb_filename, then compute mean (ignores NaNs)
         grouped_df = (
             result_df
@@ -1271,6 +1282,38 @@ class Result():
 
         # Convert to list of dictionaries
         return grouped_df.to_dict(orient="records")
+
+    @classmethod
+    def get_experiment_raw_results(cls, experiment_id: str) -> List[Dict[str, Any]]:
+        """Get a list of raw results of an Experiment by `experiment_id`.
+
+        Args:
+            experiment_id (str): The ID of the experiment.
+
+        Returns:
+            raw_results (List[Dict[str, Any]]): A list of raw result records.
+        """
+        result_list = []
+        experiment = Experiment.get(experiment_id)
+
+        if (not experiment):
+            return []
+
+        if (experiment.type == Experiment.GROUP_TYPE):
+            for sub_experiment in experiment.subordinate_experiments:
+                results_cursor = db.results.find({"experiment_id": sub_experiment.id})
+                result_list.extend(result for result in results_cursor)
+        else:
+            results_cursor = db.results.find({"experiment_id": experiment_id})
+            result_list = [result for result in results_cursor]
+
+        raw_results = []
+        for result in result_list:
+            if (not isinstance(result, dict)):
+                continue
+            result.pop("_id", None)
+            raw_results.append(result)
+        return raw_results
 
     def insert_or_update(self):
         """Insert or Update the current Result instance to the database."""

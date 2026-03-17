@@ -1,1 +1,0 @@
-export { InformationFilled } from "./InformationFilled";

@@ -1,1 +1,0 @@
-export { SearchDefault } from "./SearchDefault";

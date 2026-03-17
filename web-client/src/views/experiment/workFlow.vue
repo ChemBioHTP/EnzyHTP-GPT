@@ -124,15 +124,18 @@ onMounted(() => {
                     <VerticalStepper :steps="steps" v-model="currentStep" @change="handleStep" class="steps mt30" />
                     <div class="workflow-content mt30">
                         <div class="tips">
-                            <div class="sub-title">Review your workflow</div>
+                            <div class="sub-title">Review your simulation plan</div>
                             <p class="description">
-                                Use natural language or HTP to describe what mutation you want
-                                to apply to the wild type. You can apply multiple mutants to the
-                                wild type.
+                                This is the simulation plan configured by MutexaGPT. Please review it before running the experiment.
+                                You can also change some configurations manually on this page.
                             </p>
                         </div>
                         <!--  -->
-                        <WorkFlowConfig :metrics="experiment?.metrics" />
+                        <WorkFlowConfig
+                          :metrics="experiment?.metrics"
+                          :constraints="experiment?.constraints"
+                          :md-length="experiment?.md_length"
+                        />
                     </div>
                     <div class="list">
                         <MutationGenerrated :mutations="model.mutations" />

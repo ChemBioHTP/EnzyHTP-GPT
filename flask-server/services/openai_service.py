@@ -11,6 +11,7 @@ OpenAI (ChatGPT) correspondence.
 
 # Here put the import lib.
 from __future__ import annotations
+import time
 from typing import Any, Callable, Tuple, Dict, List
 from typing_extensions import override
 
@@ -192,6 +193,15 @@ COMPLETED_STATUS = "completed"
 PENDING_STATUS_LIST = ["queued", "in_progress", "requires_action", "cancelling"]
 ACTION_REQUIRED_STATUS = "requires_action"
 
+
+class AssistantRunError(RuntimeError):
+    """Represents an Assistant run that ended without a usable reply."""
+
+    def __init__(self, code: str, message: str, status: str = None):
+        super().__init__(message)
+        self.code = code
+        self.status = status
+
 class FunctionParameter():
     """Function Tool Parameter."""
 
@@ -302,7 +312,7 @@ class EventHandler(AssistantEventHandler):
     
     @override
     def on_timeout(self):
-        raise APITimeoutError()
+        raise APITimeoutError() # pylint: disable=no-value-for-parameter
     
     @override
     def on_text_created(self, text: Text) -> None:
@@ -631,29 +641,76 @@ class OpenAIAssistant(OpenAIChat):
             event_handler=EventHandler(self)
         ) as stream:
             stream.until_done()
-        return
+            run = getattr(stream, "current_run", None)
 
-    def __retrieve_response_content(self, thread: Thread = None):
-        """Wait for the completion of the Run instance and retrieve its response content.
-        
+        if run is None:
+            raise AssistantRunError(
+                code="run_missing",
+                message="Assistant run missing after streaming",
+                status=None,
+            )
+        if run.status not in [COMPLETED_STATUS] + PENDING_STATUS_LIST:
+            last_error = getattr(run, "last_error", None)
+            error_code = getattr(last_error, "code", None) or getattr(last_error, "type", None) or "run_failed"
+            error_message = getattr(last_error, "message", None) or f"Assistant run ended with status '{run.status}'."
+            raise AssistantRunError(code=error_code, message=error_message, status=run.status)
+
+        return run
+
+    def __retrieve_response_content(
+            self, 
+            thread: Thread = None, 
+            wait_seconds: float = 0.5,
+            num_tol: int = 3,
+        ):
+        """Block until an assistant message appears in the thread or timeout.
+
         Args:
-            thread (Thread, optional): The thread instance where the conversation to be held. Default None.
-                                    If the assistant is not in conversation_mode, the thread instance should be provided.
+            thread (Thread, optional): The thread whose messages to inspect.
+            wait_seconds (float): Max seconds to wait for assistant reply.
+            num_tol (float): number of trials for getting assistant reply.
 
         Returns:
-            response_content (str): The response content from GPT.
+            str: The text content of the first assistant message (most-recent).
+
+        Raises:
+            RuntimeError: If no assistant message is found within `timeout`.
         """
         if (thread == None and self.conversation_mode):
             thread = self.thread
         elif (thread == None and not self.conversation_mode):
-            raise Exception("The Thread instance should be provided if the assistant is not in conversation_mode.")
+            raise ValueError("The Thread instance should be provided if the assistant is not in conversation_mode.")
 
-        # Update the messages of the service after the prompt is successfully processed and parsed.
-        retrived_messages = self.client.beta.threads.messages.list(
-            thread_id=thread.id
+        msgs = self.client.beta.threads.messages.list(
+            thread_id=thread.id,
+            order="desc"
+        ).data
+
+        if msgs and msgs[0].role == "assistant":
+            return msgs[0].content[0].text.value
+
+        for i in range(num_tol):
+            # wait for the msg to sync
+            time.sleep(wait_seconds)
+
+            msgs = self.client.beta.threads.messages.list(
+                thread_id=thread.id,
+                order="desc"
+            ).data
+
+            if msgs and msgs[0].role == "assistant":
+                return msgs[0].content[0].text.value
+
+        # raise if the last message is not from assistant
+        latest_role = msgs[0].role if msgs else "none"
+        raise AssistantRunError(
+            code="no_reply",
+            message=(
+                f"No assistant reply received within {wait_seconds:.1f}s; "
+                f"latest message role: {latest_role}"
+            ),
+            status="no_reply",
         )
-        response_content = retrived_messages.data[0].content[0].text.value
-        return response_content
 
     def ask_gpt(self, prompt: str) -> Tuple[bool, int, str]:
         """Sends a prompt to GPT assistant and retrieves the response.
@@ -693,6 +750,36 @@ class OpenAIAssistant(OpenAIChat):
             
             # Successfully received a response from OpenAI.
             return (True, 200, response_content)
+        except AssistantRunError as e:
+            error_code = getattr(e, "code", None) or "run_failed"
+            is_valid = False
+            status_code = 500
+            user_message = str(e)
+
+            if error_code in ("insufficient_quota", "billing_hard_limit_exceeded"):
+                is_valid = True
+                status_code = 429
+                user_message = "OpenAI balance appears exhausted. Please check billing or try again later."
+            elif error_code in ("rate_limit_exceeded", "rate_limit"):
+                is_valid = True
+                status_code = 429
+                user_message = f"OpenAI: {user_message}"
+            elif error_code in ("authentication_error", "invalid_api_key", "permission_denied"):
+                is_valid = False
+                status_code = 401
+                user_message = "Authentication Failed: Invalid OpenAI Secret Key."
+            elif error_code in ("server_error", "internal_server_error"):
+                is_valid = False
+                status_code = 500
+                user_message = "OpenAI Internal Server Error. Unable to verify."
+            elif error_code == "no_reply":
+                is_valid = False
+                status_code = 504
+                user_message = "OpenAI Assistant did not return a reply. Please try again shortly."
+            else:
+                user_message = f"OpenAI Assistant run failed: {user_message}"
+
+            return (is_valid, status_code, user_message)
         except RateLimitError as e:
             return (True, 429, "Rate Limit Error: You exceeded your current OpenAI API quota or Rate Limit, please check your plan and billing details.")
         except BadRequestError as e:

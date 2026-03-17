@@ -1,1 +1,0 @@
-export { DeprecatedText } from "./DeprecatedText";

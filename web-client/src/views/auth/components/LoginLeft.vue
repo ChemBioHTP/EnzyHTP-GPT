@@ -6,8 +6,8 @@
                 <div class="title">MutexaGPT</div>
             </a-flex>
             <div class="description">
-                Access to molecular-level insights of your experiment with ease by an AI-based virtual assistant for
-                Molecular Dynamics and more
+                Convert your scientific intuition into new enzyme designs and discoveries 
+                with the power of AI and High-throughput Molecular Simulations
             </div>
             <div class="developed-by">Developed by Yang Lab at Vanderbilt University</div>
         </div>

@@ -13,6 +13,7 @@ from flask import Response, jsonify, request, redirect
 from flask_jwt_extended import create_access_token
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
+from typing import Optional
 from uuid import uuid4
 from requests import get, post
 from json import dumps, loads
@@ -31,6 +32,41 @@ from .models import User, OAuthUser, VerificationCode
 from context import mongo, login_manager
 
 db = mongo.db
+
+def _get_client_ip() -> str:
+    forwarded_for = request.headers.get("X-Forwarded-For", "")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    return request.remote_addr or "unknown"
+
+
+def _log_login_event(
+    *,
+    user_id: Optional[str],
+    email: Optional[str],
+    username: Optional[str],
+    method: str,
+    is_successful: bool,
+    message: str = str(),
+    oauth_vendor: str = str(),
+) -> None:
+    try:
+        record = {
+            "user_id": user_id,
+            "email": email,
+            "username": username,
+            "method": method,
+            "oauth_vendor": oauth_vendor,
+            "is_successful": is_successful,
+            "message": message,
+            "ip": _get_client_ip(),
+            "user_agent": request.headers.get("User-Agent", "unknown"),
+            "created_time": datetime.now(),
+        }
+        db.login_logs.insert_one(record)
+    except Exception:
+        # Avoid breaking auth flow on log failures.
+        pass
 
 @auth.route("/", methods=["GET", "POST", "PUT", "DELETE"])
 def index() -> Response:
@@ -235,6 +271,14 @@ def login() -> Response:
     remember = bool(request.form.get("remember", False))    # Whether to remember the user(s) after the browser(s) is closed. Defaults to `False`.
     if user and user.verify_password(request.form.get("password", str())):
         is_login = login_user(user=user, remember=remember)
+        _log_login_event(
+            user_id=user.id,
+            email=user.email,
+            username=user.username,
+            method="password",
+            is_successful=is_login,
+            message=f"The user `{user.username}` logged in.",
+        )
         response_info = AuthResponseInfo(
             id=user.id,
             email=user.email,
@@ -244,6 +288,14 @@ def login() -> Response:
             verify_openai_secret_key=True)
         return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
     elif (not user):
+        _log_login_event(
+            user_id=None,
+            email=email,
+            username=None,
+            method="password",
+            is_successful=False,
+            message=f"The user `{email}` failed to log in because user does not exist.",
+        )
         response_info = AuthResponseInfo(
             id=None,
             email=email,
@@ -251,6 +303,14 @@ def login() -> Response:
             is_authenticated=False)
         return Response(response=response_info.serialize(), status=404, mimetype=JSONIFY_MIMETYPE)
     else:
+        _log_login_event(
+            user_id=user.id if user else None,
+            email=email,
+            username=user.username if user else None,
+            method="password",
+            is_successful=False,
+            message=f"The user `{email}` failed to log in because of a password mismatch.",
+        )
         response_info = AuthResponseInfo(
             id=None,
             email=email,
@@ -297,19 +357,30 @@ def profile_update() -> Response:
     updated_profile_fields = list()
     nonexistent_profile_fields = list()
     blocked_profile_fields = list()
-    verify_openai_secret_key = False
+    failed_profile_fields = list()
+    openai_validation_result = None
 
     for field_name, field_value in request.form.items():
         if (hasattr(user, field_name)):
             if field_name in editable_profile_fields:
                 if (field_value):
+                    if (field_name == "openai_secret_key"):
+                        openai_provided = True
+                        previous_key = user.openai_secret_key
+                        user.openai_secret_key = field_value
+                        is_valid, openai_status_code, openai_response_description = user.get_openai_secret_key_status()
+                        user.openai_secret_key = previous_key
+                        openai_validation_result = (is_valid, openai_status_code, openai_response_description)
+
+                        if (not is_valid):
+                            failed_profile_fields.append(field_name)
+                            continue
+
                     setattr(user, field_name, field_value)
                     db.users.update_one({"id": user.id}, {"$set": {field_name: field_value}})
                     # db.session.commit()
                     updated_profile_fields.append(field_name)
 
-                if (field_name == "openai_secret_key"):
-                    verify_openai_secret_key = True
                 continue
             else:
                 blocked_profile_fields.append(field_name)
@@ -323,9 +394,11 @@ def profile_update() -> Response:
         message += f"Uneditable field(s): {', '.join(blocked_profile_fields)}. "
     if (nonexistent_profile_fields):
         message += f"Nonexistent field(s): {', '.join(nonexistent_profile_fields)}. "
+    if (failed_profile_fields):
+        message += f"Failed to update field(s): {', '.join(failed_profile_fields)}. "
 
 
-    if (not (updated_profile_fields or blocked_profile_fields or nonexistent_profile_fields)):
+    if (not (updated_profile_fields or blocked_profile_fields or nonexistent_profile_fields or failed_profile_fields)):
         response_info = AuthResponseInfo(
             id=user.id,
             email=user.email,
@@ -335,17 +408,35 @@ def profile_update() -> Response:
             is_authenticated=True
         )
         return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
-    if (updated_profile_fields):
+    if (updated_profile_fields or failed_profile_fields):
+        extra_fields = dict()
+        if (openai_validation_result):
+            is_valid, openai_status_code, openai_response_description = openai_validation_result
+            extra_fields.update({
+                "is_openai_secret_key_valid": is_valid,
+                "openai_status_code": openai_status_code,
+                "openai_response_description": openai_response_description,
+            })
+            if (is_valid):
+                message = f"{message}OpenAI Secret Key validated."
+            else:
+                message = f"{message}OpenAI Secret Key not updated: {openai_response_description}."
+
         response_info = AuthResponseInfo(
             id=user.id,
             email=user.email,
             username=user.username,
             is_successful=True,
-            message=message,
+            message=message.strip(),
             is_authenticated=True,
-            verify_openai_secret_key=verify_openai_secret_key,
+            **extra_fields,
         )
-        return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
+        response_status = 200
+
+        if (openai_validation_result and not openai_validation_result[0]):
+            response_info.is_successful = False
+            response_status = openai_validation_result[1] if openai_validation_result[1] else 400
+        return Response(response=response_info.serialize(), status=response_status, mimetype=JSONIFY_MIMETYPE)
     else:
         response_info = AuthResponseInfo(
             id=user.id,
@@ -582,6 +673,15 @@ def __perform_oauth_login(
     if (oauth_user and oauth_user.user_id): # If account exists, match.
         user = User.get(oauth_user.user_id)
         login_user(user=user, remember=remember)
+        _log_login_event(
+            user_id=user.id if user else None,
+            email=user.email if user else oauth_email,
+            username=user.username if user else None,
+            method="oauth",
+            oauth_vendor=oauth_vendor,
+            is_successful=True,
+            message=f"User `{user.username}` logged in using `{oauth_vendor}` account.",
+        )
         oauth_response_info = OAuthResponseInfo(
             id=user.id,
             email=user.email,
@@ -601,6 +701,15 @@ def __perform_oauth_login(
         # db.session.add(oauth_user)
         # db.session.commit()
         login_user(user=user, remember=remember)
+        _log_login_event(
+            user_id=user.id,
+            email=user.email,
+            username=user.username,
+            method="oauth",
+            oauth_vendor=oauth_vendor,
+            is_successful=True,
+            message=f"`New oauth account `{oauth_email}` logged in using `{oauth_vendor}` account, automatically bound to User `{user.username}`.",
+        )
         oauth_response_info = OAuthResponseInfo(
             id=user.id,
             email=user.email,
@@ -620,6 +729,15 @@ def __perform_oauth_login(
         # db.session.add(oauth_user)
         # db.session.commit()
         login_user(user=user, remember=remember)
+        _log_login_event(
+            user_id=user.id,
+            email=user.email,
+            username=username,
+            method="oauth",
+            oauth_vendor=oauth_vendor,
+            is_successful=True,
+            message=f"`New oauth account `{oauth_email}` logged in using `{oauth_vendor}` account. Create new User `{username}`.",
+        )
         oauth_response_info = OAuthResponseInfo(
             id=user.id,
             email=user.email,

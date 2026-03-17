@@ -1,1 +1,0 @@
-export { WarningAltFilled } from "./WarningAltFilled";

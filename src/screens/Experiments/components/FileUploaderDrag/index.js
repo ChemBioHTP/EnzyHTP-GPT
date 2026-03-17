@@ -1,1 +1,0 @@
-export { FileUploaderDrag } from "./FileUploaderDrag";

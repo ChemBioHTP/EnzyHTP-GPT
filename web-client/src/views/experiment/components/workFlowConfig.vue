@@ -66,10 +66,32 @@
     <a-flex justify="space-between" align="center">
       <div>
         <span class="title">Geometry constraint</span>
-        <span class="description ml50">Whole enzyme</span>
+        <span class="description ml50">{{ constraintText }}</span>
       </div>
       <img v-if="show" src="@/assets/img/eye.svg" alt="" class="icon" />
-      <img v-else src="@/assets/img/edit.svg" alt="" class="icon" />
+      <img
+        v-else
+        src="@/assets/img/edit.svg"
+        alt=""
+        class="icon"
+        @click="openConstraint = true"
+      />
+    </a-flex>
+  </div>
+  <div class="box">
+    <a-flex justify="space-between" align="center">
+      <div>
+        <span class="title">MD simulation duration</span>
+        <span class="description ml50">{{ mdLengthDisplay }}</span>
+      </div>
+      <img v-if="show" src="@/assets/img/eye.svg" alt="" class="icon" />
+      <img
+        v-else
+        src="@/assets/img/edit.svg"
+        alt=""
+        @click="openMdLength = true"
+        class="icon"
+      />
     </a-flex>
   </div>
   <!-- ------------drawer---------------- -->
@@ -84,7 +106,7 @@
   >
     <div class="position-relative">
       <p>
-        Choose a workflow to determine the processes to apply to the wild type.
+        Configure the workflow for your experiment below.
       </p>
       <a-form layout="vertical" class="mt24">
         <a-form-item label="Workflow">
@@ -184,13 +206,106 @@
       </a-flex>
     </div>
   </a-drawer>
+  <!-- md length drawer -->
+  <a-drawer
+    v-model:open="openMdLength"
+    class="custom-class"
+    width="488"
+    title="Adjust MD simulation duration"
+    placement="right"
+  >
+    <div class="position-relative">
+      <p>Set the length of the MD simulation in nanoseconds.</p>
+      <div class="config mt40">
+        <p class="title">MD simulation duration (ns)</p>
+        <p class="description">Enter a positive value in nanoseconds.</p>
+        <a-input
+          size="large"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="e.g. 50"
+          v-model:value="mdLengthInput"
+        />
+      </div>
+      <a-flex class="btn-group">
+        <div @click="openMdLength = false" class="btn">Cancel</div>
+        <a-button
+          type="primary"
+          size="large"
+          :disabled="mdLengthSaving"
+          @click="saveMdLength"
+          class="btn"
+        >
+          <a-flex class="button-content" justify="space-between" align="center">
+            <span>Save</span>
+          </a-flex>
+        </a-button>
+      </a-flex>
+    </div>
+  </a-drawer>
   <!-- constraint drawer -->
-  <!-- <a-drawer v-model:open="openConstraint" class="custom-class" root-class-name="root-class-name" :root-style="{ }"
-        title="Basic Drawer" placement="right" @after-open-change="afterOpenChange">
-        <p>Some contents...</p>
-        <p>Some contents...</p>
-        <p>Some contents...</p>
-    </a-drawer> -->
+  <a-drawer
+    v-model:open="openConstraint"
+    class="constraints-drawer"
+    width="488"
+    title="Edit geometry constraints"
+    placement="right"
+  >
+    <div class="position-relative">
+      <p>Define constraints using atom selections (e.g. A.101.OE2).</p>
+      <div class="constraint-list mt24">
+        <div
+          v-for="(constraint, index) in constraintsModel"
+          :key="constraint.id"
+          class="constraint-row"
+        >
+          <div class="row-head">
+            <a-select
+              v-model:value="constraint.type"
+              size="large"
+              :options="constraintTypeOptions"
+              style="width: 160px"
+              @change="handleConstraintTypeChange(constraint)"
+            />
+            <div class="row-actions">
+              <img
+                src="@/assets/img/del.svg"
+                class="icon"
+                @click="removeConstraint(index)"
+              />
+            </div>
+          </div>
+          <a-flex class="row-body" gap="middle">
+            <a-input
+              v-for="argIndex in getConstraintArgCount(constraint.type)"
+              :key="argIndex"
+              size="large"
+              :placeholder="`Atom ${argIndex}`"
+              v-model:value="constraint.arguments[argIndex - 1]"
+            />
+          </a-flex>
+        </div>
+      </div>
+      <div class="add-constraint" @click="addConstraint">
+        + Add constraint
+      </div>
+      <a-flex class="btn-group">
+        <div @click="openConstraint = false" class="btn">Cancel</div>
+        <a-button
+          type="primary"
+          size="large"
+          :disabled="constraintsSaving"
+          @click="saveConstraints"
+          class="btn"
+        >
+          <a-flex class="button-content" justify="space-between" align="center">
+            <span>Save</span>
+          </a-flex>
+        </a-button>
+      </a-flex>
+    </div>
+  </a-drawer>
 
   <!-- ------------config drawer--------------------- -->
   <!-- EF Config -->
@@ -212,8 +327,16 @@
           Specify the atom indexes that defines the bond of interest.
         </p>
         <a-flex gap="middle">
-          <a-input size="large" placeholder="e.g. 1,2,3,4" />
-          <a-input size="large" placeholder="e.g. 1,2,3,4" />
+          <a-input
+            size="large"
+            placeholder="e.g. A.254.C1"
+            v-model:value="efModel.atom_1"
+          />
+          <a-input
+            size="large"
+            placeholder="e.g. A.253.S1"
+            v-model:value="efModel.atom_2"
+          />
         </a-flex>
       </div>
       <a-flex class="btn-group">
@@ -222,7 +345,7 @@
           type="primary"
           size="large"
           :disabled="disabled"
-          @click="handleCreate"
+          @click="saveEF"
           class="btn"
         >
           <a-flex class="button-content" justify="space-between" align="center">
@@ -349,9 +472,94 @@
       </a-flex>
     </div>
   </a-drawer>
+
+  <!-- Cavity Config -->
+  <a-drawer
+    v-model:open="model.openCavity"
+    class="custom-class"
+    width="488"
+    title="Adding inputs for Cavity volume"
+    placement="right"
+  >
+    <div class="position-relative">
+      <p>
+        The metric you selected needs further details. Provide either a ligand
+        or a pocket residue pattern.
+      </p>
+      <div class="config mt40">
+        <p class="title">Ligand selection pattern</p>
+        <p class="description">A selection pattern defined in PyMol style.</p>
+        <a-input
+          size="large"
+          placeholder="string"
+          v-model:value="cavityModel.ligand_selection_pattern"
+        />
+      </div>
+      <div class="config mt40">
+        <p class="title">Pocket residue pattern</p>
+        <p class="description">A selection pattern defined in PyMol style.</p>
+        <a-input
+          size="large"
+          placeholder="string"
+          v-model:value="cavityModel.pocket_compositing_residue_pattern"
+        />
+      </div>
+      <a-flex class="btn-group">
+        <div @click="model.openCavity = false" class="btn">Cancel</div>
+        <a-button type="primary" size="large" @click="saveCavity" class="btn">
+          <a-flex class="button-content" justify="space-between" align="center">
+            <span>Save</span>
+          </a-flex>
+        </a-button>
+      </a-flex>
+    </div>
+  </a-drawer>
+
+  <!-- DSI Config -->
+  <a-drawer
+    v-model:open="model.openDSI"
+    class="custom-class"
+    width="488"
+    title="Adding inputs for DSI"
+    placement="right"
+  >
+    <div class="position-relative">
+      <p>
+        The metric you selected needs further details. Please provide the
+        domain sequences.
+      </p>
+      <div class="config mt40">
+        <p class="title">Domain 1 sequence</p>
+        <p class="description">Amino acid sequence for the first domain.</p>
+        <a-input
+          size="large"
+          placeholder="sequence"
+          v-model:value="dsiModel.domain1_sequence"
+        />
+      </div>
+      <div class="config mt40">
+        <p class="title">Domain 2 sequence</p>
+        <p class="description">Amino acid sequence for the second domain.</p>
+        <a-input
+          size="large"
+          placeholder="sequence"
+          v-model:value="dsiModel.domain2_sequence"
+        />
+      </div>
+      <a-flex class="btn-group">
+        <div @click="model.openDSI = false" class="btn">Cancel</div>
+        <a-button type="primary" size="large" @click="saveDSI" class="btn">
+          <a-flex class="button-content" justify="space-between" align="center">
+            <span>Save</span>
+          </a-flex>
+        </a-button>
+      </a-flex>
+    </div>
+  </a-drawer>
 </template>
 <script setup>
-import { ref, reactive, watch } from "vue";
+import { ref, reactive, watch, computed } from "vue";
+import { message } from "ant-design-vue";
 import { updateExperimentProfile } from "@/api/experiment";
 import { useRoute } from "vue-router";
 const route = useRoute();
@@ -365,16 +573,32 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  constraints: {
+    type: Array,
+    default: () => [],
+  },
+  mdLength: {
+    type: [Number, String],
+    default: null,
+  },
 });
 
 const openMetrics = ref(false);
 const openWorkflow = ref(false);
+const openMdLength = ref(false);
+const openConstraint = ref(false);
+const mdLengthValue = ref("");
+const mdLengthInput = ref("");
+const mdLengthSaving = ref(false);
+const constraintsSaving = ref(false);
 
 const model = reactive({
   openEF: false,
   openSPI: false,
   openRMSD: false,
   openMMPBSA: false,
+  openCavity: false,
+  openDSI: false,
 });
 
 const options = [{ label: "Predefined", value: "1" }];
@@ -386,6 +610,11 @@ const spiModel = reactive({
   Protein: "",
 });
 
+const efModel = reactive({
+  atom_1: "",
+  atom_2: "",
+});
+
 const RMSDModel = reactive({
   region_pattern: "",
 });
@@ -394,28 +623,120 @@ const MMPBSAModel = reactive({
   ligand: "",
 });
 
+const cavityModel = reactive({
+  ligand_selection_pattern: "",
+  pocket_compositing_residue_pattern: "",
+});
+
+const dsiModel = reactive({
+  domain1_sequence: "",
+  domain2_sequence: "",
+});
+
+const constraintTypeOptions = [
+  { label: "Distance", value: "distance" },
+  { label: "Angle", value: "angle" },
+  { label: "Dihedral", value: "dihedral" },
+];
+
+const constraintsModel = ref([]);
+
+const constraintArgCounts = {
+  distance: 2,
+  angle: 3,
+  dihedral: 4,
+};
+
+const getConstraintArgCount = type => {
+  return constraintArgCounts[type] || constraintArgCounts.distance;
+};
+
+const normalizeConstraintRow = row => {
+  const count = getConstraintArgCount(row.type);
+  if (!Array.isArray(row.arguments)) {
+    row.arguments = [];
+  }
+  for (let i = 0; i < count; i += 1) {
+    if (row.arguments[i] === undefined || row.arguments[i] === null) {
+      row.arguments[i] = "";
+    }
+  }
+  if (row.arguments.length > count) {
+    row.arguments = row.arguments.slice(0, count);
+  }
+  return row;
+};
+
+const buildConstraintRow = (constraint = {}) => {
+  const type = constraint.type || "distance";
+  const args = Array.isArray(constraint.arguments) ? [...constraint.arguments] : [];
+  return normalizeConstraintRow({
+    id: `${Date.now()}-${Math.random()}`,
+    type,
+    arguments: args,
+  });
+};
+
+const loadConstraintsFromProps = () => {
+  if (Array.isArray(props.constraints) && props.constraints.length) {
+    constraintsModel.value = props.constraints.map(item =>
+      buildConstraintRow(item || {})
+    );
+  } else {
+    constraintsModel.value = [buildConstraintRow()];
+  }
+};
+
 const list = ref([
   {
     title: "Structure preparation",
-    description: "Remove water, loop fixing, protonate.",
+    description: "Remove water, Protonation.",
   },
   {
     title: "Structure operation",
-    description: "Coordinate manipulation,mutation.",
+    description: "Mutation. Mutation-perturbed-protonation.",
   },
-  { title: "Conformation exploration", description: "MD simulation" },
-  { title: "Energy calculation", description: "QM/MM...", disabled: false },
+  { title: "Conformational Sampling", description: "Parameterization, MD simulation." },
+  { title: "Metrics calculation", description: "Target metrics (See below)", disabled: false },
 ]);
+
+const constraintText = computed(() => {
+  if (!Array.isArray(props.constraints) || !props.constraints.length) {
+    return "No constraint";
+  }
+
+  return props.constraints
+    .map(item => {
+      if (!item) return "";
+      const type = item.type ? String(item.type) : "constraint";
+      const args = item.arguments;
+      if (Array.isArray(args) && args.length) {
+        return `${type}: ${args.join(", ")}`;
+      }
+      if (args) {
+        return `${type}: ${args}`;
+      }
+      return type;
+    })
+    .filter(Boolean)
+    .join("; ");
+});
+
+const mdLengthDisplay = computed(() => {
+  if (mdLengthValue.value === "" || mdLengthValue.value === null || mdLengthValue.value === undefined) {
+    return "Not set";
+  }
+  return `${mdLengthValue.value} ns`;
+});
 
 const workFlowList = ref([
   "Remove water",
-  "Loop fixing",
-  "Protonate",
-  "Mutate",
+  "Protonation",
+  "Mutation",
+  "Mutation-perturbed-protonation",
   "Parameterization",
   "MD simulation",
   "Calculate metrics",
-  "Stability",
 ]);
 
 const metricsList = ref([
@@ -426,6 +747,10 @@ const metricsList = ref([
     disabled: false,
     data: {
       name: "electric_field",
+      arguments: {
+        atom_1: "",
+        atom_2: "",
+      },
     },
   },
   {
@@ -442,7 +767,7 @@ const metricsList = ref([
     },
   },
   {
-    label: "RMSD/Stability",
+    label: "RMSD",
     checked: false,
     data: {
       name: "active_site_rmsd",
@@ -459,6 +784,39 @@ const metricsList = ref([
       name: "mmpbgbsa",
       arguments: {
         ligand: "",
+      },
+    },
+  },
+  {
+    label: "DDG Fold",
+    checked: false,
+    des: "Relative folding free energy.",
+    data: {
+      name: "ddg_fold",
+      arguments: {},
+    },
+  },
+  {
+    label: "Cavity Volume",
+    checked: false,
+    des: "Ligand/pocket cavity volume.",
+    data: {
+      name: "cavity",
+      arguments: {
+        ligand_selection_pattern: "",
+        pocket_compositing_residue_pattern: "",
+      },
+    },
+  },
+  {
+    label: "DSI",
+    checked: false,
+    des: "Domain separation index.",
+    data: {
+      name: "dsi",
+      arguments: {
+        domain1_sequence: "",
+        domain2_sequence: "",
       },
     },
   },
@@ -481,24 +839,166 @@ watch(
   }
 );
 
+watch(
+  () => props.mdLength,
+  value => {
+    if (value === null || value === undefined || value === "") {
+      mdLengthValue.value = "";
+      mdLengthInput.value = "";
+      return;
+    }
+    mdLengthValue.value = value;
+    mdLengthInput.value = String(value);
+  },
+  { immediate: true }
+);
+
+watch(openMdLength, value => {
+  if (value) {
+    mdLengthInput.value =
+      mdLengthValue.value === "" || mdLengthValue.value === null || mdLengthValue.value === undefined
+        ? ""
+        : String(mdLengthValue.value);
+  }
+});
+
+watch(
+  () => props.constraints,
+  () => {
+    if (!openConstraint.value) {
+      loadConstraintsFromProps();
+    }
+  },
+  { deep: true }
+);
+
+watch(openConstraint, value => {
+  if (value) {
+    loadConstraintsFromProps();
+  }
+});
+
+const pickMetricValue = (args, keys, fallback = "") => {
+  if (!args) return fallback;
+  for (const key of keys) {
+    if (args[key] !== undefined && args[key] !== null && args[key] !== "") {
+      return args[key];
+    }
+  }
+  return fallback;
+};
+
 const openEdit = data => {
+  const args = data?.data?.arguments || {};
   if (data.label === "EF") {
     model.openEF = true;
+    efModel.atom_1 = pickMetricValue(args, ["atom_1"]);
+    efModel.atom_2 = pickMetricValue(args, ["atom_2"]);
   } else if (data.label === "SPI") {
     model.openSPI = true;
-    Object.assign(spiModel, data.data.arguments);
-  } else if (data.label === "RMSD/Stability") {
+    spiModel.ligand = pickMetricValue(args, [
+      "ligand",
+      "substrate_selection_pattern",
+      "ligand_selection_pattern",
+    ]);
+    spiModel.region_pattern = pickMetricValue(args, [
+      "region_pattern",
+      "pocket_selection_pattern",
+    ]);
+    spiModel.Protein = pickMetricValue(args, ["Protein", "protein_selection_pattern"]);
+  } else if (data.label === "RMSD") {
     model.openRMSD = true;
-    Object.assign(RMSDModel, data.data.arguments);
+    RMSDModel.region_pattern = pickMetricValue(args, [
+      "region_pattern",
+      "pocket_selection_pattern",
+    ]);
   } else if (data.label === "MMPBSA") {
     model.openMMPBSA = true;
-    Object.assign(MMPBSAModel, data.data.arguments);
+    MMPBSAModel.ligand = pickMetricValue(args, [
+      "ligand",
+      "ligand_selection_pattern",
+    ]);
+  } else if (data.label === "Cavity Volume") {
+    model.openCavity = true;
+    cavityModel.ligand_selection_pattern = pickMetricValue(args, [
+      "ligand_selection_pattern",
+      "ligand",
+    ]);
+    cavityModel.pocket_compositing_residue_pattern = pickMetricValue(args, [
+      "pocket_compositing_residue_pattern",
+      "pocket_selection_pattern",
+      "region_pattern",
+    ]);
+  } else if (data.label === "DSI") {
+    model.openDSI = true;
+    dsiModel.domain1_sequence = pickMetricValue(args, ["domain1_sequence"]);
+    dsiModel.domain2_sequence = pickMetricValue(args, ["domain2_sequence"]);
+  } else if (data.label === "DDG Fold") {
+    message.info("DDG Fold does not require additional inputs.");
   }
 };
 
 const changeMetrics = item => {
   if (item.disabled) return;
   item.checked = !item.checked;
+};
+
+const addConstraint = () => {
+  constraintsModel.value.push(buildConstraintRow());
+};
+
+const removeConstraint = index => {
+  constraintsModel.value.splice(index, 1);
+  if (!constraintsModel.value.length) {
+    constraintsModel.value.push(buildConstraintRow());
+  }
+};
+
+const handleConstraintTypeChange = constraint => {
+  normalizeConstraintRow(constraint);
+};
+
+const saveConstraints = () => {
+  const normalized = constraintsModel.value.map(item => normalizeConstraintRow(item));
+  for (const constraint of normalized) {
+    if (!constraint.type) {
+      message.error("Please select a constraint type.");
+      return;
+    }
+    if (constraint.arguments.some(arg => !arg)) {
+      message.error("Please fill in all atoms for each constraint.");
+      return;
+    }
+  }
+
+  const payload = normalized.map(item => ({
+    type: item.type,
+    arguments: item.arguments,
+  }));
+
+  const formsData = new FormData();
+  formsData.append("constraints", JSON.stringify(payload));
+  constraintsSaving.value = true;
+  updateExperimentProfile(route.query.id, formsData)
+    .then(res => {
+      if (res?.is_successful === false) {
+        message.error(res.message || "Failed to update constraints.");
+        return;
+      }
+      openConstraint.value = false;
+    })
+    .catch(() => {
+      message.error("Failed to update constraints.");
+    })
+    .finally(() => {
+      constraintsSaving.value = false;
+    });
+};
+
+const saveEF = () => {
+  let EF = metricsList.value.find(item => item.label === "EF");
+  EF.data.arguments = Object.assign({}, efModel);
+  model.openEF = false;
 };
 
 const saveSpi = () => {
@@ -508,7 +1008,7 @@ const saveSpi = () => {
 };
 
 const saveRMSD = () => {
-  let RMSD = metricsList.value.find(item => item.label === "RMSD/Stability");
+  let RMSD = metricsList.value.find(item => item.label === "RMSD");
   RMSD.data.arguments = Object.assign({}, RMSDModel);
   model.openRMSD = false;
 };
@@ -517,6 +1017,18 @@ const saveMMPBSA = () => {
   let MMPBSA = metricsList.value.find(item => item.label === "MMPBSA");
   MMPBSA.data.arguments = Object.assign({}, MMPBSAModel);
   model.openMMPBSA = false;
+};
+
+const saveCavity = () => {
+  let cavity = metricsList.value.find(item => item.label === "Cavity Volume");
+  cavity.data.arguments = Object.assign({}, cavityModel);
+  model.openCavity = false;
+};
+
+const saveDSI = () => {
+  let dsi = metricsList.value.find(item => item.label === "DSI");
+  dsi.data.arguments = Object.assign({}, dsiModel);
+  model.openDSI = false;
 };
 
 const saveMetrics = () => {
@@ -530,6 +1042,33 @@ const saveMetrics = () => {
     console.log(res, metricsList.value);
     openMetrics.value = false;
   });
+};
+
+const saveMdLength = () => {
+  const parsed = Number(mdLengthInput.value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    message.error("Please enter a valid MD simulation duration.");
+    return;
+  }
+
+  const formsData = new FormData();
+  formsData.append("md_length", parsed);
+  mdLengthSaving.value = true;
+  updateExperimentProfile(route.query.id, formsData)
+    .then(res => {
+      if (res?.is_successful === false) {
+        message.error(res.message || "Failed to update MD simulation duration.");
+        return;
+      }
+      mdLengthValue.value = parsed;
+      openMdLength.value = false;
+    })
+    .catch(() => {
+      message.error("Failed to update MD simulation duration.");
+    })
+    .finally(() => {
+      mdLengthSaving.value = false;
+    });
 };
 </script>
 <style lang="scss" scoped>
@@ -654,6 +1193,42 @@ const saveMetrics = () => {
         width: 70%;
       }
     }
+  }
+}
+
+.constraints-drawer {
+  .constraint-list {
+    margin-top: 8px;
+  }
+
+  .constraint-row {
+    border: 1px solid #c6c6c6;
+    border-radius: 3px;
+    padding: 12px 12px 16px;
+    margin-bottom: 12px;
+  }
+
+  .row-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .row-actions .icon {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+
+  .row-body {
+    margin-top: 12px;
+  }
+
+  .add-constraint {
+    color: #0f62fe;
+    cursor: pointer;
+    font-size: 14px;
+    margin: 8px 0 16px;
   }
 }
 

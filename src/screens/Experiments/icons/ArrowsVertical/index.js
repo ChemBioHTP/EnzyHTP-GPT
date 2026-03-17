@@ -1,1 +1,0 @@
-export { ArrowsVertical } from "./ArrowsVertical";
