@@ -1053,7 +1053,7 @@ class MutationApi(Resource):
         mutation_request = request.form.get("mutation_request")
 
         instructions = open(path.join(BASEDIR, "prompts", "mutant_planner-v1.txt")).read()
-        service = OpenAIAssistant(user.openai_secret_key, 
+        service = build_openai_agent(user.openai_secret_key, 
             assistant_name="Mutant Planner", 
             instructions=instructions, 
             model="gpt-4o", 
@@ -1177,7 +1177,7 @@ class MutationApi(Resource):
                 return Response(response=response_info.serialize(), status=415, mimetype=JSONIFY_MIMETYPE)
 
 #region OpenAI Assistants
-from services import OpenAIChat, OpenAIAssistant
+from services import OpenAIChat, OpenAIAssistant, build_openai_agent
 from .agents import QuestionAnalyzerAssistant, QuestionSummarizerAssistant, AGENT_MAPPER, DefinedAgent
 
 class AssistantsApi(Resource):
@@ -1291,8 +1291,10 @@ class AssistantsApi(Resource):
         processed_response_content = current_assistant.post_process(response_content, experiment.summon_next_agent)
         
         # Append the chat message records.
-        if (experiment.current_thread_id not in experiment.thread_id_list):
-            experiment.append_thread_id_list(new_thread_id=current_assistant.thread.id)
+        assistant_thread = current_assistant.thread
+        assistant_thread_id = getattr(assistant_thread, "id", None)
+        if (assistant_thread_id and assistant_thread_id not in experiment.thread_id_list):
+            experiment.append_thread_id_list(new_thread_id=assistant_thread_id)
         experiment.append_chat_messages(role="user", text_value=user_prompt)
         experiment.append_chat_messages(role="assistant", text_value=processed_response_content)
 
@@ -1371,7 +1373,10 @@ class AssistantsApi(Resource):
                 if (status_code == 200):
                     # _LOGGER.info("Message received after changing agent.")
                     response_content = current_assistant.post_process(response_content, experiment.summon_next_agent)
-                    experiment.append_thread_id_list(current_assistant.thread.id)
+                    assistant_thread = current_assistant.thread
+                    assistant_thread_id = getattr(assistant_thread, "id", None)
+                    if (assistant_thread_id):
+                        experiment.append_thread_id_list(assistant_thread_id)
                     experiment.append_chat_messages(role="assistant", text_value=response_content)  # Only the response from the assistant is recorded.
                 # configuration_updated, updated_attributes_from_response = experiment.parse_agent_response_content(response_content=response_content)
             response_info = ExperimentBehaviourResponseInfo(

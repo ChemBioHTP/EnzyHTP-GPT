@@ -998,7 +998,7 @@ class Experiment():
         )
         is_successful, deleted_thread_ids = OpenAIAssistant.delete_threads(
             openai_secret_key=openai_secret_key, 
-            thread_id=self.thread_id_list
+            thread_id_list=self.thread_id_list
         )
         self.update_attributes(
             mapper={

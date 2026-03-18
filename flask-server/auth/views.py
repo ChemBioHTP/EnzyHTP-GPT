@@ -606,7 +606,7 @@ def password_reset() -> Response:
 
 ## ******* The dividing line between Email login and OAuth login ****** ##
 
-from .oauth_config import CLIENT_ID, CLIENT_SECRET, provider_cfg_dict, oauth_client_dict
+from .oauth_config import CLIENT_ID, CLIENT_SECRET, provider_cfg_dict, oauth_client_dict, get_provider_cfg
 from oauthlib.oauth2 import WebApplicationClient
     
 class OAuthResponseInfo(AuthResponseInfo):
@@ -758,7 +758,7 @@ def oauth_vendor_login(oauth_vendor: str) -> Response:
     """
     oauth_vendor = oauth_vendor.upper()
     oauth_client: WebApplicationClient = oauth_client_dict.get(oauth_vendor, None)
-    provider_cfg: dict = provider_cfg_dict.get(oauth_vendor, None)
+    provider_cfg: dict = provider_cfg_dict.get(oauth_vendor, None) or get_provider_cfg(oauth_vendor)
 
     if (oauth_client is None):
         response_info = OAuthResponseInfo(
@@ -771,7 +771,17 @@ def oauth_vendor_login(oauth_vendor: str) -> Response:
         )
         return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
 
-    authorization_endpoint = provider_cfg["authorization_endpoint"]  # e.g. https://accounts.google.com/o/oauth2/v2/auth
+    authorization_endpoint = provider_cfg.get("authorization_endpoint", None)  # e.g. https://accounts.google.com/o/oauth2/v2/auth
+    if (authorization_endpoint is None):
+        response_info = OAuthResponseInfo(
+            id=None,
+            email=None,
+            oauth_email=None,
+            oauth_vendor=oauth_vendor,
+            is_successful=False,
+            message=f"OAuth provider configuration for `{OAuthUser.camel_case_oauth_vendor(oauth_vendor)}` is unavailable.",
+        )
+        return Response(response=response_info.serialize(), status=503, mimetype=JSONIFY_MIMETYPE)
 
     # Construct the request for Social login and retrieve user's profile.
     request_uri = oauth_client.prepare_request_uri(
@@ -794,7 +804,7 @@ def oauth_vendor_login_callback(oauth_vendor: str) -> Response:
     """
     oauth_vendor = oauth_vendor.upper()
     oauth_client: WebApplicationClient = oauth_client_dict.get(oauth_vendor, None)
-    provider_cfg: dict = provider_cfg_dict.get(oauth_vendor, None)
+    provider_cfg: dict = provider_cfg_dict.get(oauth_vendor, None) or get_provider_cfg(oauth_vendor)
 
     if (oauth_client is None):
         response_info = OAuthResponseInfo(
@@ -809,13 +819,38 @@ def oauth_vendor_login_callback(oauth_vendor: str) -> Response:
             response=response_info.serialize(),
             status=400, mimetype=JSONIFY_MIMETYPE)
 
+    if (not provider_cfg):
+        response_info = OAuthResponseInfo(
+            id=None,
+            email=None,
+            oauth_email=None,
+            oauth_vendor=oauth_vendor,
+            is_successful=False,
+            message=f"OAuth provider configuration for `{OAuthUser.camel_case_oauth_vendor(oauth_vendor)}` is unavailable.",
+        )
+        return Response(
+            response=response_info.serialize(),
+            status=503, mimetype=JSONIFY_MIMETYPE)
+
     # OAuth2 authorization code
     code = str()
     if (request.method == "GET"):
         code = request.args.get("code", None)
     if (request.method == "POST"):
         code = request.form.get("code", None)
-    token_endpoint = provider_cfg["token_endpoint"]
+    token_endpoint = provider_cfg.get("token_endpoint", None)
+    if (token_endpoint is None):
+        response_info = OAuthResponseInfo(
+            id=None,
+            email=None,
+            oauth_email=None,
+            oauth_vendor=oauth_vendor,
+            is_successful=False,
+            message=f"OAuth provider configuration for `{OAuthUser.camel_case_oauth_vendor(oauth_vendor)}` is unavailable.",
+        )
+        return Response(
+            response=response_info.serialize(),
+            status=503, mimetype=JSONIFY_MIMETYPE)
     # print(code)
 
     # Prepare and send a request to get tokens.
@@ -848,7 +883,19 @@ def oauth_vendor_login_callback(oauth_vendor: str) -> Response:
             status=400, mimetype=JSONIFY_MIMETYPE)
 
     # Find and hit the URL from OAuth Vendor that provides the user's profile information.
-    userinfo_endpoint = provider_cfg["userinfo_endpoint"]
+    userinfo_endpoint = provider_cfg.get("userinfo_endpoint", None)
+    if (userinfo_endpoint is None):
+        response_info = OAuthResponseInfo(
+            id=None,
+            email=None,
+            oauth_email=None,
+            oauth_vendor=oauth_vendor,
+            is_successful=False,
+            message=f"OAuth provider configuration for `{OAuthUser.camel_case_oauth_vendor(oauth_vendor)}` is unavailable.",
+        )
+        return Response(
+            response=response_info.serialize(),
+            status=503, mimetype=JSONIFY_MIMETYPE)
     uri, headers, body = oauth_client.add_token(userinfo_endpoint)
     userinfo_response = get(uri, headers=headers, data=body)
     userinfo:dict = userinfo_response.json()

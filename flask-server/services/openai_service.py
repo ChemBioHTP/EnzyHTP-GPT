@@ -12,6 +12,7 @@ OpenAI (ChatGPT) correspondence.
 # Here put the import lib.
 from __future__ import annotations
 import time
+import logging
 from typing import Any, Callable, Tuple, Dict, List
 from typing_extensions import override
 
@@ -39,6 +40,8 @@ from openai import (
     APIResponseValidationError,
 )
 import re
+from config import OPENAI_RUNTIME
+from .openai_observability import OpenAIMeta, log_openai_meta
 
 # Here put local imports.
 from .json_to_tree import JsonToTree
@@ -46,6 +49,7 @@ from .json_to_tree import JsonToTree
 # from config import DEFAULT_OPENAI_API_KEY
 DEFAULT_OPENAI_API_KEY = "5511667"
 DEFAULT_TIMEOUT_LIMIT = 60      # The timeout waiting for response. Unit: Seconds.
+LOGGER = logging.getLogger(__name__)
 
 #region OpenAI Chatbot
 
@@ -93,8 +97,15 @@ class OpenAIChat:
         if (self.client.api_key == DEFAULT_OPENAI_API_KEY):
             return False, 500, "OpenAI Secret Key does not exist."
 
+        base_meta = OpenAIMeta(
+            openai_runtime=OPENAI_RUNTIME,
+            model=self.model,
+        )
+        log_openai_meta(LOGGER, "openai_chat.request", base_meta)
+
         try:
             response_content = str()
+            response_id = None
             if (self.conversation_mode):
                 messages = self.messages + [{"role": "user", "content": prompt}]
 
@@ -108,6 +119,7 @@ class OpenAIChat:
                     timeout=DEFAULT_TIMEOUT_LIMIT,
                     **self.openai_args_dict
                 )
+                response_id = getattr(response, "id", None)
                 response_msg = response.choices[0].message
                 response_content = response_msg.content
 
@@ -128,21 +140,92 @@ class OpenAIChat:
                     model=self.model,
                     **self.openai_args_dict
                 )
+                response_id = getattr(response, "id", None)
                 response_content = response.choices[0].message.content
-            
+
+            log_openai_meta(
+                LOGGER,
+                "openai_chat.success",
+                OpenAIMeta(
+                    openai_runtime=OPENAI_RUNTIME,
+                    model=self.model,
+                    response_id=response_id,
+                ),
+            )
+
             # Successfully received a response from OpenAI.
             return (True, 200, response_content)
         except RateLimitError as e:
+            log_openai_meta(
+                LOGGER,
+                "openai_chat.error",
+                OpenAIMeta(
+                    openai_runtime=OPENAI_RUNTIME,
+                    model=self.model,
+                    openai_error_code="rate_limit_exceeded",
+                ),
+                error=str(e),
+            )
             return (True, 429, "Rate Limit Error: You exceeded your current OpenAI API quota or Rate Limit, please check your plan and billing details.")
         except BadRequestError as e:
+            log_openai_meta(
+                LOGGER,
+                "openai_chat.error",
+                OpenAIMeta(
+                    openai_runtime=OPENAI_RUNTIME,
+                    model=self.model,
+                    openai_error_code="bad_request",
+                ),
+                error=str(e),
+            )
             return (True, 400, "Bad Request: Your OpenAI Secret Key is valid, but you sent a bad request.")
         except AuthenticationError as e:
+            log_openai_meta(
+                LOGGER,
+                "openai_chat.error",
+                OpenAIMeta(
+                    openai_runtime=OPENAI_RUNTIME,
+                    model=self.model,
+                    openai_error_code="authentication_error",
+                ),
+                error=str(e),
+            )
             return (False, 401, "Authentication Failed: Invalid OpenAI Secret Key.")
         except InternalServerError as e:
+            log_openai_meta(
+                LOGGER,
+                "openai_chat.error",
+                OpenAIMeta(
+                    openai_runtime=OPENAI_RUNTIME,
+                    model=self.model,
+                    openai_error_code="internal_server_error",
+                ),
+                error=str(e),
+            )
             return (False, 500, "OpenAI Internal Server Error. Unable to verify.")
         except APIError as e:
+            log_openai_meta(
+                LOGGER,
+                "openai_chat.error",
+                OpenAIMeta(
+                    openai_runtime=OPENAI_RUNTIME,
+                    model=self.model,
+                    openai_error_code="api_error",
+                ),
+                error=str(e),
+            )
             return (False, 500, "API Error: " + str(e))
         except Exception as e:
+            log_openai_meta(
+                LOGGER,
+                "openai_chat.error",
+                OpenAIMeta(
+                    openai_runtime=OPENAI_RUNTIME,
+                    model=self.model,
+                    openai_error_code="unexpected_error",
+                ),
+                error=str(e),
+            )
             return (False, 500, "An unexpected error occurred: " + str(e))
 
     # @classmethod
@@ -726,15 +809,28 @@ class OpenAIAssistant(OpenAIChat):
         if (self.client.api_key == DEFAULT_OPENAI_API_KEY):
             return False, 500, "OpenAI Secret Key does not exist."
 
+        log_openai_meta(
+            LOGGER,
+            "openai_assistant.request",
+            OpenAIMeta(
+                openai_runtime=OPENAI_RUNTIME,
+                model=self.model,
+            ),
+        )
+
         try:
             response_content = str()
+            run_id = None
+            conversation_id = None
             self.latest_tool_call_result.clear()
             if (self.conversation_mode):
                 user_message = {
                     "role": "user",
                     "content": prompt,
                 }
-                self.__run_thread(prompt=prompt)
+                run = self.__run_thread(prompt=prompt)
+                run_id = getattr(run, "id", None)
+                conversation_id = getattr(run, "thread_id", None)
 
                 response_content = self.__retrieve_response_content()
                 self.messages.append(user_message)
@@ -744,10 +840,24 @@ class OpenAIAssistant(OpenAIChat):
                 })
             else:
                 thread = self.client.beta.threads.create()
-                self.__run_thread(prompt=prompt, thread=thread)
+                conversation_id = getattr(thread, "id", None)
+                run = self.__run_thread(prompt=prompt, thread=thread)
+                run_id = getattr(run, "id", None)
                 response_content = self.__retrieve_response_content(thread=thread)
                 _ = self.delete_thread(openai_secret_key=self.client.api_key, thread_id=thread.id)
-            
+
+            log_openai_meta(
+                LOGGER,
+                "openai_assistant.success",
+                OpenAIMeta(
+                    openai_runtime=OPENAI_RUNTIME,
+                    model=self.model,
+                    response_id=run_id,
+                    conversation_id=conversation_id,
+                    tool_call_count=len(self.latest_tool_call_result),
+                ),
+            )
+
             # Successfully received a response from OpenAI.
             return (True, 200, response_content)
         except AssistantRunError as e:
@@ -779,21 +889,104 @@ class OpenAIAssistant(OpenAIChat):
             else:
                 user_message = f"OpenAI Assistant run failed: {user_message}"
 
+            log_openai_meta(
+                LOGGER,
+                "openai_assistant.error",
+                OpenAIMeta(
+                    openai_runtime=OPENAI_RUNTIME,
+                    model=self.model,
+                    tool_call_count=len(self.latest_tool_call_result),
+                    openai_error_code=error_code,
+                ),
+                error=str(e),
+                status_code=status_code,
+            )
+
             return (is_valid, status_code, user_message)
         except RateLimitError as e:
+            log_openai_meta(
+                LOGGER,
+                "openai_assistant.error",
+                OpenAIMeta(
+                    openai_runtime=OPENAI_RUNTIME,
+                    model=self.model,
+                    openai_error_code="rate_limit_exceeded",
+                ),
+                error=str(e),
+            )
             return (True, 429, "Rate Limit Error: You exceeded your current OpenAI API quota or Rate Limit, please check your plan and billing details.")
         except BadRequestError as e:
+            log_openai_meta(
+                LOGGER,
+                "openai_assistant.error",
+                OpenAIMeta(
+                    openai_runtime=OPENAI_RUNTIME,
+                    model=self.model,
+                    openai_error_code="bad_request",
+                ),
+                error=str(e),
+            )
             return (True, 400, "Bad Request: Your OpenAI API Key is valid, but you sent a bad request.")
             # raise e
         except APITimeoutError as e:
+            log_openai_meta(
+                LOGGER,
+                "openai_assistant.error",
+                OpenAIMeta(
+                    openai_runtime=OPENAI_RUNTIME,
+                    model=self.model,
+                    openai_error_code="timeout",
+                ),
+                error=str(e),
+            )
             return (False, 500, "OpenAI Assistant API Timeout.")
         except AuthenticationError as e:
+            log_openai_meta(
+                LOGGER,
+                "openai_assistant.error",
+                OpenAIMeta(
+                    openai_runtime=OPENAI_RUNTIME,
+                    model=self.model,
+                    openai_error_code="authentication_error",
+                ),
+                error=str(e),
+            )
             return (False, 401, "Authentication Failed: Invalid OpenAI Secret Key.")
         except InternalServerError as e:
+            log_openai_meta(
+                LOGGER,
+                "openai_assistant.error",
+                OpenAIMeta(
+                    openai_runtime=OPENAI_RUNTIME,
+                    model=self.model,
+                    openai_error_code="internal_server_error",
+                ),
+                error=str(e),
+            )
             return (False, 500, "OpenAI Internal Server Error. Unable to verify.")
         except APIError as e:
+            log_openai_meta(
+                LOGGER,
+                "openai_assistant.error",
+                OpenAIMeta(
+                    openai_runtime=OPENAI_RUNTIME,
+                    model=self.model,
+                    openai_error_code="api_error",
+                ),
+                error=str(e),
+            )
             return (False, 500, "API Error: " + str(e))
         except Exception as e:
+            log_openai_meta(
+                LOGGER,
+                "openai_assistant.error",
+                OpenAIMeta(
+                    openai_runtime=OPENAI_RUNTIME,
+                    model=self.model,
+                    openai_error_code="unexpected_error",
+                ),
+                error=str(e),
+            )
             return (False, 500, "An unexpected error occurred: " + str(e))
     
     def pre_process(self, input_prompt: str) -> str:
