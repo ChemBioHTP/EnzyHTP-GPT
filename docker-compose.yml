@@ -30,6 +30,7 @@ services:
     environment:
       - TZ=US/Central
       - MONGO_URI=${MONGO_URI:-mongodb://mongo:27017/enzyhtp_gpt}
+      - OPENAI_RUNTIME=${OPENAI_RUNTIME:-responses}
       # Other environment variables you read in flask-server/server.py or config.py can also be added here
     volumes:
       # Code hot update/reflection (same as your original docker run)

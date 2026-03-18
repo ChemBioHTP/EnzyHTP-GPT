@@ -102,6 +102,10 @@ TOKEN_EXPIRES_DELTA = timedelta(days=5)
 
 # OpenAI Service
 DEFAULT_OPENAI_API_KEY = "5111321231135666"
+OPENAI_RUNTIME_CANDIDATES = {"assistants", "responses"}
+OPENAI_RUNTIME = os.environ.get("OPENAI_RUNTIME", "assistants").strip().lower()
+if (OPENAI_RUNTIME not in OPENAI_RUNTIME_CANDIDATES):
+    OPENAI_RUNTIME = "assistants"
 
 # Placeholder Result Images
 # PLHD_RESULT_IMG_DIR = os.path.join(BASEDIR, "templates", "result_images")
