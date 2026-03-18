@@ -1,6 +1,6 @@
 # EnzyHTP-GPT：Assistants/Threads -> Responses 迁移评估与开发计划
 
-更新时间：2026-03-17
+更新时间：2026-03-18
 
 ## 1. 迁移背景（官方时间点）
 - OpenAI 官方迁移文档说明：2025-08-26 起推荐以 `Responses API` + `Conversations API` 作为统一方向。
@@ -73,7 +73,7 @@
 
 ## 4. 分阶段开发计划（可执行）
 
-## Phase 0：准备与防回滚设计（0.5~1 天）
+## Phase 0：准备与防回滚设计（0.5~1 天） ✅ 已完成（2026-03-18）
 1. 升级 OpenAI SDK (DONE)
 - 文件：`flask-server/environment.yml`
 - 任务：将 `openai=1.37.0` 升到支持 Responses/Conversations 的稳定版本。 (使用pip安装了openai==2.29.0)
@@ -84,9 +84,10 @@
 3. 观察指标
 - 增加日志字段：`response_id`、`conversation_id`、`tool_call_count`、`openai_error_code`。
 
-验收：在不改业务逻辑下可按环境变量切换运行时。
+验收：在不改业务逻辑下可按环境变量切换运行时。  
+当前状态：✅ 已完成（运行时切换、观测字段、回切脚本均已落地并通过验证）。
 
-## Phase 1：服务层双栈适配（2~3 天）
+## Phase 1：服务层双栈适配（2~3 天） ✅ 已完成（2026-03-18）
 1. 新建 Responses 服务实现
 - 建议文件：`flask-server/services/openai_response_service.py`
 - 能力要求：
@@ -101,7 +102,8 @@
 3. 兼容错误码
 - 将 Responses 错误映射到现有返回契约（401/429/500/504）。
 
-验收：在测试路由下，同一 prompt 在 assistants/responses 两栈都能返回结构化响应。
+验收：在测试路由下，同一 prompt 在 assistants/responses 两栈都能返回结构化响应。  
+当前状态：✅ 已完成（`/api/experiment/<id>/assistants` 已完成联调验证，服务层测试通过）。
 
 ## Phase 2：模型字段迁移（1~1.5 天）
 1. 扩展 Experiment 字段

@@ -1,7 +1,7 @@
 # EnzyHTP-GPT：Phase 0/1 细化开发方案（Responses 迁移）
 
 基于文档：`/home/shaoq1/bin/EnzyHTP-GPT/.codex/001-response-migration.md`
-更新时间：2026-03-17
+更新时间：2026-03-18
 
 ## 0. 目标与边界
 
@@ -15,7 +15,7 @@
 
 ---
 
-## 1. Phase 0（准备与防回滚）细化方案
+## 1. Phase 0（准备与防回滚）细化方案 ✅ 已完成
 
 ## 1.1 交付目标（DoD）
 1. 环境可稳定运行 `openai==2.29.0` 且版本信息可追溯。
@@ -118,15 +118,15 @@ class OpenAIMeta:
 ---
 
 ## 1.4 Phase 0 完成定义（Checklist）
-- [ ] `environment.yml` 与实际 SDK 版本一致
-- [ ] `OPENAI_RUNTIME` 配置可用，默认值验证通过
-- [ ] 启动日志输出运行时与 SDK 版本
-- [ ] OpenAI 调用日志具备统一字段
-- [ ] 运行时回切演练完成并记录
+- [x] `environment.yml` 与实际 SDK 版本一致
+- [x] `OPENAI_RUNTIME` 配置可用，默认值验证通过
+- [x] 启动日志输出运行时与 SDK 版本
+- [x] OpenAI 调用日志具备统一字段
+- [x] 运行时回切演练完成并记录
 
 ---
 
-## 2. Phase 1（服务层双栈适配）细化方案
+## 2. Phase 1（服务层双栈适配）细化方案 ✅ 已完成
 
 ## 2.1 目标架构
 采用“门面 + 双实现”结构，避免业务层（`agents.py`/`views.py`）直接感知具体 API 栈。
@@ -297,10 +297,9 @@ PR-3（兼容与测试）
 ---
 
 ## 2.9 Phase 1 完成定义（Checklist）
-- [ ] 新增 `OpenAIResponsesService` 并通过最小调用
-- [ ] function tool loop 在 1~2 轮场景可跑通
-- [ ] 门面可按 `OPENAI_RUNTIME` 正确切换
-- [ ] 旧 `OpenAIAssistant` 路径不受影响
-- [ ] 错误码映射与旧接口契约一致
-- [ ] 新增测试全部通过
-
+- [x] 新增 `OpenAIResponsesService` 并通过最小调用
+- [x] function tool loop 在 1~2 轮场景可跑通
+- [x] 门面可按 `OPENAI_RUNTIME` 正确切换
+- [x] 旧 `OpenAIAssistant` 路径不受影响
+- [x] 错误码映射与旧接口契约一致
+- [x] 新增测试全部通过
