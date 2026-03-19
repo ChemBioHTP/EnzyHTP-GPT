@@ -44,6 +44,7 @@ from config import (
     WORKSHEET_MUTATION_COLUMN_NAME,
     APP_HOST,
     JSONIFY_MIMETYPE,
+    OPENAI_RUNTIME,
 
     # Slurm API.
     SLURM_USER,
@@ -471,14 +472,7 @@ class IndexApi(Resource):
                 message=f"The experiment instance '{experiment_id}' is {StatusCode.status_text_mapper[experiment.status]}, which is unable to be deleted.")
             return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
         else:
-            OpenAIAssistant.delete_thread(
-                openai_secret_key=user.openai_secret_key, 
-                thread_id=experiment.current_thread_id
-            )
-            OpenAIAssistant.delete_threads(
-                openai_secret_key=user.openai_secret_key, 
-                thread_id_list=experiment.thread_id_list
-            )
+            _ = experiment.clear_chat_threads(user.openai_secret_key)
             experiment.clear_folder(remove_folder=True)
             db.experiments.delete_one({"id": experiment.id})
             db.results.delete_many({"experiment_id": experiment_id})
@@ -1191,11 +1185,17 @@ class AssistantsApi(Resource):
             user (User): The user instance.
             experiment (Experiment): The experiment instance.
         """
-        is_successful, messages = OpenAIAssistant.get_thread_messages(
-            openai_secret_key=user.openai_secret_key, 
-            thread_id=(experiment.thread_id_list[0] if experiment.thread_id_list else experiment.current_thread_id)
-        )
-        if (is_successful):
+        question_analyzer_session_id = experiment.get_question_analyzer_session_id(runtime=OPENAI_RUNTIME)
+        messages = experiment.get_messages_by_session_id(question_analyzer_session_id)
+        is_successful = bool(messages)
+
+        if ((not messages) and question_analyzer_session_id):
+            is_successful, messages = OpenAIAssistant.get_thread_messages(
+                openai_secret_key=user.openai_secret_key,
+                thread_id=question_analyzer_session_id,
+            )
+
+        if (is_successful and messages):
             question_summarizer = QuestionSummarizerAssistant(
                 openai_secret_key=user.openai_secret_key, conversation_mode=False, experiment=experiment
             )
@@ -1205,8 +1205,11 @@ class AssistantsApi(Resource):
             experiment.update_attributes(mapper={
                 "scientific_question": experiment.scientific_question
             })
-        else:
-            pass
+        elif (not experiment.scientific_question):
+            experiment.scientific_question = experiment.get_latest_assistant_output(assistant_type=0)
+            experiment.update_attributes(mapper={
+                "scientific_question": experiment.scientific_question
+            })
         return experiment.scientific_question
 
     @login_required
@@ -1228,19 +1231,19 @@ class AssistantsApi(Resource):
         if (experiment.chat_messages):
             assistant_messages = experiment.chat_messages
         else:
-            # _LOGGER.info(f"Fetching thread ({experiment.current_thread_id}) messages now.")
-            is_successful, assistant_messages = OpenAIAssistant.get_thread_messages(
-                openai_secret_key=user.openai_secret_key,
-                thread_id=experiment.current_thread_id,
-                limit=50
-            )
-            if (is_successful):
-                if (not experiment.thread_id_list):
-                    experiment.append_thread_id_list(experiment.current_thread_id)
-                # _LOGGER.info(f"Replacing the chat_messages {experiment.chat_messages} with value {assistant_messages}.")
-                experiment.update_attributes(mapper={
-                    "chat_messages": assistant_messages
-                })
+            session_id = experiment.get_primary_session_id(runtime=OPENAI_RUNTIME)
+            if (session_id):
+                is_successful, assistant_messages = OpenAIAssistant.get_thread_messages(
+                    openai_secret_key=user.openai_secret_key,
+                    thread_id=session_id,
+                    limit=50
+                )
+                if (is_successful):
+                    experiment.append_session_id(new_session_id=session_id, runtime=OPENAI_RUNTIME)
+                    # _LOGGER.info(f"Replacing the chat_messages {experiment.chat_messages} with value {assistant_messages}.")
+                    experiment.update_attributes(mapper={
+                        "chat_messages": assistant_messages
+                    })
 
         # for i in range(len(assistant_messages)):
         #     message = assistant_messages[i]
@@ -1276,7 +1279,7 @@ class AssistantsApi(Resource):
         # print([current_assistant_class])
         current_assistant: DefinedAgent = current_assistant_class(
             openai_secret_key=user.openai_secret_key, 
-            thread_id=experiment.current_thread_id, 
+            thread_id=experiment.get_primary_session_id(runtime=OPENAI_RUNTIME),
             conversation_mode=True,
             experiment=experiment,
         )
@@ -1292,11 +1295,20 @@ class AssistantsApi(Resource):
         
         # Append the chat message records.
         assistant_thread = current_assistant.thread
-        assistant_thread_id = getattr(assistant_thread, "id", None)
-        if (assistant_thread_id and assistant_thread_id not in experiment.thread_id_list):
-            experiment.append_thread_id_list(new_thread_id=assistant_thread_id)
-        experiment.append_chat_messages(role="user", text_value=user_prompt)
-        experiment.append_chat_messages(role="assistant", text_value=processed_response_content)
+        assistant_session_id = getattr(assistant_thread, "id", None)
+        experiment.append_session_id(new_session_id=assistant_session_id, runtime=OPENAI_RUNTIME)
+        experiment.append_chat_messages(
+            role="user",
+            text_value=user_prompt,
+            assistant_type=experiment.current_assistant_type,
+            session_id=assistant_session_id,
+        )
+        experiment.append_chat_messages(
+            role="assistant",
+            text_value=processed_response_content,
+            assistant_type=experiment.current_assistant_type,
+            session_id=assistant_session_id,
+        )
 
         # configuration_updated, updated_attributes = experiment.parse_agent_response_content(response_content=processed_response_content)
 
@@ -1367,17 +1379,35 @@ class AssistantsApi(Resource):
                 )
 
                 # Use the summary information of the question analyzer.
-                is_successful, question_analyzer_summary = OpenAIAssistant.get_thread_summary(openai_secret_key=user.openai_secret_key, thread_id=(experiment.thread_id_list[0] if experiment.thread_id_list else experiment.current_thread_id))
+                question_analyzer_summary = experiment.get_latest_assistant_output(assistant_type=0)
+                if (not question_analyzer_summary):
+                    question_analyzer_session_id = experiment.get_question_analyzer_session_id(runtime=OPENAI_RUNTIME)
+                    if (question_analyzer_session_id):
+                        is_successful, question_analyzer_summary = OpenAIAssistant.get_thread_summary(
+                            openai_secret_key=user.openai_secret_key,
+                            thread_id=question_analyzer_session_id,
+                        )
                 starting_message = current_assistant.pre_process(input_prompt=question_analyzer_summary)
                 is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=starting_message)
                 if (status_code == 200):
                     # _LOGGER.info("Message received after changing agent.")
                     response_content = current_assistant.post_process(response_content, experiment.summon_next_agent)
                     assistant_thread = current_assistant.thread
-                    assistant_thread_id = getattr(assistant_thread, "id", None)
-                    if (assistant_thread_id):
-                        experiment.append_thread_id_list(assistant_thread_id)
-                    experiment.append_chat_messages(role="assistant", text_value=response_content)  # Only the response from the assistant is recorded.
+                    assistant_session_id = getattr(assistant_thread, "id", None)
+                    experiment.append_session_id(new_session_id=assistant_session_id, runtime=OPENAI_RUNTIME)
+                    if (starting_message):
+                        experiment.append_chat_messages(
+                            role="user",
+                            text_value=starting_message,
+                            assistant_type=experiment.current_assistant_type,
+                            session_id=assistant_session_id,
+                        )
+                    experiment.append_chat_messages(
+                        role="assistant",
+                        text_value=response_content,
+                        assistant_type=experiment.current_assistant_type,
+                        session_id=assistant_session_id,
+                    )  # Only the response from the assistant is recorded.
                 # configuration_updated, updated_attributes_from_response = experiment.parse_agent_response_content(response_content=response_content)
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
