@@ -1104,7 +1104,7 @@ class Experiment():
         # _LOGGER.info(f"Current messages (after appending): {self.chat_messages}")
         return
     
-    def clear_chat_threads(self, openai_secret_key: str):
+    def clear_chat_threads(self, openai_secret_key: str, openai_base_url: str = None):
         """Clear the `chat_messages` and `thread_id_list` of current experiment.
         
         Args:
@@ -1125,7 +1125,8 @@ class Experiment():
 
         is_successful, deleted_session_ids = OpenAIAssistant.delete_threads(
             openai_secret_key=openai_secret_key,
-            thread_id_list=session_id_list
+            thread_id_list=session_id_list,
+            base_url=openai_base_url,
         )
         if (not is_successful):
             failed_session_ids = [session_id for session_id in session_id_list if session_id not in deleted_session_ids]

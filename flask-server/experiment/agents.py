@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Tuple, Union
 from typing_extensions import Annotated
 from datetime import datetime
 
-from config import BASEDIR
+from config import BASEDIR, OPENAI_MODEL_VERSION
 from services import OpenAIAssistant
 
 from .agent_tool_functions import TOOL_FUNCTION_MAPPER
@@ -34,8 +34,7 @@ from enzy_htp.structure import Residue
 from enzy_htp.mutation.mutation_pattern import decode_position_pattern
 
 PROMPTS_DIRECTORY = path.join(BASEDIR, "prompts")
-# MODEL_VERSION = "gpt-4o"
-MODEL_VERSION = "gpt-4o-2024-11-20"
+MODEL_VERSION = OPENAI_MODEL_VERSION
 
 class QuestionAnalyzerAssistant(OpenAIAssistant):
     """The agent acting as a Question Analyzer."""
@@ -43,7 +42,15 @@ class QuestionAnalyzerAssistant(OpenAIAssistant):
     experiment: Experiment
     completion_message: str = "Question Confirmed!"
 
-    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
+    def __init__(
+        self,
+        openai_secret_key: str,
+        thread_id: str = str(),
+        conversation_mode: bool = False,
+        experiment: Experiment = None,
+        model: str = MODEL_VERSION,
+        base_url: str = None,
+    ) -> None:
         """
         Initializes the QuestionAnalyzerAssistant agent with the OpenAI API key.
 
@@ -70,7 +77,8 @@ class QuestionAnalyzerAssistant(OpenAIAssistant):
         super().__init__(openai_secret_key, 
             assistant_name="Question Analyzer", 
             instructions=instructions, 
-            model=MODEL_VERSION,
+            model=model,
+            base_url=base_url,
             tools=tools,
             tool_function_mapper=TOOL_FUNCTION_MAPPER,
             thread_id=thread_id,
@@ -86,7 +94,15 @@ class MetricsPlannerAssistant(OpenAIAssistant):
     experiment: Experiment
     completion_message: str = "Computational Details Confirmed!"
 
-    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
+    def __init__(
+        self,
+        openai_secret_key: str,
+        thread_id: str = str(),
+        conversation_mode: bool = False,
+        experiment: Experiment = None,
+        model: str = MODEL_VERSION,
+        base_url: str = None,
+    ) -> None:
         """
         Initializes the MetricsPlannerAssistant agent with the OpenAI API key.
 
@@ -118,7 +134,8 @@ class MetricsPlannerAssistant(OpenAIAssistant):
         super().__init__(openai_secret_key, 
             assistant_name="Metrics Planner", 
             instructions=instructions, 
-            model=MODEL_VERSION,
+            model=model,
+            base_url=base_url,
             tools=tools,
             tool_function_mapper=TOOL_FUNCTION_MAPPER,
             thread_id=thread_id,
@@ -202,7 +219,15 @@ class MutantPlannerAssistant(OpenAIAssistant):
     experiment: Experiment
     completion_message: str = "Experiment has been set up successfully!"
 
-    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
+    def __init__(
+        self,
+        openai_secret_key: str,
+        thread_id: str = str(),
+        conversation_mode: bool = False,
+        experiment: Experiment = None,
+        model: str = MODEL_VERSION,
+        base_url: str = None,
+    ) -> None:
         """
         Initializes the MutantPlannerAssistant agent with the OpenAI API key.
 
@@ -228,7 +253,8 @@ class MutantPlannerAssistant(OpenAIAssistant):
         super().__init__(openai_secret_key, 
             assistant_name="Mutant Planner", 
             instructions=instructions, 
-            model=MODEL_VERSION,
+            model=model,
+            base_url=base_url,
             tools=tools,
             tool_function_mapper=TOOL_FUNCTION_MAPPER,
             thread_id=thread_id,
@@ -280,7 +306,12 @@ class MutantPlannerAssistant(OpenAIAssistant):
         if (pattern_results):
             mutation_pattern = pattern_results[0]
             self.experiment.update_mutation_pattern(mutation_pattern=mutation_pattern)
-            mutation_explainer_agent = MutationPatternExplainer(openai_secret_key=self.client.api_key, experiment=self.experiment)
+            mutation_explainer_agent = MutationPatternExplainer(
+                openai_secret_key=self.client.api_key,
+                experiment=self.experiment,
+                model=self.model,
+                base_url=str(self.client.base_url),
+            )
             is_valid, status_code, mutation_explanation = mutation_explainer_agent.ask_gpt(mutation_pattern)
             processed_response_content = f"{response_content}\n{mutation_explanation}"
             processed_response_content = f"Please confirm the mutations you want:\n```txt\n{mutation_pattern}\n```\n{mutation_explanation}"
@@ -310,7 +341,15 @@ class MutationPatternExplainer(OpenAIAssistant):
     
     experiment: Experiment
 
-    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
+    def __init__(
+        self,
+        openai_secret_key: str,
+        thread_id: str = str(),
+        conversation_mode: bool = False,
+        experiment: Experiment = None,
+        model: str = MODEL_VERSION,
+        base_url: str = None,
+    ) -> None:
         """
         Initializes the MutantPlannerAssistant agent with the OpenAI API key.
 
@@ -328,7 +367,8 @@ class MutationPatternExplainer(OpenAIAssistant):
         super().__init__(openai_secret_key, 
             assistant_name="Mutation Pattern Explainer", 
             instructions=instructions, 
-            model=MODEL_VERSION,
+            model=model,
+            base_url=base_url,
             tools=tools,
             tool_function_mapper=TOOL_FUNCTION_MAPPER,
             thread_id=thread_id,
@@ -351,7 +391,15 @@ class ResultExplainerAssistant(OpenAIAssistant):
     metadata: dict
     downloadables: List[dict]
 
-    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
+    def __init__(
+        self,
+        openai_secret_key: str,
+        thread_id: str = str(),
+        conversation_mode: bool = False,
+        experiment: Experiment = None,
+        model: str = MODEL_VERSION,
+        base_url: str = None,
+    ) -> None:
         """
         Initializes the MutantPlannerAssistant agent with the OpenAI API key.
 
@@ -377,7 +425,8 @@ class ResultExplainerAssistant(OpenAIAssistant):
         super().__init__(openai_secret_key, 
             assistant_name="Result Explainer", 
             instructions=instructions, 
-            model=MODEL_VERSION,
+            model=model,
+            base_url=base_url,
             tools=tools,
             tool_function_mapper=TOOL_FUNCTION_MAPPER,
             thread_id=thread_id,
@@ -457,7 +506,15 @@ class QuestionSummarizerAssistant(OpenAIAssistant):
     
     experiment: Experiment
 
-    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
+    def __init__(
+        self,
+        openai_secret_key: str,
+        thread_id: str = str(),
+        conversation_mode: bool = False,
+        experiment: Experiment = None,
+        model: str = MODEL_VERSION,
+        base_url: str = None,
+    ) -> None:
         """
         Initializes the MutantPlannerAssistant agent with the OpenAI API key.
 
@@ -483,7 +540,8 @@ class QuestionSummarizerAssistant(OpenAIAssistant):
         super().__init__(openai_secret_key, 
             assistant_name="Question Summarizer", 
             instructions=instructions, 
-            model=MODEL_VERSION,
+            model=model,
+            base_url=base_url,
             tools=tools,
             tool_function_mapper=TOOL_FUNCTION_MAPPER,
             thread_id=thread_id,
@@ -499,7 +557,14 @@ class TimezoneConsultantAssistant(OpenAIAssistant):
     The agent is for test use only.
     """
 
-    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False) -> None:
+    def __init__(
+        self,
+        openai_secret_key: str,
+        thread_id: str = str(),
+        conversation_mode: bool = False,
+        model: str = MODEL_VERSION,
+        base_url: str = None,
+    ) -> None:
         """
         Initializes the MutantPlannerAssistant agent with the OpenAI API key.
 
@@ -514,7 +579,8 @@ class TimezoneConsultantAssistant(OpenAIAssistant):
         super().__init__(openai_secret_key, 
             assistant_name="Time Zone Consultant", 
             instructions=instructions, 
-            model=MODEL_VERSION,
+            model=model,
+            base_url=base_url,
             thread_id=thread_id,
             conversation_mode=conversation_mode,
         )

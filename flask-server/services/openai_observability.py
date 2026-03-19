@@ -8,6 +8,7 @@ from dataclasses import asdict, dataclass
 from json import dumps
 from logging import Logger
 from typing import Any, Dict
+from flask import current_app, has_app_context
 
 
 @dataclass
@@ -37,4 +38,8 @@ def log_openai_meta(logger: Logger, event: str, meta: OpenAIMeta, **kwargs) -> N
     }
     if kwargs:
         payload.update(kwargs)
-    logger.info(_safe_json(payload))
+    log_line = _safe_json(payload)
+    if has_app_context():
+        current_app.logger.info(log_line)
+        return
+    logger.info(log_line)

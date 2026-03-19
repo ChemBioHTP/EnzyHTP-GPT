@@ -13,7 +13,7 @@
             <a-menu-divider />
             <a-menu-item>
               <a href="javascript:;" @click="updateOpenAIKey"
-                >Update OpenAI key</a
+                >Config AI Provider/Model</a
               >
             </a-menu-item>
             <a-menu-divider />
@@ -47,13 +47,13 @@
         />
       </div>
       <div class="login-form-header">
-        <div class="title">Provide Secret API Key</div>
+        <div class="title">Set Your Provider and API Key</div>
         <div class="tip">
-          <span>Copy and paste your API key from OpenAI.</span>
-          <div class="tip-warning">NOTE: The OpenAI account for this key must have available funds. (>$1)</div>
+          <span>Select your provider and model first.</span>
+          <div class="tip-warning">OpenAI requires your own API key. Fireworks can use server default key by default.</div>
           <a
             class="theme-color"
-            href="https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key"
+            :href="learnMoreLink"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -65,15 +65,37 @@
         :model="form"
         layout="vertical"
         class="mt60"
-        :rules="rules"
         @finish="onFinish"
-        @validate="handleValidate"
       >
-        <a-form-item label="" name="openai_secret_key">
+        <a-form-item label="Provider" name="openai_provider">
+          <a-select
+            v-model:value="form.openai_provider"
+            size="large"
+            :options="providerOptions"
+            :disabled="profileLoading"
+            @change="handleProviderChange"
+          />
+        </a-form-item>
+        <a-form-item label="Model" name="openai_model">
+          <a-select
+            v-model:value="form.openai_model"
+            size="large"
+            :options="modelOptions"
+            :disabled="profileLoading"
+          />
+        </a-form-item>
+        <a-form-item v-if="form.openai_provider === 'fireworks'" name="use_custom_openai_secret_key">
+          <a-checkbox v-model:checked="form.use_custom_openai_secret_key" :disabled="profileLoading">
+            Use my own API key (optional)
+          </a-checkbox>
+        </a-form-item>
+        <a-form-item label="API key" name="openai_secret_key">
           <a-input
             v-model:value="form.openai_secret_key"
             :bordered="true"
             size="large"
+            :disabled="profileLoading || !requireApiKey"
+            :placeholder="requireApiKey ? 'Enter your API key' : 'Using server default key'"
           />
         </a-form-item>
         <a-form-item>
@@ -100,12 +122,18 @@
   </div>
 </template>
 <script setup>
-import { ref, reactive } from "vue";
-import { ArrowLeftOutlined } from "@ant-design/icons-vue";
-import { logout, updateProfile } from "@/api/auth";
+import { ref, reactive, computed } from "vue";
+import { ArrowLeftOutlined, LoadingOutlined } from "@ant-design/icons-vue";
+import { logout, updateProfile, getProfile } from "@/api/auth";
 import ChangePassword from "@/views/auth/changePassword.vue";
 import { message } from "ant-design-vue";
 import { useExperimentStore } from "@/stores/experiment";
+import {
+  LLM_MODEL_OPTIONS,
+  LLM_PROVIDER_OPTIONS,
+  getDefaultModelByProvider,
+  requiresApiKey,
+} from "@/config/llm";
 const experimentStore = useExperimentStore();
 
 const logOut = async () => {
@@ -113,33 +141,91 @@ const logOut = async () => {
   experimentStore.setExperiments([]);
   experimentStore.setExperiment({})
 };
-const disabled = ref(true);
 const loading = ref(false);
+const profileLoading = ref(false);
 
 const form = reactive({
+  openai_provider: "openai",
+  openai_model: getDefaultModelByProvider("openai"),
+  use_custom_openai_secret_key: true,
   openai_secret_key: "",
-});
-const rules = reactive({
-  openai_secret_key: [{ required: true, message: "", trigger: "change" }],
 });
 const model = reactive({
   openChangePassword: false,
   openUpdateOpenAIKey: false,
 });
+const providerOptions = LLM_PROVIDER_OPTIONS;
+const modelOptions = computed(() => LLM_MODEL_OPTIONS[form.openai_provider] || []);
+const requireApiKey = computed(() =>
+  requiresApiKey(form.openai_provider, form.use_custom_openai_secret_key)
+);
+const disabled = computed(() => {
+  if (profileLoading.value) return true;
+  if (loading.value) return true;
+  if (!form.openai_provider || !form.openai_model) return true;
+  if (requireApiKey.value && !form.openai_secret_key) return true;
+  return false;
+});
+const learnMoreLink = computed(() => {
+  if (form.openai_provider === "fireworks") {
+    return "https://docs.fireworks.ai/";
+  }
+  return "https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key";
+});
+
+const syncModelForProvider = () => {
+  const providerModelOptions = LLM_MODEL_OPTIONS[form.openai_provider] || [];
+  if (!providerModelOptions.find(option => option.value === form.openai_model)) {
+    form.openai_model = getDefaultModelByProvider(form.openai_provider);
+  }
+};
 
 const changePassword = () => {
   model.openChangePassword = true;
 };
-const updateOpenAIKey = () => {
-  model.openUpdateOpenAIKey = true;
+const updateOpenAIKey = async () => {
+  if (profileLoading.value) return;
+  profileLoading.value = true;
+  try {
+    const res = await getProfile();
+    const provider = res?.openai_provider || "openai";
+    form.openai_provider = provider;
+    form.openai_model = res?.openai_model || getDefaultModelByProvider(provider);
+    form.use_custom_openai_secret_key = provider === "openai"
+      ? true
+      : !!res?.use_custom_openai_secret_key;
+    syncModelForProvider();
+    model.openUpdateOpenAIKey = true;
+  } catch {
+    message.error("Failed to load current provider settings.");
+  } finally {
+    profileLoading.value = false;
+  }
+};
+
+const handleProviderChange = provider => {
+  if (provider === "openai") {
+    form.use_custom_openai_secret_key = true;
+  } else if (provider === "fireworks") {
+    form.use_custom_openai_secret_key = false;
+  }
+  syncModelForProvider();
 };
 
 const onFinish = async () => {
-  if(loading.value) return;
+  if(profileLoading.value || loading.value) return;
   loading.value = true;
-  updateProfile(form).then(res => {
+  const payload = {
+    openai_provider: form.openai_provider,
+    openai_model: form.openai_model,
+    use_custom_openai_secret_key: form.use_custom_openai_secret_key,
+  };
+  if (requireApiKey.value || form.openai_secret_key) {
+    payload.openai_secret_key = form.openai_secret_key;
+  }
+  updateProfile(payload).then(res => {
     loading.value = false;
-    if (res.is_successful === true&&res.is_openai_secret_key_valid) {
+    if (res.is_successful === true) {
       message.success(res.message);
       form.openai_secret_key = "";
       model.openUpdateOpenAIKey = false;
@@ -147,12 +233,6 @@ const onFinish = async () => {
     }
     message.error(res.message);
   });
-};
-
-const handleValidate = (name, status) => {
-  if (form.openai_secret_key) {
-    disabled.value = !status;
-  }
 };
 </script>
 <style lang="scss" scoped>

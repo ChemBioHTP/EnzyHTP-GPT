@@ -30,7 +30,7 @@ from werkzeug.datastructures import ImmutableMultiDict
 from .models import Experiment, Result
 from .analysis import METRICS_MAPPER
 from .experiment_config import StatusCode
-from .agents import ResultExplainerAssistant
+from .agents import ResultExplainerAssistant, MODEL_VERSION
 from .manual_md_pack import build_manual_md_package
 from auth.models import User
 from auth.views import (
@@ -74,6 +74,16 @@ from enzy_htp.core import (
 db = mongo.db
 
 RAW_RESULTS_FILENAME = "raw_results.csv"
+
+
+def _get_openai_client_config(user: User) -> dict:
+    if (hasattr(user, "get_openai_client_config")):
+        return user.get_openai_client_config()
+    return {
+        "api_key": getattr(user, "openai_secret_key", None),
+        "base_url": None,
+        "model": MODEL_VERSION,
+    }
 
 def _aggregate_group_status_progress(experiment: Experiment) -> Tuple[int, float]:
     """Aggregate status/progress for group experiments from sub experiments."""
@@ -472,7 +482,11 @@ class IndexApi(Resource):
                 message=f"The experiment instance '{experiment_id}' is {StatusCode.status_text_mapper[experiment.status]}, which is unable to be deleted.")
             return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
         else:
-            _ = experiment.clear_chat_threads(user.openai_secret_key)
+            openai_client_config = _get_openai_client_config(user)
+            _ = experiment.clear_chat_threads(
+                openai_secret_key=openai_client_config.get("api_key"),
+                openai_base_url=openai_client_config.get("base_url"),
+            )
             experiment.clear_folder(remove_folder=True)
             db.experiments.delete_one({"id": experiment.id})
             db.results.delete_many({"experiment_id": experiment_id})
@@ -770,8 +784,11 @@ class ResultApi(Resource):
 
         if (not experiment.result_interpretation):
             _ = AssistantsApi.get_scientific_question(user=user, experiment=experiment)
+            openai_client_config = _get_openai_client_config(user)
             result_explainer = ResultExplainerAssistant(
-                openai_secret_key=user.openai_secret_key, 
+                openai_secret_key=openai_client_config.get("api_key"),
+                model=openai_client_config.get("model"),
+                base_url=openai_client_config.get("base_url"),
                 conversation_mode=False,
                 experiment=experiment
             )
@@ -1047,11 +1064,13 @@ class MutationApi(Resource):
         mutation_request = request.form.get("mutation_request")
 
         instructions = open(path.join(BASEDIR, "prompts", "mutant_planner-v1.txt")).read()
-        service = build_openai_agent(user.openai_secret_key, 
+        openai_client_config = _get_openai_client_config(user)
+        service = build_openai_agent(openai_client_config.get("api_key"), 
             assistant_name="Mutant Planner", 
             instructions=instructions, 
-            model="gpt-4o", 
-            conversation_mode=False
+            model=openai_client_config.get("model") or MODEL_VERSION,
+            base_url=openai_client_config.get("base_url"),
+            conversation_mode=False,
         )
         is_openai_key_valid, status_code, response_content = service.ask_gpt(prompt=mutation_request)
 
@@ -1185,19 +1204,28 @@ class AssistantsApi(Resource):
             user (User): The user instance.
             experiment (Experiment): The experiment instance.
         """
+        openai_client_config = _get_openai_client_config(user)
+        openai_secret_key = openai_client_config.get("api_key")
+        openai_base_url = openai_client_config.get("base_url")
+
         question_analyzer_session_id = experiment.get_question_analyzer_session_id(runtime=OPENAI_RUNTIME)
         messages = experiment.get_messages_by_session_id(question_analyzer_session_id)
         is_successful = bool(messages)
 
         if ((not messages) and question_analyzer_session_id):
             is_successful, messages = OpenAIAssistant.get_thread_messages(
-                openai_secret_key=user.openai_secret_key,
+                openai_secret_key=openai_secret_key,
+                base_url=openai_base_url,
                 thread_id=question_analyzer_session_id,
             )
 
         if (is_successful and messages):
             question_summarizer = QuestionSummarizerAssistant(
-                openai_secret_key=user.openai_secret_key, conversation_mode=False, experiment=experiment
+                openai_secret_key=openai_secret_key,
+                model=openai_client_config.get("model"),
+                base_url=openai_base_url,
+                conversation_mode=False,
+                experiment=experiment,
             )
             is_valid, status_code, experiment.scientific_question = question_summarizer.ask_gpt(
                 prompt=dumps(messages)
@@ -1231,10 +1259,12 @@ class AssistantsApi(Resource):
         if (experiment.chat_messages):
             assistant_messages = experiment.chat_messages
         else:
+            openai_client_config = _get_openai_client_config(user)
             session_id = experiment.get_primary_session_id(runtime=OPENAI_RUNTIME)
             if (session_id):
                 is_successful, assistant_messages = OpenAIAssistant.get_thread_messages(
-                    openai_secret_key=user.openai_secret_key,
+                    openai_secret_key=openai_client_config.get("api_key"),
+                    base_url=openai_client_config.get("base_url"),
                     thread_id=session_id,
                     limit=50
                 )
@@ -1275,10 +1305,13 @@ class AssistantsApi(Resource):
             return forbidden_response(user, experiment)
         
         user_prompt = request.form.get("prompt", str())
+        openai_client_config = _get_openai_client_config(user)
         current_assistant_class = AGENT_MAPPER[experiment.current_assistant_type % len(AGENT_MAPPER)]
         # print([current_assistant_class])
         current_assistant: DefinedAgent = current_assistant_class(
-            openai_secret_key=user.openai_secret_key, 
+            openai_secret_key=openai_client_config.get("api_key"),
+            model=openai_client_config.get("model"),
+            base_url=openai_client_config.get("base_url"),
             thread_id=experiment.get_primary_session_id(runtime=OPENAI_RUNTIME),
             conversation_mode=True,
             experiment=experiment,
@@ -1371,9 +1404,12 @@ class AssistantsApi(Resource):
             updated_attributes_from_response = list()
 
             if (experiment.current_assistant_type < len(AGENT_MAPPER)): # If there's next agent, correspond with OpenAI.
+                openai_client_config = _get_openai_client_config(user)
                 current_assistant_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
                 current_assistant: DefinedAgent = current_assistant_class(
-                    openai_secret_key=user.openai_secret_key, 
+                    openai_secret_key=openai_client_config.get("api_key"),
+                    model=openai_client_config.get("model"),
+                    base_url=openai_client_config.get("base_url"),
                     conversation_mode=True,
                     experiment=experiment,
                 )
@@ -1384,7 +1420,8 @@ class AssistantsApi(Resource):
                     question_analyzer_session_id = experiment.get_question_analyzer_session_id(runtime=OPENAI_RUNTIME)
                     if (question_analyzer_session_id):
                         is_successful, question_analyzer_summary = OpenAIAssistant.get_thread_summary(
-                            openai_secret_key=user.openai_secret_key,
+                            openai_secret_key=openai_client_config.get("api_key"),
+                            base_url=openai_client_config.get("base_url"),
                             thread_id=question_analyzer_session_id,
                         )
                 starting_message = current_assistant.pre_process(input_prompt=question_analyzer_summary)
@@ -1448,7 +1485,11 @@ class AssistantsApi(Resource):
         if (user is None or experiment.user_id != user.id):
             return forbidden_response(user, experiment)
 
-        is_successful = experiment.clear_chat_threads(user.openai_secret_key)
+        openai_client_config = _get_openai_client_config(user)
+        is_successful = experiment.clear_chat_threads(
+            openai_secret_key=openai_client_config.get("api_key"),
+            openai_base_url=openai_client_config.get("base_url"),
+        )
         if (is_successful):
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,

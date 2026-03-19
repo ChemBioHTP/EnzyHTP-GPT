@@ -17,13 +17,17 @@ from openai import (
     BadRequestError,
     InternalServerError,
     NotFoundError,
-    OpenAI,
     RateLimitError,
 )
 
-from config import OPENAI_RUNTIME
+from config import OPENAI_RUNTIME, OPENAI_RESPONSES_STRICT_CONVERSATIONS
 from .openai_observability import OpenAIMeta, log_openai_meta
-from .openai_service import AssistantFunction, OpenAIChat, DEFAULT_OPENAI_API_KEY
+from .openai_service import (
+    AssistantFunction,
+    OpenAIChat,
+    DEFAULT_OPENAI_API_KEY,
+    build_openai_client,
+)
 
 LOGGER = logging.getLogger(__name__)
 MAX_TOOL_LOOP = 8
@@ -44,6 +48,7 @@ class OpenAIResponsesService(OpenAIChat):
     response_tools: List[dict]
     latest_tool_call_result: Dict[str, bool]
     latest_response_id: str | None
+    _conversation_api_supported: bool | None
 
     def __init__(
         self,
@@ -51,6 +56,7 @@ class OpenAIResponsesService(OpenAIChat):
         assistant_name: str = str(),
         instructions: str = str(),
         model: str = "gpt-4o",
+        base_url: str = None,
         tools: List[dict] = list(),
         tool_function_mapper: Dict[str, Callable] = dict(),
         tool_function_callable_kwargs: Dict[str, Any] = dict(),
@@ -58,14 +64,23 @@ class OpenAIResponsesService(OpenAIChat):
         conversation_mode: bool = False,
         **kwargs,
     ) -> None:
-        super().__init__(openai_secret_key=openai_secret_key, model=model, conversation_mode=conversation_mode)
+        super().__init__(
+            openai_secret_key=openai_secret_key,
+            model=model,
+            conversation_mode=conversation_mode,
+            base_url=base_url,
+        )
         self.assistant_name = assistant_name
         self.instructions = instructions
         self.tools = tools
         self.response_tools = self._normalize_tools_for_responses(tools)
         self.conversation_id = self._normalize_conversation_id(thread_id) if thread_id else None
         self.latest_response_id = None
+        self._conversation_api_supported = None
         if (self._is_legacy_assistant_thread_id(self.conversation_id)):
+            self.conversation_id = None
+        if (self._is_response_id(thread_id)):
+            self.latest_response_id = thread_id
             self.conversation_id = None
         if (thread_id):
             self.conversation_mode = True
@@ -115,6 +130,10 @@ class OpenAIResponsesService(OpenAIChat):
         return isinstance(value, str) and value.startswith("thread_")
 
     @staticmethod
+    def _is_response_id(value: str | None) -> bool:
+        return isinstance(value, str) and value.startswith("resp_")
+
+    @staticmethod
     def _normalize_tools_for_responses(tools: List[dict]) -> List[dict]:
         normalized_tools: List[dict] = []
         for tool in tools:
@@ -158,6 +177,23 @@ class OpenAIResponsesService(OpenAIChat):
         return OpenAIResponsesService._as_text(content)
 
     @classmethod
+    def _extract_latest_assistant_text(cls, output_items: list) -> str:
+        latest_text = str()
+        for item in output_items or []:
+            item_type = getattr(item, "type", None)
+            if (item_type is None and isinstance(item, dict)):
+                item_type = item.get("type")
+            if (item_type != "message"):
+                continue
+            content = getattr(item, "content", None)
+            if (content is None and isinstance(item, dict)):
+                content = item.get("content")
+            item_text = cls._extract_text_from_message_output(content)
+            if (item_text):
+                latest_text = item_text
+        return latest_text
+
+    @classmethod
     def _extract_messages_from_items(cls, items: list) -> List[Dict[str, str]]:
         messages: List[Dict[str, str]] = []
         for item in items:
@@ -186,7 +222,7 @@ class OpenAIResponsesService(OpenAIChat):
             "tools": self.response_tools,
             **self.openai_args_dict,
         }
-        if (normalized_conversation_id):
+        if (normalized_conversation_id and self._conversation_api_supported is not False):
             kwargs["conversation"] = normalized_conversation_id
         elif (self.latest_response_id):
             kwargs["previous_response_id"] = self.latest_response_id
@@ -197,18 +233,47 @@ class OpenAIResponsesService(OpenAIChat):
             self.conversation_id = None
         if (not self.conversation_mode or self.conversation_id):
             return
+        if (getattr(self, "_conversation_api_supported", None) is False):
+            return
         conversations = getattr(self.client, "conversations", None)
         if (not conversations or not hasattr(conversations, "create")):
+            self._conversation_api_supported = False
             return
-        conversation = conversations.create()
-        self.conversation_id = self._normalize_conversation_id(
-            getattr(conversation, "id", None) or getattr(conversation, "conversation", None) or conversation
-        )
+        try:
+            conversation = conversations.create()
+            self._conversation_api_supported = True
+            self.conversation_id = self._normalize_conversation_id(
+                getattr(conversation, "id", None) or getattr(conversation, "conversation", None) or conversation
+            )
+        except APIError as e:
+            error_text = str(e).lower()
+            unsupported_conversations_api = (
+                "/v1/conversations" in error_text
+                or ("path not found" in error_text and "conversations" in error_text)
+            )
+            if (unsupported_conversations_api):
+                self._conversation_api_supported = False
+                self.conversation_id = None
+                log_openai_meta(
+                    LOGGER,
+                    "openai_responses.conversation_fallback",
+                    OpenAIMeta(
+                        openai_runtime=OPENAI_RUNTIME,
+                        model=self.model,
+                        conversation_id=None,
+                        openai_error_code="conversations_api_unsupported",
+                    ),
+                    error=str(e),
+                )
+                return
+            raise
 
     @property
     def thread(self):
         if (self.conversation_mode and self.conversation_id):
             return SimpleNamespace(id=self.conversation_id)
+        if (self.conversation_mode and self.latest_response_id):
+            return SimpleNamespace(id=self.latest_response_id)
         return None
 
     @thread.setter
@@ -219,6 +284,10 @@ class OpenAIResponsesService(OpenAIChat):
             return
         value_id = getattr(value, "id", None)
         if (value_id):
+            if (self._is_response_id(value_id)):
+                self.latest_response_id = value_id
+                self.conversation_id = None
+                return
             self.conversation_id = self._normalize_conversation_id(value_id)
 
     def _extract_text_and_calls(self, response: Any) -> Tuple[str, List[dict]]:
@@ -239,11 +308,9 @@ class OpenAIResponsesService(OpenAIChat):
                 })
                 continue
 
-            if (item_type == "message" and not output_text):
-                content = getattr(item, "content", None)
-                if (content is None and isinstance(item, dict)):
-                    content = item.get("content")
-                output_text = self._extract_text_from_message_output(content)
+        latest_message_text = self._extract_latest_assistant_text(output_items)
+        if (latest_message_text):
+            output_text = latest_message_text
 
         output_text = self._as_text(output_text)
         return output_text, tool_calls
@@ -479,10 +546,12 @@ class OpenAIResponsesService(OpenAIChat):
         if (not self.conversation_mode):
             return False
         if (not self.conversation_id):
+            self.latest_response_id = None
             return True
         is_successful = self.delete_session(
             openai_secret_key=self.client.api_key,
             session_id=self.conversation_id,
+            base_url=str(self.client.base_url),
         )
         if (is_successful):
             self.conversation_id = None
@@ -490,46 +559,117 @@ class OpenAIResponsesService(OpenAIChat):
         return is_successful
 
     @classmethod
-    def get_messages(cls, openai_secret_key: str, session_id: str, limit: int = 20) -> Tuple[bool, List[Dict[str, str]]]:
+    def get_messages(
+        cls,
+        openai_secret_key: str,
+        session_id: str,
+        limit: int = 20,
+        base_url: str = None,
+    ) -> Tuple[bool, List[Dict[str, str]]]:
+        if (not session_id):
+            return True, list()
         try:
-            client = OpenAI(api_key=openai_secret_key)
+            client = build_openai_client(openai_secret_key, base_url=base_url)
+            if (cls._is_response_id(session_id)):
+                response = client.responses.retrieve(session_id)
+                output_items = getattr(response, "output", []) or []
+                output_text = cls._extract_latest_assistant_text(output_items)
+                if (not output_text):
+                    output_text = cls._as_text(getattr(response, "output_text", ""))
+                messages = [{"role": "assistant", "text_value": output_text}] if output_text else list()
+                return True, messages
             conversations = getattr(client, "conversations", None)
             if (not conversations):
-                return False, list()
+                log_openai_meta(
+                    LOGGER,
+                    "openai_responses.messages_unavailable",
+                    OpenAIMeta(
+                        openai_runtime=OPENAI_RUNTIME,
+                        model="unknown",
+                        conversation_id=session_id,
+                        openai_error_code="conversations_api_unavailable",
+                    ),
+                    strict_mode=OPENAI_RESPONSES_STRICT_CONVERSATIONS,
+                    reason="client.conversations is unavailable for this provider",
+                )
+                if (OPENAI_RESPONSES_STRICT_CONVERSATIONS):
+                    return False, list()
+                return True, list()
             items_api = getattr(conversations, "items", None)
             if (not items_api or not hasattr(items_api, "list")):
-                return False, list()
+                log_openai_meta(
+                    LOGGER,
+                    "openai_responses.messages_unavailable",
+                    OpenAIMeta(
+                        openai_runtime=OPENAI_RUNTIME,
+                        model="unknown",
+                        conversation_id=session_id,
+                        openai_error_code="conversations_items_api_unavailable",
+                    ),
+                    strict_mode=OPENAI_RESPONSES_STRICT_CONVERSATIONS,
+                    reason="client.conversations.items.list is unavailable for this provider",
+                )
+                if (OPENAI_RESPONSES_STRICT_CONVERSATIONS):
+                    return False, list()
+                return True, list()
             result = items_api.list(conversation_id=session_id, limit=limit)
             items = getattr(result, "data", []) or []
             messages = cls._extract_messages_from_items(items)
             return True, messages
+        except NotFoundError:
+            return True, list()
         except Exception:
             return False, list()
 
     @classmethod
-    def get_thread_messages(cls, openai_secret_key: str, thread_id: str, limit: int = 20) -> Tuple[bool, List[Dict[str, str]]]:
-        return cls.get_messages(openai_secret_key=openai_secret_key, session_id=thread_id, limit=limit)
+    def get_thread_messages(
+        cls,
+        openai_secret_key: str,
+        thread_id: str,
+        limit: int = 20,
+        base_url: str = None,
+    ) -> Tuple[bool, List[Dict[str, str]]]:
+        return cls.get_messages(
+            openai_secret_key=openai_secret_key,
+            session_id=thread_id,
+            limit=limit,
+            base_url=base_url,
+        )
 
     @classmethod
-    def get_summary(cls, openai_secret_key: str, session_id: str) -> Tuple[bool, str]:
-        is_successful, messages = cls.get_messages(openai_secret_key, session_id)
+    def get_summary(cls, openai_secret_key: str, session_id: str, base_url: str = None) -> Tuple[bool, str]:
+        is_successful, messages = cls.get_messages(openai_secret_key, session_id, base_url=base_url)
         assistant_messages = [message for message in messages if message.get("role", None) == "assistant"]
         summary = assistant_messages[-1].get("text_value", str()) if assistant_messages else str()
         return is_successful, summary
 
     @classmethod
-    def get_thread_summary(cls, openai_secret_key: str, thread_id: str) -> Tuple[bool, str]:
-        return cls.get_summary(openai_secret_key=openai_secret_key, session_id=thread_id)
+    def get_thread_summary(cls, openai_secret_key: str, thread_id: str, base_url: str = None) -> Tuple[bool, str]:
+        return cls.get_summary(openai_secret_key=openai_secret_key, session_id=thread_id, base_url=base_url)
 
     @classmethod
-    def delete_session(cls, openai_secret_key: str, session_id: str) -> bool:
+    def delete_session(cls, openai_secret_key: str, session_id: str, base_url: str = None) -> bool:
         if (not session_id):
             return True
+        if (cls._is_response_id(session_id)):
+            return True
         try:
-            client = OpenAI(api_key=openai_secret_key)
+            client = build_openai_client(openai_secret_key, base_url=base_url)
             conversations = getattr(client, "conversations", None)
             if (not conversations or not hasattr(conversations, "delete")):
-                return False
+                log_openai_meta(
+                    LOGGER,
+                    "openai_responses.delete_unavailable",
+                    OpenAIMeta(
+                        openai_runtime=OPENAI_RUNTIME,
+                        model="unknown",
+                        conversation_id=session_id,
+                        openai_error_code="conversations_delete_api_unavailable",
+                    ),
+                    strict_mode=OPENAI_RESPONSES_STRICT_CONVERSATIONS,
+                    reason="client.conversations.delete is unavailable for this provider",
+                )
+                return not OPENAI_RESPONSES_STRICT_CONVERSATIONS
             _ = conversations.delete(conversation_id=session_id)
             return True
         except NotFoundError:
@@ -538,8 +678,8 @@ class OpenAIResponsesService(OpenAIChat):
             return False
 
     @classmethod
-    def delete_thread(cls, openai_secret_key: str, thread_id: str) -> bool:
-        return cls.delete_session(openai_secret_key=openai_secret_key, session_id=thread_id)
+    def delete_thread(cls, openai_secret_key: str, thread_id: str, base_url: str = None) -> bool:
+        return cls.delete_session(openai_secret_key=openai_secret_key, session_id=thread_id, base_url=base_url)
 
     @classmethod
     def delete_threads(
@@ -547,13 +687,18 @@ class OpenAIResponsesService(OpenAIChat):
         openai_secret_key: str,
         thread_id_list: List[str] = None,
         thread_id: List[str] = None,
+        base_url: str = None,
     ) -> Tuple[bool, List[str]]:
         if (thread_id_list is None):
             thread_id_list = thread_id if isinstance(thread_id, list) else list()
         is_successful = True
         deleted_thread_id_list = list()
         for thread_id in thread_id_list:
-            is_deleted = cls.delete_thread(openai_secret_key=openai_secret_key, thread_id=thread_id)
+            is_deleted = cls.delete_thread(
+                openai_secret_key=openai_secret_key,
+                thread_id=thread_id,
+                base_url=base_url,
+            )
             if (is_deleted):
                 deleted_thread_id_list.append(thread_id)
             else:

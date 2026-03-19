@@ -121,8 +121,9 @@ def test_clear_chat_threads_resets_fields_when_some_session_deletions_fail(monke
 
     fake_logger = _FakeLogger()
 
-    def _fake_delete_threads(openai_secret_key, thread_id_list):
+    def _fake_delete_threads(openai_secret_key, thread_id_list, base_url=None):
         assert openai_secret_key == "sk-test"
+        assert base_url is None
         assert set(thread_id_list) == {"thread_current", "thread_old", "conv_current", "conv_old"}
         return False, ["thread_current", "conv_current"]
 

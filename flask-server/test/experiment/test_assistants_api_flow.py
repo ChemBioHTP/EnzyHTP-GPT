@@ -31,9 +31,11 @@ class _ExperimentStub:
 
 
 class _QuestionSummarizerStub:
-    def __init__(self, openai_secret_key, conversation_mode, experiment):
+    def __init__(self, openai_secret_key, conversation_mode, experiment, model=None, base_url=None):
         _ = openai_secret_key
         _ = conversation_mode
+        _ = model
+        _ = base_url
         self.experiment = experiment
         self.prompt_seen = None
 
@@ -70,7 +72,7 @@ def test_get_scientific_question_falls_back_to_latest_local_output(monkeypatch):
     monkeypatch.setattr(
         experiment_views.OpenAIAssistant,
         "get_thread_messages",
-        staticmethod(lambda openai_secret_key, thread_id: (False, [])),
+        staticmethod(lambda openai_secret_key, thread_id, base_url=None: (False, [])),
     )
 
     scientific_question = AssistantsApi.get_scientific_question(user=user, experiment=experiment)

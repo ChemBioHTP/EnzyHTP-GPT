@@ -48,8 +48,29 @@ from .json_to_tree import JsonToTree
 
 # from config import DEFAULT_OPENAI_API_KEY
 DEFAULT_OPENAI_API_KEY = "5511667"
+DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1"
 DEFAULT_TIMEOUT_LIMIT = 60      # The timeout waiting for response. Unit: Seconds.
 LOGGER = logging.getLogger(__name__)
+
+
+def normalize_openai_base_url(base_url: str = None) -> str:
+    """Normalize provider base URL and ensure it always has protocol."""
+    if (base_url is None):
+        return DEFAULT_OPENAI_BASE_URL
+    if (not isinstance(base_url, str)):
+        base_url = str(base_url)
+    normalized = base_url.strip()
+    if (not normalized):
+        return DEFAULT_OPENAI_BASE_URL
+    if (not re.match(r"^https?://", normalized, re.IGNORECASE)):
+        normalized = f"https://{normalized.lstrip('/')}"
+    return normalized.rstrip("/")
+
+
+def build_openai_client(openai_secret_key: str, base_url: str = None) -> OpenAI:
+    """Create OpenAI client with sanitized base_url to avoid malformed endpoint issues."""
+    normalized_base_url = normalize_openai_base_url(base_url)
+    return OpenAI(api_key=openai_secret_key, base_url=normalized_base_url)
 
 #region OpenAI Chatbot
 
@@ -59,7 +80,7 @@ class OpenAIChat:
     client: OpenAI
     conversation_mode: bool
 
-    def __init__(self, openai_secret_key: str, model: str = "gpt-3.5-turbo", conversation_mode: bool = False, **kwargs) -> None:
+    def __init__(self, openai_secret_key: str, model: str = "gpt-3.5-turbo", conversation_mode: bool = False, base_url: str = None, **kwargs) -> None:
         """Initializes the service with the OpenAI API key and configuration for using specific GPT models.
 
         Args:
@@ -71,10 +92,11 @@ class OpenAIChat:
             **kwargs: Additional arguments to customize the API calls.
         """
         self.model = model
+        self.base_url = normalize_openai_base_url(base_url)
         if (openai_secret_key):
-            self.client = OpenAI(api_key=openai_secret_key)
+            self.client = build_openai_client(openai_secret_key, base_url=self.base_url)
         else:
-            self.client = OpenAI(api_key=DEFAULT_OPENAI_API_KEY)
+            self.client = build_openai_client(DEFAULT_OPENAI_API_KEY, base_url=self.base_url)
         self.conversation_mode = conversation_mode
         self.messages = list() if self.conversation_mode else None
         
@@ -101,7 +123,21 @@ class OpenAIChat:
             openai_runtime=OPENAI_RUNTIME,
             model=self.model,
         )
-        log_openai_meta(LOGGER, "openai_chat.request", base_meta)
+        log_openai_meta(
+            LOGGER,
+            "openai_chat.request",
+            base_meta,
+            endpoint=self.base_url,
+            conversation_mode=self.conversation_mode,
+            prompt_char_count=len(prompt or ""),
+            openai_args=self.openai_args_dict,
+            request_payload={
+                "path": "/chat/completions",
+                "model": self.model,
+                "messages_count": (len(self.messages) + 1) if self.conversation_mode else 1,
+                "has_timeout_arg": ("timeout" in self.openai_args_dict),
+            },
+        )
 
         try:
             response_content = str()
@@ -203,6 +239,23 @@ class OpenAIChat:
                 error=str(e),
             )
             return (False, 500, "OpenAI Internal Server Error. Unable to verify.")
+        except APIConnectionError as e:
+            log_openai_meta(
+                LOGGER,
+                "openai_chat.error",
+                OpenAIMeta(
+                    openai_runtime=OPENAI_RUNTIME,
+                    model=self.model,
+                    openai_error_code="api_connection_error",
+                ),
+                error=str(e),
+            )
+            endpoint = self.base_url
+            return (
+                False,
+                500,
+                f"API Connection Error: Unable to reach endpoint `{endpoint}`. detail: {str(e)}"
+            )
         except APIError as e:
             log_openai_meta(
                 LOGGER,
@@ -503,7 +556,7 @@ class OpenAIAssistant(OpenAIChat):
     def __init__(self, openai_secret_key: str, assistant_name: str = str(), 
             instructions: str = str(), model: str = "gpt-3.5-turbo", tools: List[dict] = list(), 
             tool_function_mapper: Dict[str, Callable] = dict(), tool_function_callable_kwargs: Dict[str, Any] = dict(), 
-            thread_id: str = str(), conversation_mode: bool = False, **kwargs) -> None:
+            thread_id: str = str(), conversation_mode: bool = False, base_url: str = None, **kwargs) -> None:
         """
         Initializes the service with the OpenAI API key and configuration for using specific GPT models.
 
@@ -522,7 +575,13 @@ class OpenAIAssistant(OpenAIChat):
             conversation_mode (bool): If True, retains the conversation context. If `thread_id` is provided, this value is set to True. Default is False.
             **kwargs: Additional arguments to customize the API calls.
         """
-        super().__init__(openai_secret_key=openai_secret_key, model=model, conversation_mode=conversation_mode, kwargs=kwargs)
+        super().__init__(
+            openai_secret_key=openai_secret_key,
+            model=model,
+            conversation_mode=conversation_mode,
+            base_url=base_url,
+            **kwargs,
+        )
         
         # Prepare the additional API arguments by filtering out irrelevant parameters.
         openai_param_list = [param_name for param_name in signature(self.client.beta.assistants.create).parameters]
@@ -592,7 +651,11 @@ class OpenAIAssistant(OpenAIChat):
         """
         try:
             if (self.conversation_mode):
-                is_successful = self.delete_thread(openai_secret_key=self.client.api_key, thread_id=self.__thread.id)
+                is_successful = self.delete_thread(
+                    openai_secret_key=self.client.api_key,
+                    thread_id=self.__thread.id,
+                    base_url=str(self.client.base_url),
+                )
                 if (is_successful):
                     self.thread = None
                 return is_successful
@@ -601,7 +664,13 @@ class OpenAIAssistant(OpenAIChat):
 
 
     @classmethod
-    def get_thread_messages(cls, openai_secret_key: str, thread_id: str, limit: int = 20) -> Tuple[bool, List[Dict[str, str]]]:
+    def get_thread_messages(
+        cls,
+        openai_secret_key: str,
+        thread_id: str,
+        limit: int = 20,
+        base_url: str = None,
+    ) -> Tuple[bool, List[Dict[str, str]]]:
         """Get the messages of a thread with the given ID.
 
         Args:
@@ -615,7 +684,7 @@ class OpenAIAssistant(OpenAIChat):
         """
         # TODO (Zhong): Apply a unified exception handler?
         try:
-            client = OpenAI(api_key=openai_secret_key)
+            client = build_openai_client(openai_secret_key, base_url=base_url)
             thread_messages = client.beta.threads.messages.list(thread_id=thread_id, limit=limit).data
             
             simplified_messages = list()
@@ -632,7 +701,7 @@ class OpenAIAssistant(OpenAIChat):
             return False, list()
         
     @classmethod
-    def get_thread_summary(cls, openai_secret_key: str, thread_id: str) -> Tuple[bool, str]:
+    def get_thread_summary(cls, openai_secret_key: str, thread_id: str, base_url: str = None) -> Tuple[bool, str]:
         """Summarize the information of a thread and extract key information.
         TODO (Zhong): Use regular expression to better extracting key information.
 
@@ -644,13 +713,13 @@ class OpenAIAssistant(OpenAIChat):
             is_successful (bool): Indidate if the messages are successfully retrieved and summarized.
             summary (str): The summarized message of the thread.
         """
-        is_successful, messages = cls.get_thread_messages(openai_secret_key, thread_id)
+        is_successful, messages = cls.get_thread_messages(openai_secret_key, thread_id, base_url=base_url)
         assistant_messages = [message for message in messages if message.get("role", None) == "assistant"]
         summary = assistant_messages[-1].get("text_value", str())
         return is_successful, summary
 
     @classmethod
-    def delete_thread(cls, openai_secret_key: str, thread_id: str):
+    def delete_thread(cls, openai_secret_key: str, thread_id: str, base_url: str = None):
         """Delete a thread with the given ID.
 
         Args:
@@ -660,7 +729,7 @@ class OpenAIAssistant(OpenAIChat):
         Returns:
             is_successful (bool): Indidate if the thread is deleted.
         """
-        client = OpenAI(api_key=openai_secret_key)
+        client = build_openai_client(openai_secret_key, base_url=base_url)
         try:
             response = client.beta.threads.delete(thread_id=thread_id)
             response_dict = response.to_dict()
@@ -672,7 +741,7 @@ class OpenAIAssistant(OpenAIChat):
             return False
         
     @classmethod
-    def delete_threads(cls, openai_secret_key: str, thread_id_list: List[str]):
+    def delete_threads(cls, openai_secret_key: str, thread_id_list: List[str], base_url: str = None):
         """Delete a thread with the given ID.
 
         Args:
@@ -686,7 +755,11 @@ class OpenAIAssistant(OpenAIChat):
         is_successful = True
         deleted_thread_id_list = list()
         for thread_id in thread_id_list:
-            is_deleted = cls.delete_thread(openai_secret_key=openai_secret_key, thread_id=thread_id)
+            is_deleted = cls.delete_thread(
+                openai_secret_key=openai_secret_key,
+                thread_id=thread_id,
+                base_url=base_url,
+            )
             if (is_deleted):
                 deleted_thread_id_list.append(thread_id)
             else:
@@ -844,7 +917,11 @@ class OpenAIAssistant(OpenAIChat):
                 run = self.__run_thread(prompt=prompt, thread=thread)
                 run_id = getattr(run, "id", None)
                 response_content = self.__retrieve_response_content(thread=thread)
-                _ = self.delete_thread(openai_secret_key=self.client.api_key, thread_id=thread.id)
+                _ = self.delete_thread(
+                    openai_secret_key=self.client.api_key,
+                    thread_id=thread.id,
+                    base_url=str(self.client.base_url),
+                )
 
             log_openai_meta(
                 LOGGER,
