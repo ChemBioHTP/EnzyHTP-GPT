@@ -160,7 +160,7 @@ cpu_job_config = {
 
 PROGRESS_UPDATE_URL = f"https://{app_host}/api/experiment/{experiment_id}"
 TRAJ_UPLOAD_URL = f"https://{app_host}/api/experiment/{experiment_id}?store_only=1"
-EQUIL_ALL_STAGE_FILES = ["heat_nvt.out", "equi_npt.out", "equi_npt_free_bb.out"]
+EQUIL_ALL_STAGE_FILES = ["equi_npt.out", "equi_npt_free_bb.out"]
 EQUIL_NPT_STAGE_FILES = ["equi_npt.out", "equi_npt_free_bb.out"]
 EQUILIBRATION_METHOD_LABEL = "Chodera automated equilibration detection scheme (PMCID: PMC4945107)"
 
