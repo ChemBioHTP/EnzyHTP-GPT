@@ -15,9 +15,10 @@ Three OpenAI Assistant Agents:
 # Here put the import lib.
 from os import path
 import re
+from pathlib import Path
 from string import Template
 from json import load, loads, dumps
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 from datetime import datetime
 
@@ -35,6 +36,7 @@ from enzy_htp.mutation.mutation_pattern import decode_position_pattern
 
 PROMPTS_DIRECTORY = path.join(BASEDIR, "prompts")
 MODEL_VERSION = OPENAI_MODEL_VERSION
+EQUILIBRATION_METHOD_LABEL = "Chodera automated equilibration detection scheme (PMCID: PMC4945107)"
 
 class QuestionAnalyzerAssistant(OpenAIAssistant):
     """The agent acting as a Question Analyzer."""
@@ -391,6 +393,96 @@ class ResultExplainerAssistant(OpenAIAssistant):
     metadata: dict
     downloadables: List[dict]
 
+    def _iter_experiment_result_directories(self) -> List[str]:
+        if (not self.experiment):
+            return list()
+        directories: List[str] = [self.experiment.directory]
+        if (self.experiment.type == Experiment.GROUP_TYPE):
+            for sub_experiment in self.experiment.subordinate_experiments:
+                if (sub_experiment and sub_experiment.directory):
+                    directories.append(sub_experiment.directory)
+        # Deduplicate while preserving order.
+        seen = set()
+        unique_directories: List[str] = []
+        for directory in directories:
+            if (not directory) or (directory in seen):
+                continue
+            seen.add(directory)
+            unique_directories.append(directory)
+        return unique_directories
+
+    @staticmethod
+    def _median(values: List[float]) -> Optional[float]:
+        if (not values):
+            return None
+        sorted_values = sorted(values)
+        length = len(sorted_values)
+        mid = length // 2
+        if (length % 2 == 1):
+            return float(sorted_values[mid])
+        return float((sorted_values[mid - 1] + sorted_values[mid]) / 2.0)
+
+    def _collect_equilibration_assessment_records(self) -> List[dict]:
+        records: List[dict] = []
+        for experiment_dir in self._iter_experiment_result_directories():
+            equilibration_dir = path.join(experiment_dir, "plots", "equilibration")
+            if (not path.isdir(equilibration_dir)):
+                continue
+            for json_path in sorted(Path(equilibration_dir).rglob("*equil_assessment*.json")):
+                if (not json_path.is_file()):
+                    continue
+                try:
+                    with open(json_path, "r", encoding="utf-8") as fobj:
+                        record = load(fobj)
+                    if (isinstance(record, dict)):
+                        records.append(record)
+                except Exception as exc:
+                    _LOGGER.warning("Failed to load equilibration assessment file %s: %s", json_path, exc)
+                    continue
+        return records
+
+    def _build_equilibration_metadata(self) -> Dict[str, Any]:
+        records = self._collect_equilibration_assessment_records()
+        if (not records):
+            return {
+                "equilibration_method": EQUILIBRATION_METHOD_LABEL,
+                "equilibration_assessment": "No automated equilibration assessment was found in uploaded ACCRE artifacts.",
+                "equilibration_summary": {
+                    "n_replica_assessments": 0,
+                    "n_equilibrated_replicas": 0,
+                    "series_status_counts": {},
+                },
+            }
+
+        n_replica_assessments = len(records)
+        n_equilibrated_replicas = sum(1 for record in records if record.get("overall_status") == "equilibrated")
+        series_status_counts: Dict[str, Dict[str, int]] = dict()
+        for record in records:
+            series_mapper = record.get("series", {})
+            if (not isinstance(series_mapper, dict)):
+                continue
+            for series_key, series_info in series_mapper.items():
+                if (not isinstance(series_info, dict)):
+                    continue
+                status = str(series_info.get("status", "unknown"))
+                series_counts = series_status_counts.setdefault(series_key, dict())
+                series_counts[status] = series_counts.get(status, 0) + 1
+
+        assessment_sentence = (
+            f"{n_equilibrated_replicas}/{n_replica_assessments} replica assessments were marked equilibrated "
+            f"by {EQUILIBRATION_METHOD_LABEL}."
+        )
+
+        return {
+            "equilibration_method": EQUILIBRATION_METHOD_LABEL,
+            "equilibration_assessment": assessment_sentence,
+            "equilibration_summary": {
+                "n_replica_assessments": n_replica_assessments,
+                "n_equilibrated_replicas": n_equilibrated_replicas,
+                "series_status_counts": series_status_counts,
+            },
+        }
+
     def __init__(
         self,
         openai_secret_key: str,
@@ -474,6 +566,7 @@ class ResultExplainerAssistant(OpenAIAssistant):
             "temperature_K": 300,
             "md_production_length_in_ns": experiment.md_length if experiment else None,
             "date": str(datetime.now()),
+            **self._build_equilibration_metadata(),
         }
         return
     

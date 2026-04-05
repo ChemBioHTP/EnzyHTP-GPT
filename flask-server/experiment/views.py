@@ -21,7 +21,7 @@ from flask_login import login_required, current_user
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from flask_restful import Resource
 from json import JSONDecodeError, dumps, loads
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from string import Template
 from datetime import datetime
 from werkzeug.datastructures import ImmutableMultiDict
@@ -74,6 +74,8 @@ from enzy_htp.core import (
 db = mongo.db
 
 RAW_RESULTS_FILENAME = "raw_results.csv"
+RESULT_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+MAX_RESULT_IMAGE_COUNT = 60
 
 
 def _get_openai_client_config(user: User) -> dict:
@@ -182,6 +184,95 @@ def _collect_downloadable_files(experiment: Experiment) -> dict[str, str]:
         add_files(experiment.directory)
 
     return file_map
+
+def _safe_result_label(value: Any) -> str:
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", str(value or "").strip()) or "WT"
+
+def _collect_result_image_items(experiment: Experiment, max_count: Optional[int] = MAX_RESULT_IMAGE_COUNT) -> List[Dict[str, str]]:
+    """Collect result image items with labels for frontend preview."""
+    image_paths: List[Tuple[str, str]] = []
+    raw_results = Result.get_experiment_raw_results(experiment_id=experiment.id)
+    mutant_lookup: Dict[str, set] = dict()
+    wt_path_lookup: Dict[str, set] = dict()
+    for result in raw_results:
+        mutant_name = str(result.get("mutant", "WT") or "WT")
+        safe_mutant_name = _safe_result_label(mutant_name)
+        mutant_lookup.setdefault(safe_mutant_name, set()).add(mutant_name)
+        wt_name = str(result.get("pdb_filename", "") or "")
+        if wt_name:
+            wt_path_lookup.setdefault(safe_mutant_name, set()).add(wt_name)
+
+    def add_images(base_dir: str) -> None:
+        if (not base_dir):
+            return
+        image_root = path.join(base_dir, "plots", "equilibration")
+        if (not path.isdir(image_root)):
+            return
+        for file_path_obj in sorted(Path(image_root).rglob("*")):
+            if (max_count is not None and len(image_paths) >= max_count):
+                return
+            if (not file_path_obj.is_file()):
+                continue
+            if (file_path_obj.suffix.lower() not in RESULT_IMAGE_EXTENSIONS):
+                continue
+            image_paths.append((str(file_path_obj), base_dir))
+        return
+
+    if (experiment.type == Experiment.GROUP_TYPE):
+        add_images(experiment.directory)
+        for sub_experiment in experiment.subordinate_experiments:
+            if (not sub_experiment):
+                continue
+            add_images(sub_experiment.directory)
+    else:
+        add_images(experiment.directory)
+
+    result_image_items: List[Dict[str, str]] = []
+    for image_path, base_dir in image_paths:
+        try:
+            image_path_obj = Path(image_path)
+            relative_parts = image_path_obj.relative_to(base_dir).parts
+            safe_mutant_name = "WT"
+            replica_id = ""
+            if ("equilibration" in relative_parts):
+                eq_idx = relative_parts.index("equilibration")
+                if (eq_idx + 1 < len(relative_parts)):
+                    safe_mutant_name = relative_parts[eq_idx + 1]
+                if (eq_idx + 2 < len(relative_parts)):
+                    replica_token = relative_parts[eq_idx + 2]
+                    if (replica_token.startswith("replica_")):
+                        replica_id = replica_token.removeprefix("replica_")
+
+            mutant_candidates = sorted(mutant_lookup.get(safe_mutant_name, {safe_mutant_name}))
+            wt_candidates = sorted(wt_path_lookup.get(safe_mutant_name, set()))
+            mutant_label = mutant_candidates[0] if mutant_candidates else safe_mutant_name
+            wt_path_label = wt_candidates[0] if wt_candidates else ""
+            title_text = f"Mutant: {mutant_label}"
+            if (wt_path_label):
+                title_text += f" | WT: {wt_path_label}"
+            if (replica_id):
+                title_text += f" | Replica: {replica_id}"
+
+            result_image_items.append({
+                "src": image_path_to_src(image_path),
+                "mutant": mutant_label,
+                "wt_path": wt_path_label,
+                "replica_id": replica_id,
+                "filename": image_path_obj.name,
+                "title": title_text,
+            })
+        except Exception as exc:
+            _LOGGER.warning("Failed to load result image %s: %s", image_path, exc)
+            continue
+    return result_image_items
+
+def _collect_result_images(experiment: Experiment, max_count: Optional[int] = MAX_RESULT_IMAGE_COUNT) -> List[str]:
+    """Backward-compatible image list (base64 src only)."""
+    return [
+        item.get("src", "")
+        for item in _collect_result_image_items(experiment=experiment, max_count=max_count)
+        if item.get("src")
+    ]
 
 #region Experiment Response Body and Handlers.
 
@@ -535,6 +626,8 @@ class ExperimentApi(Resource):
         replica_id = request.form.get("replica_id", 0)
         trajectory_file = request.files.get("trajectory", None)
         topology_file = request.files.get("topology", None)
+        equil_plot_files = request.files.getlist("equil_plots")
+        equil_assessment_file = request.files.get("equil_assessment", None)
         store_only = request.args.get("store_only", "").strip().lower() in ("1", "true", "yes")
 
         if (mutant_name is None or trajectory_file is None or topology_file is None):
@@ -554,12 +647,60 @@ class ExperimentApi(Resource):
         trajectory_file.stream.seek(0)
         topology_file.stream.seek(0)
 
+        saved_plot_relpaths: List[str] = []
+        saved_assessment_relpath = None
+        plot_dir = path.join(
+            experiment.directory,
+            "plots",
+            "equilibration",
+            safe_mutant_name,
+            f"replica_{safe_replica_id}",
+        )
+        if (equil_plot_files):
+            fs.safe_mkdir(plot_dir)
+            for plot_file in equil_plot_files:
+                if (plot_file is None):
+                    continue
+                raw_filename = str(plot_file.filename or "").strip()
+                if (not raw_filename):
+                    continue
+                safe_plot_filename = re.sub(r"[^A-Za-z0-9_.-]+", "_", path.basename(raw_filename))
+                if (not safe_plot_filename):
+                    continue
+                plot_save_path = path.join(plot_dir, safe_plot_filename)
+                plot_file.save(plot_save_path)
+                saved_plot_relpaths.append(path.relpath(plot_save_path, experiment.directory))
+                try:
+                    plot_file.stream.seek(0)
+                except Exception:
+                    pass
+
+        if (equil_assessment_file is not None):
+            raw_assessment_filename = str(equil_assessment_file.filename or "").strip()
+            safe_assessment_filename = re.sub(
+                r"[^A-Za-z0-9_.-]+",
+                "_",
+                path.basename(raw_assessment_filename) if raw_assessment_filename else "equil_assessment.json",
+            )
+            if (not safe_assessment_filename.lower().endswith(".json")):
+                safe_assessment_filename = f"{safe_assessment_filename}.json"
+            fs.safe_mkdir(plot_dir)
+            assessment_save_path = path.join(plot_dir, safe_assessment_filename)
+            equil_assessment_file.save(assessment_save_path)
+            saved_assessment_relpath = path.relpath(assessment_save_path, experiment.directory)
+            try:
+                equil_assessment_file.stream.seek(0)
+            except Exception:
+                pass
+
         if (store_only):
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,
                 user=user,
-                message="Trajectory and topology files are stored.",
+                message="Trajectory, topology, and equilibration plot files are stored.",
                 is_successful=True,
+                stored_plot_files=saved_plot_relpaths,
+                stored_equilibration_assessment=saved_assessment_relpath,
             )
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
@@ -779,8 +920,20 @@ class ResultApi(Resource):
         
         experiment_results = Result.get_experiment_results(experiment_id=experiment_id)
 
-        # result_images = [image_path_to_src(path) for path in PLHD_RESULT_IMG_PATHS]
-        result_images = []  # Set `result_images` to empty list.
+        image_limit = MAX_RESULT_IMAGE_COUNT
+        image_limit_query = request.args.get("image_limit", None)
+        if (image_limit_query is not None):
+            try:
+                parsed_limit = int(str(image_limit_query).strip())
+                if (parsed_limit <= 0):
+                    image_limit = None
+                else:
+                    image_limit = parsed_limit
+            except Exception:
+                image_limit = MAX_RESULT_IMAGE_COUNT
+
+        result_image_items = _collect_result_image_items(experiment=experiment, max_count=image_limit)
+        result_images = [item.get("src", "") for item in result_image_items if item.get("src")]
 
         if (not experiment.result_interpretation):
             _ = AssistantsApi.get_scientific_question(user=user, experiment=experiment)
@@ -807,6 +960,8 @@ class ResultApi(Resource):
             is_successful=(True if experiment_results else False),
             experiment_results=experiment_results,
             result_images=result_images,
+            result_image_items=result_image_items,
+            image_limit_applied=image_limit,
             result_interpretation=experiment.result_interpretation,
             downloadable_files=downloadable_files_dict,
         )

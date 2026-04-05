@@ -10,12 +10,14 @@ The main script of the MD Slurm Job. This script is currently for test use.
 '''
 
 # Here put the import lib.
+import re
+from contextlib import ExitStack
 from os import environ, path
-from typing import List, Union, Dict, Callable
+from typing import Callable, Dict, List, Optional, Tuple, Union
 from time import sleep
-from requests import post, put, patch
+from requests import patch, post, put
 from statistics import mean
-from json import loads
+from json import dumps, loads
 
 # Here put enzy_htp modules.
 from enzy_htp import interface, _LOGGER
@@ -126,6 +128,17 @@ ph = float(environ.get("ph", 7.4))
 pocket_range = int(environ.get("pocket_range", 5))
 metrics = loads(environ.get("metrics", "[]"))
 
+resolved_pdb_filepath = path.join(file_dir, path.basename(pdb_filename)) if pdb_filename else str()
+if (not resolved_pdb_filepath) or (not path.isfile(resolved_pdb_filepath)):
+    legacy_pdb_filepath = path.join(file_dir, pdb_filename) if pdb_filename else str()
+    if legacy_pdb_filepath and path.isfile(legacy_pdb_filepath):
+        resolved_pdb_filepath = legacy_pdb_filepath
+    else:
+        _LOGGER.warning(
+            f"Unable to find PDB by basename under file_dir. "
+            f"basename_path={resolved_pdb_filepath}, legacy_path={legacy_pdb_filepath}"
+        )
+
 cluster = AccreR9()
 gpu_job_config = {
     "cluster" : cluster,
@@ -147,6 +160,318 @@ cpu_job_config = {
 
 PROGRESS_UPDATE_URL = f"https://{app_host}/api/experiment/{experiment_id}"
 TRAJ_UPLOAD_URL = f"https://{app_host}/api/experiment/{experiment_id}?store_only=1"
+EQUIL_ALL_STAGE_FILES = ["heat_nvt.out", "equi_npt.out", "equi_npt_free_bb.out"]
+EQUIL_NPT_STAGE_FILES = ["equi_npt.out", "equi_npt_free_bb.out"]
+EQUILIBRATION_METHOD_LABEL = "Chodera automated equilibration detection scheme (PMCID: PMC4945107)"
+
+MDOUT_STATE_PATTERN = re.compile(
+    r"NSTEP\s*=\s*(\d+)\s+TIME\(PS\)\s*=\s*([-\d.Ee+]+)\s+TEMP\(K\)\s*=\s*([-\d.Ee+]+)\s+PRESS\s*=\s*([-\d.Ee+]+)"
+)
+MDOUT_ENERGY_PATTERN = re.compile(
+    r"Etot\s*=\s*([-\d.Ee+]+)\s+EKtot\s*=\s*([-\d.Ee+]+)\s+EPtot\s*=\s*([-\d.Ee+]+)"
+)
+MDOUT_TRAILER_SECTION_PATTERN = re.compile(
+    r"A\s+V\s+E\s+R\s+A\s+G\s+E\s+S\s+O\s+V\s+E\s+R|R\s+M\s+S\s+F\s+L\s+U\s+C\s+T\s+U\s+A\s+T\s+I\s+O\s+N\s+S"
+)
+
+def _parse_mdout_records(mdout_filepath: str) -> List[dict]:
+    """Parse Amber mdout records into a list of time/temperature/pressure/energy entries."""
+    if (not mdout_filepath) or (not path.isfile(mdout_filepath)):
+        return list()
+    try:
+        with open(mdout_filepath, "r", encoding="utf-8", errors="ignore") as f:
+            lines = f.readlines()
+    except Exception as exc:
+        _LOGGER.warning(f"Unable to read mdout file {mdout_filepath}: {exc}")
+        return list()
+
+    records: List[dict] = []
+    line_index = 0
+    while (line_index < len(lines)):
+        if MDOUT_TRAILER_SECTION_PATTERN.search(lines[line_index]):
+            break
+        state_match = MDOUT_STATE_PATTERN.search(lines[line_index])
+        if (not state_match):
+            line_index += 1
+            continue
+        nstep_str, time_ps_str, temp_k_str, press_str = state_match.groups()
+        record = {
+            "nstep": int(float(nstep_str)),
+            "time_ps": float(time_ps_str),
+            "temp_k": float(temp_k_str),
+            "press": float(press_str),
+            "etot": None,
+            "ektot": None,
+            "eptot": None,
+        }
+        if records:
+            last_record = records[-1]
+            if (
+                record["nstep"] <= last_record["nstep"]
+                and record["time_ps"] <= last_record["time_ps"]
+            ):
+                break
+        if (line_index + 1 < len(lines)):
+            energy_match = MDOUT_ENERGY_PATTERN.search(lines[line_index + 1])
+            if (energy_match):
+                etot_str, ektot_str, eptot_str = energy_match.groups()
+                record["etot"] = float(etot_str)
+                record["ektot"] = float(ektot_str)
+                record["eptot"] = float(eptot_str)
+                line_index += 1
+        records.append(record)
+        line_index += 1
+    return records
+
+def _collect_stage_records(replica_dir: str, stage_filenames: List[str]) -> List[dict]:
+    """Collect and time-stitch mdout records from stages in a replica directory."""
+    stitched_records: List[dict] = []
+    time_offset = 0.0
+    for stage_filename in stage_filenames:
+        mdout_path = path.join(replica_dir, stage_filename)
+        stage_records = _parse_mdout_records(mdout_path)
+        if (not stage_records):
+            continue
+        stage_start_time = stage_records[0]["time_ps"]
+        for record in stage_records:
+            entry = record.copy()
+            entry["time_ps"] = (entry["time_ps"] - stage_start_time) + time_offset
+            entry["stage"] = stage_filename.removesuffix(".out")
+            stitched_records.append(entry)
+        time_offset = stitched_records[-1]["time_ps"] if stitched_records else time_offset
+    return stitched_records
+
+def _collect_equilibration_record_sets(replica_dir: str) -> Tuple[List[dict], List[dict]]:
+    all_stage_records = _collect_stage_records(replica_dir=replica_dir, stage_filenames=EQUIL_ALL_STAGE_FILES)
+    npt_stage_records = _collect_stage_records(replica_dir=replica_dir, stage_filenames=EQUIL_NPT_STAGE_FILES)
+    return all_stage_records, npt_stage_records
+
+def _plot_equilibration_curve(
+    records: List[dict],
+    y_key: str,
+    y_label: str,
+    title: str,
+    output_filepath: str,
+    stage_order: List[str],
+) -> bool:
+    """Plot one equilibration curve image from parsed records."""
+    if (not records):
+        return False
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except Exception as exc:
+        _LOGGER.warning(f"Matplotlib not available, skip plot {output_filepath}: {exc}")
+        return False
+
+    plt.figure(figsize=(8.0, 4.5))
+    plotted = False
+    for stage in stage_order:
+        x_values: List[float] = []
+        y_values: List[float] = []
+        for record in records:
+            if (record.get("stage") != stage):
+                continue
+            y_value = record.get(y_key)
+            if (y_value is None):
+                continue
+            x_values.append(float(record["time_ps"]))
+            y_values.append(float(y_value))
+        if (not x_values):
+            continue
+        plotted = True
+        plt.plot(x_values, y_values, linewidth=1.2, label=stage)
+
+    if (not plotted):
+        plt.close()
+        return False
+
+    plt.xlabel("Time (ps)")
+    plt.ylabel(y_label)
+    plt.title(title)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(output_filepath, dpi=150)
+    plt.close()
+    return True
+
+def generate_equilibration_plots(trajectory_filepath: str) -> List[str]:
+    """Generate temperature/pressure/energy equilibration plots for one replica."""
+    replica_dir = path.dirname(trajectory_filepath or "")
+    if (not replica_dir) or (not path.isdir(replica_dir)):
+        return list()
+
+    all_stage_records, npt_stage_records = _collect_equilibration_record_sets(replica_dir=replica_dir)
+    if (not all_stage_records) and (not npt_stage_records):
+        return list()
+
+    plot_dir = path.join(replica_dir, "plots")
+    try:
+        if (not path.isdir(plot_dir)):
+            from os import makedirs
+            makedirs(plot_dir, exist_ok=True)
+    except Exception as exc:
+        _LOGGER.warning(f"Unable to create plot directory {plot_dir}: {exc}")
+        return list()
+
+    output_paths: List[str] = []
+    temperature_plot = path.join(plot_dir, "equil_temperature.png")
+    if _plot_equilibration_curve(
+        records=all_stage_records,
+        y_key="temp_k",
+        y_label="Temperature (K)",
+        title="Equilibration Temperature",
+        output_filepath=temperature_plot,
+        stage_order=[stage.removesuffix(".out") for stage in EQUIL_ALL_STAGE_FILES],
+    ):
+        output_paths.append(temperature_plot)
+
+    pressure_plot = path.join(plot_dir, "equil_pressure.png")
+    if _plot_equilibration_curve(
+        records=npt_stage_records,
+        y_key="press",
+        y_label="Pressure",
+        title="Equilibration Pressure (NPT)",
+        output_filepath=pressure_plot,
+        stage_order=[stage.removesuffix(".out") for stage in EQUIL_NPT_STAGE_FILES],
+    ):
+        output_paths.append(pressure_plot)
+
+    energy_plot = path.join(plot_dir, "equil_energy.png")
+    if _plot_equilibration_curve(
+        records=all_stage_records,
+        y_key="etot",
+        y_label="Etot",
+        title="Equilibration Total Energy",
+        output_filepath=energy_plot,
+        stage_order=[stage.removesuffix(".out") for stage in EQUIL_ALL_STAGE_FILES],
+    ):
+        output_paths.append(energy_plot)
+
+    return output_paths
+
+def _estimate_statistical_inefficiency(values: List[float]) -> float:
+    """Estimate statistical inefficiency g from a 1D timeseries."""
+    n = len(values)
+    if (n < 3):
+        return 1.0
+    mean_val = sum(values) / n
+    centered = [value - mean_val for value in values]
+    variance = sum(value * value for value in centered) / n
+    if (variance <= 1e-16):
+        return 1.0
+
+    g = 1.0
+    max_lag = max(1, min(n - 1, n // 2))
+    for lag in range(1, max_lag + 1):
+        cov = sum(centered[idx] * centered[idx + lag] for idx in range(0, n - lag)) / (n - lag)
+        autocorrelation = cov / variance
+        if (autocorrelation <= 0.0) and (lag > 5):
+            break
+        g += 2.0 * autocorrelation * (1.0 - lag / n)
+    return max(float(g), 1.0)
+
+def _detect_equilibration(values: List[float]) -> Tuple[int, float, float]:
+    """Detect equilibration onset t0 by maximizing effective sample size."""
+    sample_size = len(values)
+    if (sample_size == 0):
+        return 0, 1.0, 0.0
+    if (sample_size < 5):
+        return 0, 1.0, float(sample_size)
+
+    best_t0 = 0
+    best_g = 1.0
+    best_neff = float(sample_size)
+    for t0 in range(0, sample_size - 2):
+        truncated = values[t0:]
+        g_value = _estimate_statistical_inefficiency(truncated)
+        neff = len(truncated) / g_value if (g_value > 0.0) else 0.0
+        if (neff > best_neff):
+            best_t0 = t0
+            best_g = g_value
+            best_neff = neff
+    return int(best_t0), float(best_g), float(best_neff)
+
+def _assess_equilibration_series(records: List[dict], key: str) -> Optional[dict]:
+    """Run Chodera-style equilibration detection for one metric series."""
+    if (not records):
+        return None
+    values: List[float] = []
+    times_ps: List[float] = []
+    for record in records:
+        value = record.get(key)
+        if (value is None):
+            continue
+        values.append(float(value))
+        times_ps.append(float(record["time_ps"]))
+    if (not values):
+        return None
+
+    t0_index, g_value, neff = _detect_equilibration(values=values)
+    safe_t0 = min(max(t0_index, 0), len(values) - 1)
+    discarded_fraction = safe_t0 / len(values)
+    status = "equilibrated" if (discarded_fraction <= 0.5) else "late_equilibration"
+    return {
+        "n_points": len(values),
+        "t0_index": safe_t0,
+        "t0_ps": float(times_ps[safe_t0]),
+        "g": g_value,
+        "neff_max": neff,
+        "discarded_fraction": discarded_fraction,
+        "status": status,
+    }
+
+def generate_equilibration_assessment(
+    trajectory_filepath: str,
+    mutant: str,
+    replica_id: Union[int, str],
+) -> Optional[str]:
+    """Generate one JSON assessment file for equilibration quality."""
+    replica_dir = path.dirname(trajectory_filepath or "")
+    if (not replica_dir) or (not path.isdir(replica_dir)):
+        return None
+
+    all_stage_records, npt_stage_records = _collect_equilibration_record_sets(replica_dir=replica_dir)
+    if (not all_stage_records) and (not npt_stage_records):
+        return None
+
+    plots_dir = path.join(replica_dir, "plots")
+    try:
+        if (not path.isdir(plots_dir)):
+            from os import makedirs
+            makedirs(plots_dir, exist_ok=True)
+    except Exception as exc:
+        _LOGGER.warning(f"Unable to create plots directory for equilibration assessment: {exc}")
+        return None
+
+    series_assessment = {
+        "temp_k": _assess_equilibration_series(records=all_stage_records, key="temp_k"),
+        "press": _assess_equilibration_series(records=npt_stage_records or all_stage_records, key="press"),
+        "etot": _assess_equilibration_series(records=all_stage_records, key="etot"),
+    }
+    series_assessment = {key: value for key, value in series_assessment.items() if value is not None}
+    if (not series_assessment):
+        return None
+
+    status_values = [entry.get("status", "unknown") for entry in series_assessment.values()]
+    overall_status = "equilibrated" if all(status == "equilibrated" for status in status_values) else "caution"
+    assessment_dict = {
+        "method": EQUILIBRATION_METHOD_LABEL,
+        "mutant": mutant,
+        "replica_id": str(replica_id),
+        "overall_status": overall_status,
+        "series": series_assessment,
+    }
+
+    assessment_filepath = path.join(plots_dir, "equil_assessment.json")
+    try:
+        with open(assessment_filepath, "w", encoding="utf-8") as fobj:
+            fobj.write(dumps(assessment_dict, ensure_ascii=False, indent=2))
+    except Exception as exc:
+        _LOGGER.warning(f"Unable to write equilibration assessment file {assessment_filepath}: {exc}")
+        return None
+    return assessment_filepath
 
 def synchronize_job_status(status: int = None, progress: float = None) -> None:
     """Synchronize the Job Status to the Web Server. If the web server is not accessible, log the status and error information.
@@ -175,7 +500,14 @@ def synchronize_job_status(status: int = None, progress: float = None) -> None:
         _LOGGER.info(f"Job Status Code: {status}, Progress: {progress}")
         return
     
-def post_trajectory_and_topology_file(mutant: str, replica_id: Union[int, str], trajectory_filepath: str, topology_filepath: str) -> None:
+def post_trajectory_and_topology_file(
+    mutant: str,
+    replica_id: Union[int, str],
+    trajectory_filepath: str,
+    topology_filepath: str,
+    equil_plot_filepaths: Optional[List[str]] = None,
+    equil_assessment_filepath: Optional[str] = None,
+) -> None:
     """Post the trajectory and topology file to the web server.
 
     Args:
@@ -189,16 +521,34 @@ def post_trajectory_and_topology_file(mutant: str, replica_id: Union[int, str], 
     if (not path.isfile(trajectory_filepath) or not path.isfile(topology_filepath)):
         _LOGGER.warning("Trajectory/topology file missing, skipping upload.")
         return
+    equil_plot_filepaths = equil_plot_filepaths or []
     try:
         data = {
             "mutant": mutant,
             "replica_id": str(replica_id),
         }
-        with open(trajectory_filepath, mode="rb") as traj_handle, open(topology_filepath, mode="rb") as topo_handle:
-            files = {
-                "trajectory": traj_handle,
-                "topology": topo_handle,
-            }
+        with ExitStack() as file_stack:
+            traj_handle = file_stack.enter_context(open(trajectory_filepath, mode="rb"))
+            topo_handle = file_stack.enter_context(open(topology_filepath, mode="rb"))
+            files: List[Tuple[str, Tuple[str, object, str]]] = [
+                ("trajectory", (path.basename(trajectory_filepath), traj_handle, "application/octet-stream")),
+                ("topology", (path.basename(topology_filepath), topo_handle, "application/octet-stream")),
+            ]
+            for plot_filepath in equil_plot_filepaths:
+                if (not plot_filepath) or (not path.isfile(plot_filepath)):
+                    continue
+                ext = path.splitext(plot_filepath)[1].lower()
+                if (ext not in {".png", ".jpg", ".jpeg", ".webp", ".gif"}):
+                    continue
+                plot_handle = file_stack.enter_context(open(plot_filepath, mode="rb"))
+                image_mime = "image/png" if ext == ".png" else "application/octet-stream"
+                files.append(("equil_plots", (path.basename(plot_filepath), plot_handle, image_mime)))
+            if equil_assessment_filepath and path.isfile(equil_assessment_filepath):
+                assessment_handle = file_stack.enter_context(open(equil_assessment_filepath, mode="rb"))
+                files.append((
+                    "equil_assessment",
+                    (path.basename(equil_assessment_filepath), assessment_handle, "application/json"),
+                ))
             response = post(TRAJ_UPLOAD_URL,
                 headers={
                     "Authorization": f"Bearer {access_token}"
@@ -215,6 +565,10 @@ def post_trajectory_and_topology_file(mutant: str, replica_id: Union[int, str], 
     finally:
         _LOGGER.info(f"Trajectory file transmitted:")
         _LOGGER.info(f"\tmutant: {mutant}, replica_id: {replica_id}, \n\ttrajectory_file: {trajectory_filepath}, \n\ttopology_file: {topology_filepath}.")
+        if (equil_plot_filepaths):
+            _LOGGER.info(f"\tequilibration_plots: {equil_plot_filepaths}")
+        if (equil_assessment_filepath):
+            _LOGGER.info(f"\tequilibration_assessment: {equil_assessment_filepath}")
         return
 
 def create_constraints(constraints_str: str) -> List[StructureConstraint]:
@@ -257,7 +611,7 @@ if __name__ == "__main__":
     has_ligand = False
     mut_constraints = create_constraints(constraints_str=constraints_str)
 
-    wt_stru = PDBParser().get_structure(path.join(file_dir, pdb_filename))
+    wt_stru = PDBParser().get_structure(resolved_pdb_filepath)
     remove_solvent(wt_stru)
     remove_hydrogens(stru=wt_stru, polypeptide_only=True)
     protonate_stru(stru=wt_stru, ph=ph, protonate_ligand=True)
@@ -315,11 +669,21 @@ if __name__ == "__main__":
 
             for replica_id, stru_esm in enumerate(md_result):
                 mutant_name = get_mutant_name_str(mutant=mutant)
+                equilibration_plot_paths = generate_equilibration_plots(
+                    trajectory_filepath=stru_esm.coordinate_list,
+                )
+                equilibration_assessment_filepath = generate_equilibration_assessment(
+                    trajectory_filepath=stru_esm.coordinate_list,
+                    mutant=mutant_name,
+                    replica_id=replica_id,
+                )
 
                 post_trajectory_and_topology_file(
                     mutant=mutant_name, replica_id=replica_id,
                     trajectory_filepath=stru_esm.coordinate_list,
-                    topology_filepath=stru_esm.topology_source_file
+                    topology_filepath=stru_esm.topology_source_file,
+                    equil_plot_filepaths=equilibration_plot_paths,
+                    equil_assessment_filepath=equilibration_assessment_filepath,
                 )
                 analysis_main(
                     stru_esm=stru_esm, metrics=metrics,

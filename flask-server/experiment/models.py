@@ -457,7 +457,7 @@ class Experiment():
                 is_updated = True
                 if (self.pdb_filepath and path.isfile(self.pdb_filepath)):
                     fs.safe_rm(self.pdb_filepath) # Delete existing file.
-                self.pdb_filename = pdb_file.filename
+                self.pdb_filename = path.basename(pdb_file.filename)
                 self.summon_upload_pdb = False
                 pdb_file.save(self.pdb_filepath)
                 message = f"The PDB file of the experiment {self.id} is updated. " + message
@@ -490,7 +490,7 @@ class Experiment():
                 if (self.pdb_filepath):
                     fs.safe_rm(self.pdb_filepath)
                 self.type = self.GROUP_TYPE
-                self.pdb_filename = pdb_file.filename
+                self.pdb_filename = path.basename(pdb_file.filename)
                 self.summon_upload_pdb = False
                 self.sub_experiment_ids = list()
                 for i, pdb_filepath in enumerate(pdb_filepaths):
@@ -1188,13 +1188,19 @@ class Experiment():
                 }
             )
             slurm_request = SlurmJobRequest()
+            normalized_pdb_filename = path.basename(self.pdb_filename) if self.pdb_filename else str()
+            normalized_pdb_filepath = path.join(self.directory, normalized_pdb_filename) if normalized_pdb_filename else str()
+            if normalized_pdb_filepath and path.isfile(normalized_pdb_filepath):
+                submitted_pdb_filepath = normalized_pdb_filepath
+            else:
+                submitted_pdb_filepath = self.pdb_filepath
 
             entry_script_content = Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute({
                 "slurm_user": SLURM_USER,
                 "username": User.get(self.user_id).username,
                 "app_host": APP_HOST,
                 "experiment_id": self.id,
-                "pdb_filename": self.pdb_filename,
+                "pdb_filename": normalized_pdb_filename,
                 "metrics": dumps(self.metrics),
                 "access_token": create_access_token(identity=self.user_id, expires_delta=TOKEN_EXPIRES_DELTA),
                 "mutation_pattern": self.mutation_pattern,
@@ -1206,7 +1212,7 @@ class Experiment():
                 # md_entry_script_path,
                 SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH,
                 SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
-                self.pdb_filepath,
+                submitted_pdb_filepath,
             ]
             status, message, job_uuid = SlurmJobData.post(
                 slurm_request=slurm_request, file_list=files,
