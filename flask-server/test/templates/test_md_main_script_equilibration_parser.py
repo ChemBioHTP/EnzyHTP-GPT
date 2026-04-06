@@ -2,6 +2,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from math import sin
 
 
 def _load_md_main_script_module():
@@ -17,6 +18,23 @@ def _load_md_main_script_module():
     finally:
         if sys.path and sys.path[0] == str(script_dir):
             sys.path.pop(0)
+
+
+def _build_series_records(values, key):
+    records = []
+    for idx, value in enumerate(values):
+        records.append(
+            {
+                "nstep": idx * 250,
+                "time_ps": float(idx),
+                "temp_k": 300.0,
+                "press": 1.0,
+                "etot": -70000.0,
+                "stage": "equi_npt",
+                key: float(value),
+            }
+        )
+    return records
 
 
 def test_parse_mdout_records_should_ignore_average_and_rms_sections():
@@ -98,3 +116,53 @@ def test_generate_equilibration_assessment_json(tmp_path):
     assert "press" in assessment["series"]
     assert "etot" in assessment["series"]
     assert "recommended_discard_ps" not in assessment
+
+
+def test_assess_equilibration_series_can_identify_equilibrated_data():
+    module = _load_md_main_script_module()
+    values = [300.0 + 0.3 * sin(i / 4.0) for i in range(240)]
+    records = _build_series_records(values=values, key="temp_k")
+
+    assessment = module._assess_equilibration_series(records=records, key="temp_k")
+
+    assert assessment is not None
+    assert assessment["status"] == "equilibrated"
+    assert assessment["tail_n_points"] > 10
+
+
+def test_assess_equilibration_series_can_identify_not_equilibrated_data():
+    module = _load_md_main_script_module()
+    values = [float(i) for i in range(240)]
+    records = _build_series_records(values=values, key="etot")
+
+    assessment = module._assess_equilibration_series(records=records, key="etot")
+
+    assert assessment is not None
+    assert assessment["status"] == "没平衡"
+    assert assessment["tail_n_points"] <= 10
+
+
+def test_generate_example_equi_assessment_for_manual_inspection():
+    module = _load_md_main_script_module()
+    equi_out_path = Path(__file__).resolve().parents[1] / "test_files" / "example_equi.out"
+    output_dir = Path(__file__).resolve().parents[1] / "test_files" / "generated_assessment" / "example_equi"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    stage_file = output_dir / "equi_npt_free_bb.out"
+    stage_file.write_text(equi_out_path.read_text(encoding="utf-8"), encoding="utf-8")
+
+    assessment_path = module.generate_equilibration_assessment(
+        trajectory_filepath=str(output_dir / "prod_npt.nc"),
+        mutant="EXAMPLE_EQUI",
+        replica_id="0",
+    )
+
+    assert assessment_path is not None
+    assessment_file = Path(assessment_path)
+    assert assessment_file.is_file()
+    assert assessment_file.parent == (output_dir / "plots")
+    assessment = json.loads(assessment_file.read_text(encoding="utf-8"))
+    assert assessment.get("mutant") == "EXAMPLE_EQUI"
+    assert assessment.get("replica_id") == "0"
+    assert "overall_status" in assessment
+    assert isinstance(assessment.get("series"), dict) and assessment["series"]

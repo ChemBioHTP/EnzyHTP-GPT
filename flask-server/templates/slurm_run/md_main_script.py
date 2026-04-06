@@ -163,6 +163,7 @@ TRAJ_UPLOAD_URL = f"https://{app_host}/api/experiment/{experiment_id}?store_only
 EQUIL_ALL_STAGE_FILES = ["equi_npt.out", "equi_npt_free_bb.out"]
 EQUIL_NPT_STAGE_FILES = ["equi_npt.out", "equi_npt_free_bb.out"]
 EQUILIBRATION_METHOD_LABEL = "Chodera automated equilibration detection scheme (PMCID: PMC4945107)"
+EQUILIBRATION_MIN_TAIL_POINTS = 10
 
 MDOUT_STATE_PATTERN = re.compile(
     r"NSTEP\s*=\s*(\d+)\s+TIME\(PS\)\s*=\s*([-\d.Ee+]+)\s+TEMP\(K\)\s*=\s*([-\d.Ee+]+)\s+PRESS\s*=\s*([-\d.Ee+]+)"
@@ -382,7 +383,8 @@ def _detect_equilibration(values: List[float]) -> Tuple[int, float, float]:
 
     best_t0 = 0
     best_g = 1.0
-    best_neff = float(sample_size)
+    # Initialize from zero so candidate windows can actually win.
+    best_neff = 0.0
     for t0 in range(0, sample_size - 2):
         truncated = values[t0:]
         g_value = _estimate_statistical_inefficiency(truncated)
@@ -411,11 +413,13 @@ def _assess_equilibration_series(records: List[dict], key: str) -> Optional[dict
     t0_index, g_value, neff = _detect_equilibration(values=values)
     safe_t0 = min(max(t0_index, 0), len(values) - 1)
     discarded_fraction = safe_t0 / len(values)
-    status = "equilibrated" if (discarded_fraction <= 0.5) else "late_equilibration"
+    tail_n_points = len(values) - safe_t0
+    status = "equilibrated" if (tail_n_points > EQUILIBRATION_MIN_TAIL_POINTS) else "not equilibrated"
     return {
         "n_points": len(values),
         "t0_index": safe_t0,
         "t0_ps": float(times_ps[safe_t0]),
+        "tail_n_points": tail_n_points,
         "g": g_value,
         "neff_max": neff,
         "discarded_fraction": discarded_fraction,
