@@ -21,6 +21,8 @@
 
 ## Testing/benchmarks
 - No top-level automated test suite. Agent benchmarking and unit tests live in `flask-server/agent_benchmark/tests` (require OpenAI creds and EnzyHTP deps). No lint/format tooling configured beyond standard language defaults.
+- If you need to run unit tests, pytest should be run under `flask-server`
+- For running pytest, you can activate the environment with `init_mutexa` alias, which will activate the conda environment for EnzyHTP-GPT development. This ensures all dependencies are available for testing.
 
 ## Gotchas & tips
 - Replace hardcoded secrets in `config.py` and `services/openai_service.py`; set real OpenAI keys via env/DB before exercising agents.
