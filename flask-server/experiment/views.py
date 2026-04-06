@@ -11,6 +11,9 @@
 # Here put the import lib.
 import os
 import re
+import threading
+import errno
+import fcntl
 import prompts
 import pandas as pd
 from csv import DictWriter
@@ -76,6 +79,11 @@ db = mongo.db
 RAW_RESULTS_FILENAME = "raw_results.csv"
 RESULT_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 MAX_RESULT_IMAGE_COUNT = 60
+RESULT_EXPLAINER_PENDING_MESSAGE = "Result interpretation is being generated in the background. Please refresh in a few seconds."
+_RESULT_EXPLAINER_INFLIGHT_LOCK = threading.Lock()
+_RESULT_EXPLAINER_INFLIGHT_EXPERIMENTS: set[str] = set()
+_RESULT_EXPLAINER_LOCK_HANDLES: Dict[str, Any] = dict()
+RESULT_EXPLAINER_LOCK_DIR = "/tmp/enzyhtp_result_explainer_locks"
 
 
 def _get_openai_client_config(user: User) -> dict:
@@ -86,6 +94,126 @@ def _get_openai_client_config(user: User) -> dict:
         "base_url": None,
         "model": MODEL_VERSION,
     }
+
+def _mark_result_explainer_inflight(experiment_id: str) -> bool:
+    with _RESULT_EXPLAINER_INFLIGHT_LOCK:
+        if (experiment_id in _RESULT_EXPLAINER_INFLIGHT_EXPERIMENTS):
+            return False
+        _RESULT_EXPLAINER_INFLIGHT_EXPERIMENTS.add(experiment_id)
+        return True
+
+def _unmark_result_explainer_inflight(experiment_id: str) -> None:
+    with _RESULT_EXPLAINER_INFLIGHT_LOCK:
+        _RESULT_EXPLAINER_INFLIGHT_EXPERIMENTS.discard(experiment_id)
+
+def _is_result_explainer_inflight(experiment_id: str) -> bool:
+    with _RESULT_EXPLAINER_INFLIGHT_LOCK:
+        return (experiment_id in _RESULT_EXPLAINER_INFLIGHT_EXPERIMENTS)
+
+def _get_result_explainer_lock_path(experiment_id: str) -> str:
+    safe_id = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(experiment_id or "unknown"))
+    return path.join(RESULT_EXPLAINER_LOCK_DIR, f"{safe_id}.lock")
+
+def _acquire_result_explainer_process_lock(experiment_id: str) -> bool:
+    os.makedirs(RESULT_EXPLAINER_LOCK_DIR, exist_ok=True)
+    lock_path = _get_result_explainer_lock_path(experiment_id)
+    lock_handle = open(lock_path, "a+", encoding="utf-8")
+    try:
+        fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError as exc:
+        lock_handle.close()
+        if exc.errno in (errno.EACCES, errno.EAGAIN):
+            return False
+        _LOGGER.warning(
+            "Failed to acquire ResultExplainer file lock. experiment_id=%s, error=%s",
+            experiment_id,
+            exc,
+        )
+        return False
+    with _RESULT_EXPLAINER_INFLIGHT_LOCK:
+        _RESULT_EXPLAINER_LOCK_HANDLES[str(experiment_id)] = lock_handle
+    return True
+
+def _release_result_explainer_process_lock(experiment_id: str) -> None:
+    lock_handle = None
+    with _RESULT_EXPLAINER_INFLIGHT_LOCK:
+        lock_handle = _RESULT_EXPLAINER_LOCK_HANDLES.pop(str(experiment_id), None)
+    if (not lock_handle):
+        return
+    try:
+        fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
+    except Exception:
+        pass
+    try:
+        lock_handle.close()
+    except Exception:
+        pass
+
+def _is_result_explainer_locked_by_other_worker(experiment_id: str) -> bool:
+    if _is_result_explainer_inflight(experiment_id):
+        return True
+    lock_path = _get_result_explainer_lock_path(experiment_id)
+    os.makedirs(RESULT_EXPLAINER_LOCK_DIR, exist_ok=True)
+    probe_handle = open(lock_path, "a+", encoding="utf-8")
+    try:
+        fcntl.flock(probe_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        fcntl.flock(probe_handle.fileno(), fcntl.LOCK_UN)
+        return False
+    except OSError as exc:
+        if exc.errno in (errno.EACCES, errno.EAGAIN):
+            return True
+        _LOGGER.warning(
+            "Failed probing ResultExplainer file lock. experiment_id=%s, error=%s",
+            experiment_id,
+            exc,
+        )
+        return False
+    finally:
+        probe_handle.close()
+
+def _run_result_explainer_in_background(experiment_id: str, openai_client_config: dict) -> None:
+    try:
+        experiment = Experiment.get(experiment_id)
+        if (not experiment):
+            return
+        if (experiment.result_interpretation):
+            return
+
+        if (not experiment.scientific_question):
+            fallback_question = experiment.get_latest_assistant_output(assistant_type=0)
+            if (fallback_question):
+                experiment.update_attributes(mapper={"scientific_question": fallback_question})
+
+        result_explainer = ResultExplainerAssistant(
+            openai_secret_key=openai_client_config.get("api_key"),
+            model="gpt-5.4",
+            base_url=openai_client_config.get("base_url"),
+            conversation_mode=False,
+            experiment=experiment,
+        )
+        is_valid, status, response_content = result_explainer.ask_gpt()
+        if (status == 200) and response_content:
+            experiment.update_attributes({"result_interpretation": response_content})
+            _LOGGER.info(
+                "Result interpretation generated asynchronously. experiment_id=%s",
+                experiment_id,
+            )
+        else:
+            _LOGGER.warning(
+                "Async ResultExplainer failed. experiment_id=%s, is_valid=%s, status=%s",
+                experiment_id,
+                is_valid,
+                status,
+            )
+    except Exception as exc:
+        _LOGGER.exception(
+            "Exception in async ResultExplainer generation. experiment_id=%s, error=%s",
+            experiment_id,
+            exc,
+        )
+    finally:
+        _unmark_result_explainer_inflight(experiment_id)
+        _release_result_explainer_process_lock(experiment_id)
 
 def _aggregate_group_status_progress(experiment: Experiment) -> Tuple[int, float]:
     """Aggregate status/progress for group experiments from sub experiments."""
@@ -935,23 +1063,47 @@ class ResultApi(Resource):
         result_image_items = _collect_result_image_items(experiment=experiment, max_count=image_limit)
         result_images = [item.get("src", "") for item in result_image_items if item.get("src")]
 
-        if (not experiment.result_interpretation):
-            _ = AssistantsApi.get_scientific_question(user=user, experiment=experiment)
+        result_interpretation_pending = _is_result_explainer_locked_by_other_worker(experiment.id)
+        if (not experiment.result_interpretation) and (not result_interpretation_pending):
             openai_client_config = _get_openai_client_config(user)
-            result_explainer = ResultExplainerAssistant(
-                openai_secret_key=openai_client_config.get("api_key"),
-                model=openai_client_config.get("model"),
-                base_url=openai_client_config.get("base_url"),
-                conversation_mode=False,
-                experiment=experiment
-            )
-            is_valid, status, experiment.result_interpretation = result_explainer.ask_gpt()
-            experiment.update_attributes({"result_interpretation": experiment.result_interpretation})
+            if _mark_result_explainer_inflight(experiment_id=experiment.id):
+                if _acquire_result_explainer_process_lock(experiment_id=experiment.id):
+                    _LOGGER.info(
+                        "Starting async ResultExplainer generation. experiment_id=%s",
+                        experiment.id,
+                    )
+                    try:
+                        worker = threading.Thread(
+                            target=_run_result_explainer_in_background,
+                            args=(experiment.id, openai_client_config),
+                            daemon=True,
+                        )
+                        worker.start()
+                    except Exception as exc:
+                        _LOGGER.exception(
+                            "Failed to start async ResultExplainer thread. experiment_id=%s, error=%s",
+                            experiment.id,
+                            exc,
+                        )
+                        _release_result_explainer_process_lock(experiment_id=experiment.id)
+                        _unmark_result_explainer_inflight(experiment_id=experiment.id)
+                else:
+                    _unmark_result_explainer_inflight(experiment_id=experiment.id)
+            result_interpretation_pending = _is_result_explainer_locked_by_other_worker(experiment.id)
         
         _ensure_raw_results_csv(experiment)
         downloadable_files_dict = dict()
         for arcname in _collect_downloadable_files(experiment).keys():
             downloadable_files_dict[arcname] = fs.get_file_ext(arcname)
+
+        result_interpretation_status = "ready"
+        result_interpretation_message = "Result interpretation is ready."
+        if (result_interpretation_pending):
+            result_interpretation_status = "pending"
+            result_interpretation_message = RESULT_EXPLAINER_PENDING_MESSAGE
+        elif (not experiment.result_interpretation):
+            result_interpretation_status = "unavailable"
+            result_interpretation_message = "Result interpretation is not available yet."
 
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
@@ -963,6 +1115,9 @@ class ResultApi(Resource):
             result_image_items=result_image_items,
             image_limit_applied=image_limit,
             result_interpretation=experiment.result_interpretation,
+            result_interpretation_pending=result_interpretation_pending,
+            result_interpretation_status=result_interpretation_status,
+            result_interpretation_message=result_interpretation_message,
             downloadable_files=downloadable_files_dict,
         )
         return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)

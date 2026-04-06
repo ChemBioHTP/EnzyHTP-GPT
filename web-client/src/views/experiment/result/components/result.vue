@@ -5,7 +5,18 @@
         <h3>Summary</h3>
         <div class="result-content mt15">
           <div class="summary-wrap">
-            <div class="interpretation" v-html="formattedText(resultData.result_interpretation)"></div>
+            <div
+              v-if="resultData.result_interpretation"
+              class="interpretation"
+              v-html="formattedText(resultData.result_interpretation)"
+            ></div>
+            <div v-else class="interpretation-placeholder">
+              <div v-if="isInterpretationPending" class="interpretation-loading">
+                <a-spin size="large" />
+                <div class="loading-text">{{ interpretationMessage }}</div>
+              </div>
+              <div v-else>{{ interpretationMessage }}</div>
+            </div>
           </div>
           <div v-if="imageItems.length" class="curve-panel">
             <div class="curve-header">
@@ -52,7 +63,7 @@
   </a-flex>
 </template>
 <script setup>
-import { computed, ref } from "vue";
+import { computed, onUnmounted, ref } from "vue";
 import MutationGenerrated from "@/views/experiment/components/mutationGenerrated.vue";
 import FileList from "@/views/experiment/components/fileList.vue";
 import { getExperimentResult } from "@/api/experiment";
@@ -71,10 +82,26 @@ const props = defineProps({
 const spinning = ref(false);
 const resultData = ref({})
 const PREVIEW_IMAGE_COUNT = 6
+const INTERPRETATION_POLL_INTERVAL_MS = 5000
+const MAX_INTERPRETATION_POLL_ATTEMPTS = 72
 const previewImageItems = ref([])
 const allImageItems = ref([])
 const showingAllImages = ref(false)
 const loadingAllImages = ref(false)
+let interpretationPollTimer = null
+
+const interpretationMessage = computed(() => {
+  if (resultData.value?.result_interpretation) {
+    return ""
+  }
+  return (
+    resultData.value?.result_interpretation_message
+    || "Result interpretation is being generated. Please wait a moment."
+  )
+})
+const isInterpretationPending = computed(() => {
+  return resultData.value?.result_interpretation_status === "pending"
+})
 const imageItems = computed(() => {
   if (showingAllImages.value && allImageItems.value.length) {
     return allImageItems.value
@@ -138,6 +165,52 @@ const fetchResult = imageLimit => {
   })
 }
 
+const stopInterpretationPolling = () => {
+  if (interpretationPollTimer) {
+    clearTimeout(interpretationPollTimer)
+    interpretationPollTimer = null
+  }
+}
+
+const shouldContinueInterpretationPolling = payload => {
+  if (!payload) {
+    return true
+  }
+  if (payload.result_interpretation) {
+    return false
+  }
+  const status = payload.result_interpretation_status
+  if (status === "pending") {
+    return true
+  }
+  return false
+}
+
+const scheduleInterpretationPolling = (attempt = 0) => {
+  if (attempt >= MAX_INTERPRETATION_POLL_ATTEMPTS) {
+    stopInterpretationPolling()
+    return
+  }
+  stopInterpretationPolling()
+  interpretationPollTimer = setTimeout(() => {
+    fetchResult(PREVIEW_IMAGE_COUNT)
+      .then(result => {
+        if (result) {
+          resultData.value = result
+          previewImageItems.value = normalizeImageItems(result)
+        }
+        if (shouldContinueInterpretationPolling(result)) {
+          scheduleInterpretationPolling(attempt + 1)
+        } else {
+          stopInterpretationPolling()
+        }
+      })
+      .catch(() => {
+        scheduleInterpretationPolling(attempt + 1)
+      })
+  }, INTERPRETATION_POLL_INTERVAL_MS)
+}
+
 const handleToggleImages = () => {
   if (showingAllImages.value) {
     showingAllImages.value = false
@@ -168,12 +241,19 @@ if (route.query.status == '0') {
       if (result) {
         resultData.value = result
         previewImageItems.value = normalizeImageItems(result)
+        if (shouldContinueInterpretationPolling(result)) {
+          scheduleInterpretationPolling(0)
+        }
       }
     })
     .finally(() => {
       spinning.value = false;
     })
 }
+
+onUnmounted(() => {
+  stopInterpretationPolling()
+})
 </script>
 <style lang="scss" scoped>
 .result-container {
@@ -264,6 +344,27 @@ if (route.query.status == '0') {
     padding: 16px 18px;
     background: #fff;
     flex: none;
+  }
+
+  .interpretation-placeholder {
+    color: #595959;
+    min-height: 64px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+
+  .interpretation-loading {
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .loading-text {
+    text-align: center;
+    line-height: 1.5;
   }
 
   .result-img {

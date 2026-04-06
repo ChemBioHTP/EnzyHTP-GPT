@@ -1,45 +1,70 @@
 [
   {
-    "name": "calculate_mean",
-    "description": "Compute the arithmetic mean of a list of numeric values.",
+    "name": "sort_metrics_by_value",
+    "description": "Sort metric labels and values by numeric value and return ordered labels and values.",
     "strict": false,
     "parameters": {
       "type": "object",
       "properties": {
+        "labels": {
+          "type": "array",
+          "description": "Labels for each metric value (for example mutants or metric names).",
+          "items": {
+            "type": "string"
+          }
+        },
         "values": {
           "type": "array",
+          "description": "Numeric metric values aligned one-to-one with labels.",
           "items": {
             "type": "number"
-          },
-          "description": "Numeric values to average."
+          }
+        },
+        "descending": {
+          "type": "boolean",
+          "description": "Sort descending when true (default), ascending when false."
         }
       },
       "required": [
+        "labels",
         "values"
       ]
     }
   },
   {
-    "name": "calculate_standard_deviation",
-    "description": "Compute the standard deviation of a list of numeric values. Use ddof=1 for sample SD or ddof=0 for population SD.",
+    "name": "filter_metrics_by_percentage",
+    "description": "Sort metric labels and values, then keep the top percentage and return ordered labels and values.",
     "strict": false,
     "parameters": {
       "type": "object",
       "properties": {
+        "labels": {
+          "type": "array",
+          "description": "Labels for each metric value (for example mutants or metric names).",
+          "items": {
+            "type": "string"
+          }
+        },
         "values": {
           "type": "array",
+          "description": "Numeric metric values aligned one-to-one with labels.",
           "items": {
             "type": "number"
-          },
-          "description": "Numeric values to summarize."
+          }
         },
-        "ddof": {
-          "type": "integer",
-          "description": "Delta degrees of freedom. Use 1 for sample SD (default) or 0 for population SD."
+        "percentage": {
+          "type": "number",
+          "description": "Percentage of items to keep after sorting, in (0, 100]."
+        },
+        "descending": {
+          "type": "boolean",
+          "description": "Sort descending when true (default), ascending when false."
         }
       },
       "required": [
-        "values"
+        "labels",
+        "values",
+        "percentage"
       ]
     }
   }

@@ -37,6 +37,11 @@ from enzy_htp.mutation.mutation_pattern import decode_position_pattern
 PROMPTS_DIRECTORY = path.join(BASEDIR, "prompts")
 MODEL_VERSION = OPENAI_MODEL_VERSION
 EQUILIBRATION_METHOD_LABEL = "Chodera automated equilibration detection scheme (PMCID: PMC4945107)"
+SIMULATION_ENGINE_LABEL = "Amber"
+DEFAULT_TEMPERATURE_K = 300
+DEFAULT_EQUILIBRATION_LENGTH_NS = 1.0
+DEFAULT_FORCE_FIELD_LABEL = "ff14SB+GAFF"
+DEFAULT_SOLVENT_MODEL_LABEL = "TIP3P"
 
 class QuestionAnalyzerAssistant(OpenAIAssistant):
     """The agent acting as a Question Analyzer."""
@@ -392,6 +397,7 @@ class ResultExplainerAssistant(OpenAIAssistant):
     results: List[dict]
     metadata: dict
     downloadables: List[dict]
+    DOWNLOADABLE_SUMMARY_ROOTS: Tuple[str, ...] = ("plots/equilibration", "trajectories")
 
     def _iter_experiment_result_directories(self) -> List[str]:
         if (not self.experiment):
@@ -483,6 +489,106 @@ class ResultExplainerAssistant(OpenAIAssistant):
             },
         }
 
+    def _count_variants(self) -> int:
+        variant_keys = set()
+        for result_item in self.results:
+            if (not isinstance(result_item, dict)):
+                continue
+            wt_path = str(result_item.get("wt_path", ""))
+            mutant = str(result_item.get("mutant", "WT"))
+            variant_keys.add((wt_path, mutant))
+        return len(variant_keys)
+
+    def _estimate_replicas_per_variant(self, n_variants: int, equilibration_summary: Dict[str, Any]) -> Optional[int]:
+        if (not self.experiment):
+            return None
+
+        raw_results = Result.get_experiment_raw_results(experiment_id=self.experiment.id)
+        replicas_by_variant: Dict[Tuple[str, str], set] = dict()
+        for raw_result in raw_results:
+            if (not isinstance(raw_result, dict)):
+                continue
+            wt_path = str(raw_result.get("pdb_filename", ""))
+            mutant = str(raw_result.get("mutant", "WT"))
+            key = (wt_path, mutant)
+            replica_set = replicas_by_variant.setdefault(key, set())
+            replica_id = raw_result.get("replica_id", None)
+            if (replica_id is not None) and (str(replica_id) != ""):
+                replica_set.add(str(replica_id))
+
+        replica_counts = [len(replica_ids) for replica_ids in replicas_by_variant.values() if replica_ids]
+        if (replica_counts):
+            median_count = self._median([float(count) for count in replica_counts])
+            if (median_count is not None):
+                return max(1, int(round(median_count)))
+
+        n_replica_assessments = equilibration_summary.get("n_replica_assessments", 0)
+        if (
+            isinstance(n_replica_assessments, int)
+            and (n_replica_assessments > 0)
+            and (n_variants > 0)
+        ):
+            return max(1, int(round(n_replica_assessments / n_variants)))
+        return None
+
+    @staticmethod
+    def _summarize_files_by_basename(file_paths: List[str]) -> List[Dict[str, Union[str, int]]]:
+        basename_counts: Dict[str, int] = dict()
+        for relpath in file_paths:
+            basename = path.basename(str(relpath))
+            if (not basename):
+                continue
+            basename_counts[basename] = basename_counts.get(basename, 0) + 1
+        return [
+            {
+                "filename": filename,
+                "count": count,
+            }
+            for filename, count in sorted(basename_counts.items(), key=lambda item: item[0])
+        ]
+
+    def _build_downloadables_payload(self, file_paths: List[str]) -> List[dict]:
+        summary_buckets: Dict[str, List[str]] = {
+            root: list() for root in self.DOWNLOADABLE_SUMMARY_ROOTS
+        }
+        direct_entries: List[dict] = list()
+
+        for raw_file_path in file_paths:
+            relpath = str(raw_file_path).replace("\\", "/")
+            matched_root = None
+            for root in self.DOWNLOADABLE_SUMMARY_ROOTS:
+                if (relpath == root) or relpath.startswith(f"{root}/"):
+                    matched_root = root
+                    break
+            if matched_root:
+                summary_buckets[matched_root].append(relpath)
+                continue
+            direct_entries.append(
+                {
+                    "file_type": fs.get_file_ext(relpath),
+                    "filename": relpath,
+                }
+            )
+
+        summary_entries: List[dict] = list()
+        for root in self.DOWNLOADABLE_SUMMARY_ROOTS:
+            matched_files = summary_buckets.get(root, list())
+            if (not matched_files):
+                continue
+            filename_summaries = self._summarize_files_by_basename(matched_files)
+            summary_entries.append(
+                {
+                    "file_type": "summary",
+                    "filename": root,
+                    "summary_type": "filename_count",
+                    "total_files": len(matched_files),
+                    "unique_filenames": len(filename_summaries),
+                    "files": filename_summaries,
+                }
+            )
+
+        return direct_entries + summary_entries
+
     def __init__(
         self,
         openai_secret_key: str,
@@ -504,7 +610,7 @@ class ResultExplainerAssistant(OpenAIAssistant):
         self.experiment = experiment
         instructions = str()
         tools = list()
-        with open(path.join(PROMPTS_DIRECTORY, "result_explainer.txt")) as fobj:
+        with open(path.join(PROMPTS_DIRECTORY, "result_explainer-v2.txt")) as fobj:
             instructions = fobj.read()
         with open(path.join(PROMPTS_DIRECTORY, "result_explainer_functions.json")) as json_fobj:
             tool_functions: List[dict] = load(json_fobj)
@@ -555,18 +661,26 @@ class ResultExplainerAssistant(OpenAIAssistant):
                 else:
                     pass
                 continue
-        self.downloadables = [
-            {
-                "file_type": fs.get_file_ext(file_path),
-                "filename": file_path,
-            } for file_path in experiment.downloadable_files
-        ]
+        self.downloadables = self._build_downloadables_payload(experiment.downloadable_files)
+        equilibration_metadata = self._build_equilibration_metadata()
+        equilibration_summary = equilibration_metadata.get("equilibration_summary", {})
+        n_variants = self._count_variants()
+        n_replicas_per_variant = self._estimate_replicas_per_variant(
+            n_variants=n_variants,
+            equilibration_summary=equilibration_summary if isinstance(equilibration_summary, dict) else {},
+        )
+
         self.metadata = {
-            "simulation_engine": "Amber",
-            "temperature_K": 300,
+            "simulation_engine": SIMULATION_ENGINE_LABEL,
+            "temperature_K": DEFAULT_TEMPERATURE_K,
             "md_production_length_in_ns": experiment.md_length if experiment else None,
             "date": str(datetime.now()),
-            **self._build_equilibration_metadata(),
+            "n_variants": n_variants,
+            "n_replicas_per_variant": n_replicas_per_variant,
+            "equilibration_length_in_ns": DEFAULT_EQUILIBRATION_LENGTH_NS,
+            "force_field": DEFAULT_FORCE_FIELD_LABEL,
+            "solvent_model": DEFAULT_SOLVENT_MODEL_LABEL,
+            **equilibration_metadata,
         }
         return
     
