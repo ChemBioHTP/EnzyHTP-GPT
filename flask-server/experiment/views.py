@@ -19,7 +19,7 @@ import pandas as pd
 from csv import DictWriter
 from os import path
 from pathlib import Path
-from flask import Response, request, send_file
+from flask import Response, request, send_file, current_app
 from flask_login import login_required, current_user
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from flask_restful import Resource
@@ -190,8 +190,17 @@ def _is_result_explainer_locked_by_other_worker(experiment_id: str) -> bool:
     finally:
         probe_handle.close()
 
-def _run_result_explainer_in_background(experiment_id: str, openai_client_config: dict) -> None:
+def _run_result_explainer_in_background(
+    experiment_id: str,
+    openai_client_config: dict,
+    flask_app=None,
+) -> None:
+    app_context = None
     try:
+        if (flask_app is not None):
+            app_context = flask_app.app_context()
+            app_context.push()
+
         experiment = Experiment.get(experiment_id)
         if (not experiment):
             return
@@ -203,14 +212,22 @@ def _run_result_explainer_in_background(experiment_id: str, openai_client_config
             if (fallback_question):
                 experiment.update_attributes(mapper={"scientific_question": fallback_question})
 
+        model_temp = str(openai_client_config.get("model") or MODEL_VERSION)
+        if model_temp.startswith("gpt-4"):
+            model_temp = "gpt-5.4"  # Use a more advanced model for result explanation if user has access to GPT-4o.
         result_explainer = ResultExplainerAssistant(
             openai_secret_key=openai_client_config.get("api_key"),
-            model="gpt-5.4",
+            model=model_temp,
             base_url=openai_client_config.get("base_url"),
             conversation_mode=False,
             experiment=experiment,
         )
         is_valid, status, response_content = result_explainer.ask_gpt()
+        _LOGGER.info(
+            "Async ResultExplainer tool call result. experiment_id=%s, tool_call_result=%s",
+            experiment_id,
+            result_explainer.latest_tool_call_result,
+        )
         if (status == 200) and response_content:
             experiment.update_attributes({"result_interpretation": response_content})
             _LOGGER.info(
@@ -231,6 +248,11 @@ def _run_result_explainer_in_background(experiment_id: str, openai_client_config
             exc,
         )
     finally:
+        try:
+            if (app_context is not None):
+                app_context.pop()
+        except Exception:
+            pass
         _unmark_result_explainer_inflight(experiment_id)
         _release_result_explainer_process_lock(experiment_id)
 
@@ -1092,9 +1114,10 @@ class ResultApi(Resource):
                         experiment.id,
                     )
                     try:
+                        flask_app = current_app._get_current_object()
                         worker = threading.Thread(
                             target=_run_result_explainer_in_background,
-                            args=(experiment.id, openai_client_config),
+                            args=(experiment.id, openai_client_config, flask_app),
                             daemon=True,
                         )
                         worker.start()

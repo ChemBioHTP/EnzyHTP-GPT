@@ -47,6 +47,7 @@ class OpenAIResponsesService(OpenAIChat):
     functions: List[AssistantFunction]
     response_tools: List[dict]
     latest_tool_call_result: Dict[str, bool]
+    latest_tool_call_trace: List[dict]
     latest_response_id: str | None
     _conversation_api_supported: bool | None
 
@@ -98,6 +99,7 @@ class OpenAIResponsesService(OpenAIChat):
             for function in function_tools
         ]
         self.latest_tool_call_result = dict()
+        self.latest_tool_call_trace = list()
 
     @staticmethod
     def _as_text(value: Any) -> str:
@@ -339,25 +341,54 @@ class OpenAIResponsesService(OpenAIChat):
                 func_name = call.get("name")
                 call_id = call.get("call_id")
                 raw_args = call.get("arguments") or "{}"
-                tool_arguments = dict()
+                model_tool_arguments = dict()
                 try:
-                    tool_arguments = loads(raw_args)
+                    parsed_arguments = loads(raw_args)
+                    if (isinstance(parsed_arguments, dict)):
+                        model_tool_arguments = parsed_arguments
                 except (JSONDecodeError, TypeError):
-                    tool_arguments = dict()
+                    model_tool_arguments = dict()
 
                 matched_function = self._find_function(func_name)
                 if (matched_function and matched_function.mapped_callable):
-                    tool_arguments.update(matched_function.tool_function_callable_kwargs)
-                    is_successful, function_output = matched_function.mapped_callable(**tool_arguments)
+                    callable_tool_arguments = model_tool_arguments.copy()
+                    callable_tool_arguments.update(matched_function.tool_function_callable_kwargs)
+                    is_successful, function_output = matched_function.mapped_callable(**callable_tool_arguments)
                 else:
                     is_successful = False
                     function_output = f"Function '{func_name}' is not available."
 
                 self.latest_tool_call_result[func_name] = is_successful
+                function_output_text = self._as_text(function_output)
+                self.latest_tool_call_trace.append({
+                    "function_name": func_name,
+                    "function_call_id": call_id,
+                    "is_successful": is_successful,
+                    "arguments": model_tool_arguments,
+                    "output_chars": len(function_output_text),
+                    "output_preview": function_output_text[:400],
+                })
+                log_openai_meta(
+                    LOGGER,
+                    "openai_responses.tool_call",
+                    OpenAIMeta(
+                        openai_runtime=OPENAI_RUNTIME,
+                        model=getattr(self, "model", "unknown"),
+                        conversation_id=self.conversation_id,
+                        tool_call_count=len(self.latest_tool_call_result),
+                    ),
+                    function_name=func_name,
+                    function_call_id=call_id,
+                    loop_count=loop_count,
+                    is_successful=is_successful,
+                    tool_arguments=model_tool_arguments,
+                    output_chars=len(function_output_text),
+                    output_preview=function_output_text[:400],
+                )
                 tool_outputs.append({
                     "type": "function_call_output",
                     "call_id": call_id,
-                    "output": self._as_text(function_output),
+                    "output": function_output_text,
                 })
 
             conversation_id = self._normalize_conversation_id(getattr(current_response, "conversation", None)) or self.conversation_id
@@ -374,6 +405,7 @@ class OpenAIResponsesService(OpenAIChat):
 
         try:
             self.latest_tool_call_result.clear()
+            self.latest_tool_call_trace.clear()
             self._ensure_conversation_context()
             log_openai_meta(
                 LOGGER,

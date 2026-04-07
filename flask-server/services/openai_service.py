@@ -510,19 +510,41 @@ class EventHandler(AssistantEventHandler):
         for tool in data.required_action.submit_tool_outputs.tool_calls:
             # print(tool)
             tool_arguments = dict()
+            raw_arguments = getattr(tool.function, "arguments", "{}")
             try:
-                tool_arguments = loads(tool.function.arguments)
-            except:
-                pass
+                parsed_arguments = loads(raw_arguments)
+                if (isinstance(parsed_arguments, dict)):
+                    tool_arguments = parsed_arguments
+            except (JSONDecodeError, TypeError):
+                tool_arguments = dict()
             filtered_functions = list(filter(lambda func: func.name==tool.function.name, self.assistant_service.functions))
             if (len(filtered_functions) > 0):
                 called_function = filtered_functions[0]
                 # print(f"Mapped functions: {called_function}")
                 # print(f"Arguments: {called_function.tool_function_callable_kwargs}")
-                tool_arguments.update(called_function.tool_function_callable_kwargs)
-                is_successful, function_output = called_function.mapped_callable(**tool_arguments)
+                callable_tool_arguments = tool_arguments.copy()
+                callable_tool_arguments.update(called_function.tool_function_callable_kwargs)
+                is_successful, function_output = called_function.mapped_callable(**callable_tool_arguments)
+                function_output_text = str(function_output)
                 tool_outputs.append({"tool_call_id": tool.id, "output": function_output})
                 self.assistant_service.latest_tool_call_result[tool.function.name] = is_successful
+                self.assistant_service.latest_tool_call_trace.append({
+                    "function_name": tool.function.name,
+                    "function_call_id": tool.id,
+                    "is_successful": is_successful,
+                    "arguments": tool_arguments,
+                    "output_chars": len(function_output_text),
+                    "output_preview": function_output_text[:400],
+                })
+            else:
+                self.assistant_service.latest_tool_call_trace.append({
+                    "function_name": tool.function.name,
+                    "function_call_id": tool.id,
+                    "is_successful": False,
+                    "arguments": tool_arguments,
+                    "output_chars": 0,
+                    "output_preview": f"Function '{tool.function.name}' is not available.",
+                })
             continue
         # Submit all tool_outputs at the same time
         # print(f"Tool outputs: {tool_outputs}")
@@ -551,6 +573,7 @@ class OpenAIAssistant(OpenAIChat):
 
     functions: List[AssistantFunction]
     latest_tool_call_result: Dict[str, bool]
+    latest_tool_call_trace: List[dict]
     completion_message: str = str()
 
     def __init__(self, openai_secret_key: str, assistant_name: str = str(), 
@@ -601,6 +624,7 @@ class OpenAIAssistant(OpenAIChat):
             for function in function_tools
         ]
         self.latest_tool_call_result = dict()
+        self.latest_tool_call_trace = list()
 
         if (thread_id):
             conversation_mode = True
@@ -896,6 +920,7 @@ class OpenAIAssistant(OpenAIChat):
             run_id = None
             conversation_id = None
             self.latest_tool_call_result.clear()
+            self.latest_tool_call_trace.clear()
             if (self.conversation_mode):
                 user_message = {
                     "role": "user",
