@@ -86,7 +86,7 @@ SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH = os.path.join(BASEDIR, "templates", "sl
 
 MAX_MUTANT_COUNT = 6
 
-DEFAULT_MD_LENGTH = 0.05  # MD Production Timespan in ns.
+DEFAULT_MD_LENGTH = 50.0  # MD Production Timespan in ns.
 MANUAL_MD_DEPLOY_TIMEOUT = int(os.environ.get("MANUAL_MD_DEPLOY_TIMEOUT", "600"))
 
 # Run MD by Yourself.
