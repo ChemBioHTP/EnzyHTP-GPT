@@ -62,6 +62,8 @@ from config import (
     SLURM_DEPLOY_SCRIPT, 
     MAX_MUTANT_COUNT,
     MANUAL_MD_DEPLOY_TIMEOUT,
+    OPENAI_ASSISTANTS_REQUEST_TIMEOUT,
+    OPENAI_ASSISTANTS_FIREWORKS_REQUEST_TIMEOUT,
 
     # PLHD_RESULT_IMG_PATHS,
     # PLHD_RESULT_INTERPRETATION,
@@ -94,6 +96,23 @@ def _get_openai_client_config(user: User) -> dict:
         "base_url": None,
         "model": MODEL_VERSION,
     }
+
+
+def _set_openai_assistants_request_timeout(openai_client_config: Optional[Dict[str, Any]]) -> None:
+    """Set per-request uWSGI harakiri budget for assistant endpoints."""
+    timeout_seconds = OPENAI_ASSISTANTS_REQUEST_TIMEOUT
+    if (
+        isinstance(openai_client_config, dict)
+        and openai_client_config.get("provider") == "fireworks"
+    ):
+        timeout_seconds = OPENAI_ASSISTANTS_FIREWORKS_REQUEST_TIMEOUT
+    if (not timeout_seconds) or (int(timeout_seconds) <= 0):
+        return
+    try:
+        import uwsgi
+        uwsgi.set_user_harakiri(int(timeout_seconds))
+    except Exception:
+        pass
 
 def _mark_result_explainer_inflight(experiment_id: str) -> bool:
     with _RESULT_EXPLAINER_INFLIGHT_LOCK:
@@ -1507,19 +1526,41 @@ class AssistantsApi(Resource):
     """Route: `/<experiment_id>/assistants`"""
 
     @classmethod
-    def get_scientific_question(cls, user: User, experiment: Experiment):
+    def get_scientific_question(
+        cls,
+        user: User,
+        experiment: Experiment,
+        openai_client_config: Optional[Dict[str, Any]] = None,
+    ):
         """Get the scientific question from the experiment instance.
         
         Args:
             user (User): The user instance.
             experiment (Experiment): The experiment instance.
         """
-        openai_client_config = _get_openai_client_config(user)
+        if (openai_client_config is None):
+            openai_client_config = _get_openai_client_config(user)
         openai_secret_key = openai_client_config.get("api_key")
         openai_base_url = openai_client_config.get("base_url")
 
+        # Prefer local full Question Analyzer transcript (assistant_type=0) across
+        # multiple responses. In Responses fallback mode, each round may have a
+        # different response_id, so querying only one session_id can truncate
+        # context and cause under-informed summaries.
+        local_qa_messages = list()
+        for message in experiment.chat_messages:
+            if (message.get("assistant_type") != 0):
+                continue
+            role = message.get("role", None)
+            if (role not in ("user", "assistant")):
+                continue
+            local_qa_messages.append({
+                "role": role,
+                "text_value": message.get("text_value", str()),
+            })
+
         question_analyzer_session_id = experiment.get_question_analyzer_session_id(runtime=OPENAI_RUNTIME)
-        messages = experiment.get_messages_by_session_id(question_analyzer_session_id)
+        messages = local_qa_messages if local_qa_messages else experiment.get_messages_by_session_id(question_analyzer_session_id)
         is_successful = bool(messages)
 
         if ((not messages) and question_analyzer_session_id):
@@ -1530,6 +1571,12 @@ class AssistantsApi(Resource):
             )
 
         if (is_successful and messages):
+            _LOGGER.info(
+                "Question summarizer payload prepared. experiment_id=%s, qa_messages=%s, source=%s",
+                experiment.id,
+                len(messages),
+                ("local_assistant_type_0" if local_qa_messages else "session_or_remote"),
+            )
             question_summarizer = QuestionSummarizerAssistant(
                 openai_secret_key=openai_secret_key,
                 model=openai_client_config.get("model"),
@@ -1616,6 +1663,7 @@ class AssistantsApi(Resource):
         
         user_prompt = request.form.get("prompt", str())
         openai_client_config = _get_openai_client_config(user)
+        _set_openai_assistants_request_timeout(openai_client_config)
         current_assistant_class = AGENT_MAPPER[experiment.current_assistant_type % len(AGENT_MAPPER)]
         # print([current_assistant_class])
         current_assistant: DefinedAgent = current_assistant_class(
@@ -1696,66 +1744,85 @@ class AssistantsApi(Resource):
         current_assistant_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
         if (issubclass(current_assistant_class, OpenAIAssistant)):
             completion_message = current_assistant_class.completion_message
-        
-        # Update scientific question if needed.
-        _ = self.get_scientific_question(user=user, experiment=experiment)
 
+        openai_client_config = _get_openai_client_config(user)
+        _set_openai_assistants_request_timeout(openai_client_config)
+
+        # Update scientific question if needed.
+        _ = self.get_scientific_question(
+            user=user,
+            experiment=experiment,
+            openai_client_config=openai_client_config,
+        )
+
+        target_assistant_type = experiment.current_assistant_type + 1
+        response_content = "Please press the **Next** button to proceed your experiment configuration."
+
+        if (target_assistant_type < len(AGENT_MAPPER)): # If there's next agent, correspond with OpenAI.
+            current_assistant_class = AGENT_MAPPER.get(target_assistant_type % len(AGENT_MAPPER))
+            current_assistant: DefinedAgent = current_assistant_class(
+                openai_secret_key=openai_client_config.get("api_key"),
+                model=openai_client_config.get("model"),
+                base_url=openai_client_config.get("base_url"),
+                conversation_mode=True,
+                experiment=experiment,
+            )
+
+            # Use the summary information of the question analyzer.
+            question_analyzer_summary = experiment.get_latest_assistant_output(assistant_type=0)
+            if (not question_analyzer_summary):
+                question_analyzer_session_id = experiment.get_question_analyzer_session_id(runtime=OPENAI_RUNTIME)
+                if (question_analyzer_session_id):
+                    is_successful, question_analyzer_summary = OpenAIAssistant.get_thread_summary(
+                        openai_secret_key=openai_client_config.get("api_key"),
+                        base_url=openai_client_config.get("base_url"),
+                        thread_id=question_analyzer_session_id,
+                    )
+            starting_message = current_assistant.pre_process(input_prompt=question_analyzer_summary)
+            is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=starting_message)
+            if (status_code != 200):
+                response_info = ExperimentBehaviourResponseInfo(
+                    experiment, user,
+                    is_successful=False,
+                    message=response_content,
+                    response_content=response_content,
+                    require_pdb_file=experiment.requires_pdb_upload,
+                    # Keep the confirm button if next-agent call fails.
+                    confirm_button=experiment.summon_next_agent,
+                    configuration_stages=experiment.configuration_stages,
+                )
+                return Response(response=response_info.serialize(), status=status_code, mimetype=JSONIFY_MIMETYPE)
+
+            # _LOGGER.info("Message received after changing agent.")
+            response_content = current_assistant.post_process(response_content, False)
+            assistant_thread = current_assistant.thread
+            assistant_session_id = getattr(assistant_thread, "id", None)
+            experiment.append_session_id(new_session_id=assistant_session_id, runtime=OPENAI_RUNTIME)
+            if (starting_message):
+                experiment.append_chat_messages(
+                    role="user",
+                    text_value=starting_message,
+                    assistant_type=target_assistant_type,
+                    session_id=assistant_session_id,
+                )
+            experiment.append_chat_messages(
+                role="assistant",
+                text_value=response_content,
+                assistant_type=target_assistant_type,
+                session_id=assistant_session_id,
+            )  # Only the response from the assistant is recorded.
+            _ = is_openai_key_valid
+
+        # Persist state transition only after the next step has completed successfully.
         updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
             mapper={
-                "current_assistant_type": experiment.current_assistant_type + 1,
+                "current_assistant_type": target_assistant_type,
                 "summon_next_agent": False,
             },
         )
-
+        _ = blocked_attrs
+        _ = nonexistent_attrs
         if (updated_attrs):
-            # Set the value for the last agent completion.
-            response_content = "Please press the **Next** button to proceed your experiment configuration."
-            configuration_updated = False
-            updated_attributes_from_response = list()
-
-            if (experiment.current_assistant_type < len(AGENT_MAPPER)): # If there's next agent, correspond with OpenAI.
-                openai_client_config = _get_openai_client_config(user)
-                current_assistant_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
-                current_assistant: DefinedAgent = current_assistant_class(
-                    openai_secret_key=openai_client_config.get("api_key"),
-                    model=openai_client_config.get("model"),
-                    base_url=openai_client_config.get("base_url"),
-                    conversation_mode=True,
-                    experiment=experiment,
-                )
-
-                # Use the summary information of the question analyzer.
-                question_analyzer_summary = experiment.get_latest_assistant_output(assistant_type=0)
-                if (not question_analyzer_summary):
-                    question_analyzer_session_id = experiment.get_question_analyzer_session_id(runtime=OPENAI_RUNTIME)
-                    if (question_analyzer_session_id):
-                        is_successful, question_analyzer_summary = OpenAIAssistant.get_thread_summary(
-                            openai_secret_key=openai_client_config.get("api_key"),
-                            base_url=openai_client_config.get("base_url"),
-                            thread_id=question_analyzer_session_id,
-                        )
-                starting_message = current_assistant.pre_process(input_prompt=question_analyzer_summary)
-                is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=starting_message)
-                if (status_code == 200):
-                    # _LOGGER.info("Message received after changing agent.")
-                    response_content = current_assistant.post_process(response_content, experiment.summon_next_agent)
-                    assistant_thread = current_assistant.thread
-                    assistant_session_id = getattr(assistant_thread, "id", None)
-                    experiment.append_session_id(new_session_id=assistant_session_id, runtime=OPENAI_RUNTIME)
-                    if (starting_message):
-                        experiment.append_chat_messages(
-                            role="user",
-                            text_value=starting_message,
-                            assistant_type=experiment.current_assistant_type,
-                            session_id=assistant_session_id,
-                        )
-                    experiment.append_chat_messages(
-                        role="assistant",
-                        text_value=response_content,
-                        assistant_type=experiment.current_assistant_type,
-                        session_id=assistant_session_id,
-                    )  # Only the response from the assistant is recorded.
-                # configuration_updated, updated_attributes_from_response = experiment.parse_agent_response_content(response_content=response_content)
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=True,
@@ -1764,8 +1831,6 @@ class AssistantsApi(Resource):
                 response_content=response_content,
                 require_pdb_file=experiment.requires_pdb_upload,
                 confirm_button=experiment.summon_next_agent,
-                # configuration_updated=configuration_updated,
-                # updated_attributes=(updated_attrs+updated_attributes_from_response),
                 configuration_stages=experiment.configuration_stages,
             )
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)

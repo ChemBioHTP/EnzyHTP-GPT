@@ -137,6 +137,14 @@ OPENAI_RESPONSES_STRICT_CONVERSATIONS = (
     _OPENAI_RESPONSES_STRICT_CONVERSATIONS in {"1", "true", "yes", "on"}
 )
 
+# Request-level assistant timeout controls (seconds).
+# Default requests follow uWSGI harakiri (see uwsgi.ini), while Fireworks can be
+# substantially slower and may require a larger per-request budget.
+OPENAI_ASSISTANTS_REQUEST_TIMEOUT = int(os.environ.get("OPENAI_ASSISTANTS_REQUEST_TIMEOUT", "180"))
+OPENAI_ASSISTANTS_FIREWORKS_REQUEST_TIMEOUT = int(
+    os.environ.get("OPENAI_ASSISTANTS_FIREWORKS_REQUEST_TIMEOUT", "480")
+)
+
 # Placeholder Result Images
 # PLHD_RESULT_IMG_DIR = os.path.join(BASEDIR, "templates", "result_images")
 # PLHD_RESULT_IMG_PATHS = [
