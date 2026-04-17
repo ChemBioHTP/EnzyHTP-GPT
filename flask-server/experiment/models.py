@@ -17,7 +17,7 @@ from string import Template
 from flask_login import UserMixin
 from flask_jwt_extended import create_access_token
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Union, Tuple, Callable, Literal
+from typing import Any, Dict, List, Union, Tuple, Callable, Literal, Optional
 from json import loads, dumps
 from plum import dispatch
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
@@ -1152,6 +1152,63 @@ class Experiment():
     # This region has some miners for group experiment. 
     # If one subordinate succeeds, it will return success, which is unable to tell internal failure.
 
+    def build_slurm_submission_payload(
+        self,
+        access_token: Optional[str] = None,
+    ) -> Tuple[SlurmJobRequest, str, List[str], Dict[str, str]]:
+        """Build exactly the payload/files used for ACCRE Slurm submission."""
+        if (self.type == self.GROUP_TYPE):
+            raise ValueError("Group experiment does not have a single direct submission payload.")
+
+        slurm_request = SlurmJobRequest()
+        normalized_pdb_filename = path.basename(self.pdb_filename) if self.pdb_filename else str()
+        normalized_pdb_filepath = path.join(self.directory, normalized_pdb_filename) if normalized_pdb_filename else str()
+        if normalized_pdb_filepath and path.isfile(normalized_pdb_filepath):
+            submitted_pdb_filepath = normalized_pdb_filepath
+        else:
+            submitted_pdb_filepath = self.pdb_filepath
+
+        if (not access_token):
+            access_token = create_access_token(identity=self.user_id, expires_delta=TOKEN_EXPIRES_DELTA)
+
+        metrics_str = dumps(self.metrics)
+        constraints_str = dumps(self.constraints)
+        md_length_str = str(self.md_length)
+
+        entry_script_substitutions = {
+            "slurm_user": SLURM_USER,
+            "username": User.get(self.user_id).username,
+            "app_host": APP_HOST,
+            "experiment_id": self.id,
+            "pdb_filename": normalized_pdb_filename,
+            "metrics": metrics_str,
+            "access_token": access_token,
+            "mutation_pattern": self.mutation_pattern,
+            "constraints_str": constraints_str,
+            "md_length": md_length_str,
+        }
+        entry_script_content = Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute(entry_script_substitutions)
+
+        files = [
+            SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH,
+            SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
+            submitted_pdb_filepath,
+        ]
+
+        env_vars = {
+            "USER": SLURM_USER,
+            "file_dir": '$(cd "$(dirname "$0")/input";pwd)',
+            "app_host": APP_HOST,
+            "access_token": access_token,
+            "experiment_id": self.id,
+            "pdb_filename": normalized_pdb_filename,
+            "metrics": metrics_str,
+            "mutation_pattern": self.mutation_pattern,
+            "constraints_str": constraints_str,
+            "md_length": md_length_str,
+        }
+        return slurm_request, entry_script_content, files, env_vars
+
     def post_slurm_job(self) -> Tuple[bool, int, str]:
         """Posts a SLURM job to the server for execution.
         
@@ -1187,33 +1244,7 @@ class Experiment():
                     "progress": self.progress,
                 }
             )
-            slurm_request = SlurmJobRequest()
-            normalized_pdb_filename = path.basename(self.pdb_filename) if self.pdb_filename else str()
-            normalized_pdb_filepath = path.join(self.directory, normalized_pdb_filename) if normalized_pdb_filename else str()
-            if normalized_pdb_filepath and path.isfile(normalized_pdb_filepath):
-                submitted_pdb_filepath = normalized_pdb_filepath
-            else:
-                submitted_pdb_filepath = self.pdb_filepath
-
-            entry_script_content = Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute({
-                "slurm_user": SLURM_USER,
-                "username": User.get(self.user_id).username,
-                "app_host": APP_HOST,
-                "experiment_id": self.id,
-                "pdb_filename": normalized_pdb_filename,
-                "metrics": dumps(self.metrics),
-                "access_token": create_access_token(identity=self.user_id, expires_delta=TOKEN_EXPIRES_DELTA),
-                "mutation_pattern": self.mutation_pattern,
-                "constraints_str": dumps(self.constraints),
-                "md_length": self.md_length
-            })
-
-            files = [
-                # md_entry_script_path,
-                SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH,
-                SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
-                submitted_pdb_filepath,
-            ]
+            slurm_request, entry_script_content, files, _ = self.build_slurm_submission_payload()
             status, message, job_uuid = SlurmJobData.post(
                 slurm_request=slurm_request, file_list=files,
                 # entry_script_filename=md_entry_script_path,

@@ -2154,4 +2154,95 @@ class SlurmDeployApi(Resource):
             download_name=zip_name,
         )
 
+class SlurmAccreDeployApi(Resource):
+    """Route: `/<experiment_id>/deploy/accre`."""
+
+    @login_required
+    def get(self, experiment_id: str):
+        """Download an ACCRE-compatible submission package."""
+        try:
+            import uwsgi
+            if MANUAL_MD_DEPLOY_TIMEOUT > 0:
+                uwsgi.set_user_harakiri(int(MANUAL_MD_DEPLOY_TIMEOUT))
+        except Exception:
+            pass
+
+        user: User = current_user
+        experiment = Experiment.get(experiment_id)
+
+        if (experiment is None):
+            return notfound_response(user, experiment_id)
+        if (experiment.user_id != user.id):
+            return forbidden_response(user, experiment)
+        if (experiment.type == experiment.GROUP_TYPE):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                is_successful=False,
+                message="Group experiment export is not supported yet.",
+            )
+            return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
+        if (not experiment.has_pdb_file):
+            return no_pdb_response(user, experiment)
+
+        try:
+            slurm_request, entry_script_content, files, env_vars = experiment.build_slurm_submission_payload()
+            deploy_pack_io = BytesIO()
+            with ZipFile(deploy_pack_io, "w") as deploy_pack_zip:
+                deploy_pack_zip.writestr(
+                    SLURM_MD_JOB_ENTRY_SCRIPT,
+                    entry_script_content,
+                    compress_type=ZIP_DEFLATED,
+                )
+                for file_path in files:
+                    if (not file_path) or (not path.isfile(file_path)):
+                        raise FileNotFoundError(f"Submission file not found: {file_path}")
+                    deploy_pack_zip.write(
+                        filename=file_path,
+                        arcname=path.join("input", path.basename(file_path)),
+                        compress_type=ZIP_DEFLATED,
+                    )
+
+                env_lines = [
+                    "# Environment variables exported by md_entry_script.sh",
+                    '# NOTE: `file_dir` is evaluated at runtime on the compute node.',
+                ]
+                for key, value in env_vars.items():
+                    if (key == "file_dir"):
+                        env_lines.append(f"export {key}={value}")
+                    else:
+                        escaped_value = str(value).replace("\\", "\\\\").replace('"', '\\"')
+                        env_lines.append(f'export {key}="{escaped_value}"')
+                env_lines.append("")
+                deploy_pack_zip.writestr(
+                    "submission/environment_variables.env",
+                    "\n".join(env_lines),
+                    compress_type=ZIP_DEFLATED,
+                )
+                deploy_pack_zip.writestr(
+                    "submission/slurm_request.json",
+                    dumps(loads(slurm_request.serialize()), ensure_ascii=False, indent=2),
+                    compress_type=ZIP_DEFLATED,
+                )
+
+            deploy_pack_io.seek(0)
+            zip_prefix = re.sub(r'[\\/:"*?<>|]', "", experiment.name)
+            zip_name = f"{zip_prefix} ACCRE Run Pack.zip"
+        except Exception as exc:
+            _LOGGER.error(f"Failed to build ACCRE deploy package: {exc}")
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                is_successful=False,
+                message="Failed to build ACCRE deploy package.",
+            )
+            return Response(response=response_info.serialize(), status=500, mimetype=JSONIFY_MIMETYPE)
+
+        return send_file(
+            deploy_pack_io,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=zip_name,
+        )
+
 #endregion
