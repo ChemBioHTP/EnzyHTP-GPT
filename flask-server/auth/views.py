@@ -340,11 +340,16 @@ def logout() -> Response:
 def profile() -> Response:
     """User Profile."""
     user: User = current_user
+    openai_client_config = user.get_openai_client_config()
     response_info = AuthResponseInfo(
         id=user.id,
         email=user.email,
         username=user.username,
-        is_authenticated=True)
+        is_authenticated=True,
+        openai_provider=openai_client_config.get("provider"),
+        openai_model=openai_client_config.get("model"),
+        use_custom_openai_secret_key=openai_client_config.get("use_custom_openai_secret_key"),
+    )
     return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
 @auth.route("/profile", methods=["POST", "PUT"])
@@ -352,40 +357,105 @@ def profile() -> Response:
 def profile_update() -> Response:
     """Update the editable field(s) in the user profile."""
     user: User = current_user
-    editable_profile_fields = ["username", "openai_secret_key"] # Only fields in the list are editable.
+    editable_profile_fields = [
+        "username",
+        "openai_secret_key",
+        "openai_provider",
+        "openai_model",
+        "use_custom_openai_secret_key",
+    ] # Only fields in the list are editable.
 
     updated_profile_fields = list()
     nonexistent_profile_fields = list()
     blocked_profile_fields = list()
     failed_profile_fields = list()
     openai_validation_result = None
+    attempted_openai_client_config = None
+    update_mapper = dict()
 
-    for field_name, field_value in request.form.items():
+    form_data = dict()
+    request_json = request.get_json(silent=True)
+    if (isinstance(request_json, dict)):
+        for key, value in request_json.items():
+            form_data[key] = value
+    for key, value in request.form.items():
+        form_data[key] = value
+    for field_name, _ in form_data.items():
         if (hasattr(user, field_name)):
-            if field_name in editable_profile_fields:
-                if (field_value):
-                    if (field_name == "openai_secret_key"):
-                        openai_provided = True
-                        previous_key = user.openai_secret_key
-                        user.openai_secret_key = field_value
-                        is_valid, openai_status_code, openai_response_description = user.get_openai_secret_key_status()
-                        user.openai_secret_key = previous_key
-                        openai_validation_result = (is_valid, openai_status_code, openai_response_description)
-
-                        if (not is_valid):
-                            failed_profile_fields.append(field_name)
-                            continue
-
-                    setattr(user, field_name, field_value)
-                    db.users.update_one({"id": user.id}, {"$set": {field_name: field_value}})
-                    # db.session.commit()
-                    updated_profile_fields.append(field_name)
-
-                continue
-            else:
+            if (field_name not in editable_profile_fields):
                 blocked_profile_fields.append(field_name)
         else:
             nonexistent_profile_fields.append(field_name)
+
+    if ("username" in form_data and form_data.get("username")):
+        update_mapper["username"] = form_data.get("username")
+
+    openai_profile_fields = {"openai_secret_key", "openai_provider", "openai_model", "use_custom_openai_secret_key"}
+    openai_fields_in_request = {field_name for field_name in form_data.keys() if field_name in openai_profile_fields}
+    if (openai_fields_in_request):
+        candidate_provider = User._normalize_openai_provider(  # pylint: disable=protected-access
+            form_data.get("openai_provider", user.openai_provider)
+        )
+        provider_changed = (
+            "openai_provider" in openai_fields_in_request
+            and User._normalize_openai_provider(candidate_provider)  # pylint: disable=protected-access
+            != User._normalize_openai_provider(user.openai_provider)  # pylint: disable=protected-access
+        )
+        if ("openai_model" in openai_fields_in_request):
+            candidate_model = form_data.get("openai_model")
+        elif (provider_changed):
+            candidate_model = None
+        else:
+            candidate_model = user.openai_model
+        candidate_use_custom_key = User._parse_bool_value(  # pylint: disable=protected-access
+            form_data.get("use_custom_openai_secret_key", user.use_custom_openai_secret_key),
+            default=user.use_custom_openai_secret_key,
+        )
+        candidate_openai_secret_key = (
+            form_data["openai_secret_key"] if ("openai_secret_key" in form_data) else user.openai_secret_key
+        )
+        attempted_openai_client_config = user.get_openai_client_config(
+            provider=candidate_provider,
+            model=candidate_model,
+            openai_secret_key=candidate_openai_secret_key,
+            use_custom_openai_secret_key=candidate_use_custom_key,
+        )
+
+        is_valid, openai_status_code, openai_response_description = user.get_openai_secret_key_status(
+            provider=attempted_openai_client_config.get("provider"),
+            model=attempted_openai_client_config.get("model"),
+            openai_secret_key=candidate_openai_secret_key,
+            use_custom_openai_secret_key=attempted_openai_client_config.get("use_custom_openai_secret_key"),
+        )
+        openai_validation_result = (is_valid, openai_status_code, openai_response_description)
+
+        if (not is_valid):
+            failed_profile_fields.extend(sorted(openai_fields_in_request))
+        else:
+            openai_client_config = user.get_openai_client_config(
+                provider=candidate_provider,
+                model=candidate_model,
+                openai_secret_key=candidate_openai_secret_key,
+                use_custom_openai_secret_key=candidate_use_custom_key,
+            )
+            if ("openai_provider" in openai_fields_in_request):
+                update_mapper["openai_provider"] = openai_client_config.get("provider")
+            if ("openai_model" in openai_fields_in_request or provider_changed):
+                update_mapper["openai_model"] = openai_client_config.get("model")
+            if ("use_custom_openai_secret_key" in openai_fields_in_request):
+                update_mapper["use_custom_openai_secret_key"] = openai_client_config.get("use_custom_openai_secret_key")
+            if (
+                "openai_secret_key" in openai_fields_in_request
+                and openai_client_config.get("use_custom_openai_secret_key")
+                and candidate_openai_secret_key
+            ):
+                update_mapper["openai_secret_key"] = candidate_openai_secret_key
+
+    if (update_mapper):
+        db.users.update_one({"id": user.id}, {"$set": update_mapper})
+        for field_name, field_value in update_mapper.items():
+            setattr(user, field_name, field_value)
+        updated_profile_fields.extend(list(update_mapper.keys()))
 
     message = str()
     if (updated_profile_fields):
@@ -417,10 +487,25 @@ def profile_update() -> Response:
                 "openai_status_code": openai_status_code,
                 "openai_response_description": openai_response_description,
             })
+            if (attempted_openai_client_config):
+                attempted_endpoint = attempted_openai_client_config.get("base_url")
+                if (not attempted_endpoint and attempted_openai_client_config.get("provider") == "openai"):
+                    attempted_endpoint = "https://api.openai.com/v1"
+                extra_fields.update({
+                    "attempted_openai_provider": attempted_openai_client_config.get("provider"),
+                    "attempted_openai_model": attempted_openai_client_config.get("model"),
+                    "attempted_use_custom_openai_secret_key": attempted_openai_client_config.get("use_custom_openai_secret_key"),
+                    "attempted_openai_base_url": attempted_endpoint,
+                })
             if (is_valid):
-                message = f"{message}OpenAI Secret Key validated."
+                message = f"{message}LLM provider settings validated."
             else:
-                message = f"{message}OpenAI Secret Key not updated: {openai_response_description}."
+                message = f"{message}LLM provider settings not updated: {openai_response_description}."
+        extra_fields.update({
+            "openai_provider": user.openai_provider,
+            "openai_model": user.openai_model,
+            "use_custom_openai_secret_key": user.use_custom_openai_secret_key,
+        })
 
         response_info = AuthResponseInfo(
             id=user.id,
@@ -606,7 +691,7 @@ def password_reset() -> Response:
 
 ## ******* The dividing line between Email login and OAuth login ****** ##
 
-from .oauth_config import CLIENT_ID, CLIENT_SECRET, provider_cfg_dict, oauth_client_dict
+from .oauth_config import CLIENT_ID, CLIENT_SECRET, provider_cfg_dict, oauth_client_dict, get_provider_cfg
 from oauthlib.oauth2 import WebApplicationClient
     
 class OAuthResponseInfo(AuthResponseInfo):
@@ -758,7 +843,7 @@ def oauth_vendor_login(oauth_vendor: str) -> Response:
     """
     oauth_vendor = oauth_vendor.upper()
     oauth_client: WebApplicationClient = oauth_client_dict.get(oauth_vendor, None)
-    provider_cfg: dict = provider_cfg_dict.get(oauth_vendor, None)
+    provider_cfg: dict = provider_cfg_dict.get(oauth_vendor, None) or get_provider_cfg(oauth_vendor)
 
     if (oauth_client is None):
         response_info = OAuthResponseInfo(
@@ -771,7 +856,17 @@ def oauth_vendor_login(oauth_vendor: str) -> Response:
         )
         return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
 
-    authorization_endpoint = provider_cfg["authorization_endpoint"]  # e.g. https://accounts.google.com/o/oauth2/v2/auth
+    authorization_endpoint = provider_cfg.get("authorization_endpoint", None)  # e.g. https://accounts.google.com/o/oauth2/v2/auth
+    if (authorization_endpoint is None):
+        response_info = OAuthResponseInfo(
+            id=None,
+            email=None,
+            oauth_email=None,
+            oauth_vendor=oauth_vendor,
+            is_successful=False,
+            message=f"OAuth provider configuration for `{OAuthUser.camel_case_oauth_vendor(oauth_vendor)}` is unavailable.",
+        )
+        return Response(response=response_info.serialize(), status=503, mimetype=JSONIFY_MIMETYPE)
 
     # Construct the request for Social login and retrieve user's profile.
     request_uri = oauth_client.prepare_request_uri(
@@ -794,7 +889,7 @@ def oauth_vendor_login_callback(oauth_vendor: str) -> Response:
     """
     oauth_vendor = oauth_vendor.upper()
     oauth_client: WebApplicationClient = oauth_client_dict.get(oauth_vendor, None)
-    provider_cfg: dict = provider_cfg_dict.get(oauth_vendor, None)
+    provider_cfg: dict = provider_cfg_dict.get(oauth_vendor, None) or get_provider_cfg(oauth_vendor)
 
     if (oauth_client is None):
         response_info = OAuthResponseInfo(
@@ -809,13 +904,38 @@ def oauth_vendor_login_callback(oauth_vendor: str) -> Response:
             response=response_info.serialize(),
             status=400, mimetype=JSONIFY_MIMETYPE)
 
+    if (not provider_cfg):
+        response_info = OAuthResponseInfo(
+            id=None,
+            email=None,
+            oauth_email=None,
+            oauth_vendor=oauth_vendor,
+            is_successful=False,
+            message=f"OAuth provider configuration for `{OAuthUser.camel_case_oauth_vendor(oauth_vendor)}` is unavailable.",
+        )
+        return Response(
+            response=response_info.serialize(),
+            status=503, mimetype=JSONIFY_MIMETYPE)
+
     # OAuth2 authorization code
     code = str()
     if (request.method == "GET"):
         code = request.args.get("code", None)
     if (request.method == "POST"):
         code = request.form.get("code", None)
-    token_endpoint = provider_cfg["token_endpoint"]
+    token_endpoint = provider_cfg.get("token_endpoint", None)
+    if (token_endpoint is None):
+        response_info = OAuthResponseInfo(
+            id=None,
+            email=None,
+            oauth_email=None,
+            oauth_vendor=oauth_vendor,
+            is_successful=False,
+            message=f"OAuth provider configuration for `{OAuthUser.camel_case_oauth_vendor(oauth_vendor)}` is unavailable.",
+        )
+        return Response(
+            response=response_info.serialize(),
+            status=503, mimetype=JSONIFY_MIMETYPE)
     # print(code)
 
     # Prepare and send a request to get tokens.
@@ -848,7 +968,19 @@ def oauth_vendor_login_callback(oauth_vendor: str) -> Response:
             status=400, mimetype=JSONIFY_MIMETYPE)
 
     # Find and hit the URL from OAuth Vendor that provides the user's profile information.
-    userinfo_endpoint = provider_cfg["userinfo_endpoint"]
+    userinfo_endpoint = provider_cfg.get("userinfo_endpoint", None)
+    if (userinfo_endpoint is None):
+        response_info = OAuthResponseInfo(
+            id=None,
+            email=None,
+            oauth_email=None,
+            oauth_vendor=oauth_vendor,
+            is_successful=False,
+            message=f"OAuth provider configuration for `{OAuthUser.camel_case_oauth_vendor(oauth_vendor)}` is unavailable.",
+        )
+        return Response(
+            response=response_info.serialize(),
+            status=503, mimetype=JSONIFY_MIMETYPE)
     uri, headers, body = oauth_client.add_token(userinfo_endpoint)
     userinfo_response = get(uri, headers=headers, data=body)
     userinfo:dict = userinfo_response.json()

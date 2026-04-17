@@ -226,7 +226,6 @@ dependencies:
   - numpy=1.26.2=py39heeff2f4_0
   - numpy-base=1.26.2=py39h8a23956_0
   - oauthlib=3.2.2=py39h06a4308_0
-  - openai=1.37.0=py39h06a4308_0
   - openbabel=3.1.1=py39h421517d_8
   - openblas=0.3.25=pthreads_h7a3da1a_0
   - openh264=2.3.1=hcb278e6_2
@@ -358,3 +357,4 @@ dependencies:
       - fastjsonschema==2.20.0
       - mmcif-pdbx==2.0.1
       - rdkit==2024.3.5
+      - openai==2.29.0

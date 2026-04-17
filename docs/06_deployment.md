@@ -52,6 +52,19 @@ Copy the `.env.example` file to `.env` and customize the environment variables a
 cp .env.example .env
 ```
 
+Key variables for backend runtime:
+
+- `MONGO_URI`: MongoDB connection string.
+- `OPENAI_RUNTIME`: `responses` (recommended) or `assistants` (legacy fallback).
+
+Runtime precedence:
+
+1. value in `.env`
+2. fallback value in `docker-compose.yml`
+3. backend code fallback in `flask-server/config.py`
+
+In most cases, editing `.env` is sufficient; you do not need to modify `docker-compose.yml`.
+
 ### 1.3. Start, Stop, and Monitor
 
 -   **Build and start in the background:**

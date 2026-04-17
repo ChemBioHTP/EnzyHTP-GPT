@@ -11,17 +11,20 @@
 # Here put the import lib.
 import os
 import re
+import threading
+import errno
+import fcntl
 import prompts
 import pandas as pd
 from csv import DictWriter
 from os import path
 from pathlib import Path
-from flask import Response, request, send_file
+from flask import Response, request, send_file, current_app
 from flask_login import login_required, current_user
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from flask_restful import Resource
 from json import JSONDecodeError, dumps, loads
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from string import Template
 from datetime import datetime
 from werkzeug.datastructures import ImmutableMultiDict
@@ -30,7 +33,7 @@ from werkzeug.datastructures import ImmutableMultiDict
 from .models import Experiment, Result
 from .analysis import METRICS_MAPPER
 from .experiment_config import StatusCode
-from .agents import ResultExplainerAssistant
+from .agents import ResultExplainerAssistant, MODEL_VERSION
 from .manual_md_pack import build_manual_md_package
 from auth.models import User
 from auth.views import (
@@ -44,6 +47,7 @@ from config import (
     WORKSHEET_MUTATION_COLUMN_NAME,
     APP_HOST,
     JSONIFY_MIMETYPE,
+    OPENAI_RUNTIME,
 
     # Slurm API.
     SLURM_USER,
@@ -58,6 +62,8 @@ from config import (
     SLURM_DEPLOY_SCRIPT, 
     MAX_MUTANT_COUNT,
     MANUAL_MD_DEPLOY_TIMEOUT,
+    OPENAI_ASSISTANTS_REQUEST_TIMEOUT,
+    OPENAI_ASSISTANTS_FIREWORKS_REQUEST_TIMEOUT,
 
     # PLHD_RESULT_IMG_PATHS,
     # PLHD_RESULT_INTERPRETATION,
@@ -73,6 +79,182 @@ from enzy_htp.core import (
 db = mongo.db
 
 RAW_RESULTS_FILENAME = "raw_results.csv"
+RESULT_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+MAX_RESULT_IMAGE_COUNT = 60
+RESULT_EXPLAINER_PENDING_MESSAGE = "Result interpretation is being generated in the background. Please refresh in a few seconds."
+_RESULT_EXPLAINER_INFLIGHT_LOCK = threading.Lock()
+_RESULT_EXPLAINER_INFLIGHT_EXPERIMENTS: set[str] = set()
+_RESULT_EXPLAINER_LOCK_HANDLES: Dict[str, Any] = dict()
+RESULT_EXPLAINER_LOCK_DIR = "/tmp/enzyhtp_result_explainer_locks"
+
+
+def _get_openai_client_config(user: User) -> dict:
+    if (hasattr(user, "get_openai_client_config")):
+        return user.get_openai_client_config()
+    return {
+        "api_key": getattr(user, "openai_secret_key", None),
+        "base_url": None,
+        "model": MODEL_VERSION,
+    }
+
+
+def _set_openai_assistants_request_timeout(openai_client_config: Optional[Dict[str, Any]]) -> None:
+    """Set per-request uWSGI harakiri budget for assistant endpoints."""
+    timeout_seconds = OPENAI_ASSISTANTS_REQUEST_TIMEOUT
+    if (
+        isinstance(openai_client_config, dict)
+        and openai_client_config.get("provider") == "fireworks"
+    ):
+        timeout_seconds = OPENAI_ASSISTANTS_FIREWORKS_REQUEST_TIMEOUT
+    if (not timeout_seconds) or (int(timeout_seconds) <= 0):
+        return
+    try:
+        import uwsgi
+        uwsgi.set_user_harakiri(int(timeout_seconds))
+    except Exception:
+        pass
+
+def _mark_result_explainer_inflight(experiment_id: str) -> bool:
+    with _RESULT_EXPLAINER_INFLIGHT_LOCK:
+        if (experiment_id in _RESULT_EXPLAINER_INFLIGHT_EXPERIMENTS):
+            return False
+        _RESULT_EXPLAINER_INFLIGHT_EXPERIMENTS.add(experiment_id)
+        return True
+
+def _unmark_result_explainer_inflight(experiment_id: str) -> None:
+    with _RESULT_EXPLAINER_INFLIGHT_LOCK:
+        _RESULT_EXPLAINER_INFLIGHT_EXPERIMENTS.discard(experiment_id)
+
+def _is_result_explainer_inflight(experiment_id: str) -> bool:
+    with _RESULT_EXPLAINER_INFLIGHT_LOCK:
+        return (experiment_id in _RESULT_EXPLAINER_INFLIGHT_EXPERIMENTS)
+
+def _get_result_explainer_lock_path(experiment_id: str) -> str:
+    safe_id = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(experiment_id or "unknown"))
+    return path.join(RESULT_EXPLAINER_LOCK_DIR, f"{safe_id}.lock")
+
+def _acquire_result_explainer_process_lock(experiment_id: str) -> bool:
+    os.makedirs(RESULT_EXPLAINER_LOCK_DIR, exist_ok=True)
+    lock_path = _get_result_explainer_lock_path(experiment_id)
+    lock_handle = open(lock_path, "a+", encoding="utf-8")
+    try:
+        fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError as exc:
+        lock_handle.close()
+        if exc.errno in (errno.EACCES, errno.EAGAIN):
+            return False
+        _LOGGER.warning(
+            "Failed to acquire ResultExplainer file lock. experiment_id=%s, error=%s",
+            experiment_id,
+            exc,
+        )
+        return False
+    with _RESULT_EXPLAINER_INFLIGHT_LOCK:
+        _RESULT_EXPLAINER_LOCK_HANDLES[str(experiment_id)] = lock_handle
+    return True
+
+def _release_result_explainer_process_lock(experiment_id: str) -> None:
+    lock_handle = None
+    with _RESULT_EXPLAINER_INFLIGHT_LOCK:
+        lock_handle = _RESULT_EXPLAINER_LOCK_HANDLES.pop(str(experiment_id), None)
+    if (not lock_handle):
+        return
+    try:
+        fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
+    except Exception:
+        pass
+    try:
+        lock_handle.close()
+    except Exception:
+        pass
+
+def _is_result_explainer_locked_by_other_worker(experiment_id: str) -> bool:
+    if _is_result_explainer_inflight(experiment_id):
+        return True
+    lock_path = _get_result_explainer_lock_path(experiment_id)
+    os.makedirs(RESULT_EXPLAINER_LOCK_DIR, exist_ok=True)
+    probe_handle = open(lock_path, "a+", encoding="utf-8")
+    try:
+        fcntl.flock(probe_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        fcntl.flock(probe_handle.fileno(), fcntl.LOCK_UN)
+        return False
+    except OSError as exc:
+        if exc.errno in (errno.EACCES, errno.EAGAIN):
+            return True
+        _LOGGER.warning(
+            "Failed probing ResultExplainer file lock. experiment_id=%s, error=%s",
+            experiment_id,
+            exc,
+        )
+        return False
+    finally:
+        probe_handle.close()
+
+def _run_result_explainer_in_background(
+    experiment_id: str,
+    openai_client_config: dict,
+    flask_app=None,
+) -> None:
+    app_context = None
+    try:
+        if (flask_app is not None):
+            app_context = flask_app.app_context()
+            app_context.push()
+
+        experiment = Experiment.get(experiment_id)
+        if (not experiment):
+            return
+        if (experiment.result_interpretation):
+            return
+
+        if (not experiment.scientific_question):
+            fallback_question = experiment.get_latest_assistant_output(assistant_type=0)
+            if (fallback_question):
+                experiment.update_attributes(mapper={"scientific_question": fallback_question})
+
+        model_temp = str(openai_client_config.get("model") or MODEL_VERSION)
+        if model_temp.startswith("gpt-4"):
+            model_temp = "gpt-5.4"  # Use a more advanced model for result explanation if user has access to GPT-4o.
+        result_explainer = ResultExplainerAssistant(
+            openai_secret_key=openai_client_config.get("api_key"),
+            model=model_temp,
+            base_url=openai_client_config.get("base_url"),
+            conversation_mode=False,
+            experiment=experiment,
+        )
+        is_valid, status, response_content = result_explainer.ask_gpt()
+        _LOGGER.info(
+            "Async ResultExplainer tool call result. experiment_id=%s, tool_call_result=%s",
+            experiment_id,
+            result_explainer.latest_tool_call_result,
+        )
+        if (status == 200) and response_content:
+            experiment.update_attributes({"result_interpretation": response_content})
+            _LOGGER.info(
+                "Result interpretation generated asynchronously. experiment_id=%s",
+                experiment_id,
+            )
+        else:
+            _LOGGER.warning(
+                "Async ResultExplainer failed. experiment_id=%s, is_valid=%s, status=%s",
+                experiment_id,
+                is_valid,
+                status,
+            )
+    except Exception as exc:
+        _LOGGER.exception(
+            "Exception in async ResultExplainer generation. experiment_id=%s, error=%s",
+            experiment_id,
+            exc,
+        )
+    finally:
+        try:
+            if (app_context is not None):
+                app_context.pop()
+        except Exception:
+            pass
+        _unmark_result_explainer_inflight(experiment_id)
+        _release_result_explainer_process_lock(experiment_id)
 
 def _aggregate_group_status_progress(experiment: Experiment) -> Tuple[int, float]:
     """Aggregate status/progress for group experiments from sub experiments."""
@@ -171,6 +353,95 @@ def _collect_downloadable_files(experiment: Experiment) -> dict[str, str]:
         add_files(experiment.directory)
 
     return file_map
+
+def _safe_result_label(value: Any) -> str:
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", str(value or "").strip()) or "WT"
+
+def _collect_result_image_items(experiment: Experiment, max_count: Optional[int] = MAX_RESULT_IMAGE_COUNT) -> List[Dict[str, str]]:
+    """Collect result image items with labels for frontend preview."""
+    image_paths: List[Tuple[str, str]] = []
+    raw_results = Result.get_experiment_raw_results(experiment_id=experiment.id)
+    mutant_lookup: Dict[str, set] = dict()
+    wt_path_lookup: Dict[str, set] = dict()
+    for result in raw_results:
+        mutant_name = str(result.get("mutant", "WT") or "WT")
+        safe_mutant_name = _safe_result_label(mutant_name)
+        mutant_lookup.setdefault(safe_mutant_name, set()).add(mutant_name)
+        wt_name = str(result.get("pdb_filename", "") or "")
+        if wt_name:
+            wt_path_lookup.setdefault(safe_mutant_name, set()).add(wt_name)
+
+    def add_images(base_dir: str) -> None:
+        if (not base_dir):
+            return
+        image_root = path.join(base_dir, "plots", "equilibration")
+        if (not path.isdir(image_root)):
+            return
+        for file_path_obj in sorted(Path(image_root).rglob("*")):
+            if (max_count is not None and len(image_paths) >= max_count):
+                return
+            if (not file_path_obj.is_file()):
+                continue
+            if (file_path_obj.suffix.lower() not in RESULT_IMAGE_EXTENSIONS):
+                continue
+            image_paths.append((str(file_path_obj), base_dir))
+        return
+
+    if (experiment.type == Experiment.GROUP_TYPE):
+        add_images(experiment.directory)
+        for sub_experiment in experiment.subordinate_experiments:
+            if (not sub_experiment):
+                continue
+            add_images(sub_experiment.directory)
+    else:
+        add_images(experiment.directory)
+
+    result_image_items: List[Dict[str, str]] = []
+    for image_path, base_dir in image_paths:
+        try:
+            image_path_obj = Path(image_path)
+            relative_parts = image_path_obj.relative_to(base_dir).parts
+            safe_mutant_name = "WT"
+            replica_id = ""
+            if ("equilibration" in relative_parts):
+                eq_idx = relative_parts.index("equilibration")
+                if (eq_idx + 1 < len(relative_parts)):
+                    safe_mutant_name = relative_parts[eq_idx + 1]
+                if (eq_idx + 2 < len(relative_parts)):
+                    replica_token = relative_parts[eq_idx + 2]
+                    if (replica_token.startswith("replica_")):
+                        replica_id = replica_token.removeprefix("replica_")
+
+            mutant_candidates = sorted(mutant_lookup.get(safe_mutant_name, {safe_mutant_name}))
+            wt_candidates = sorted(wt_path_lookup.get(safe_mutant_name, set()))
+            mutant_label = mutant_candidates[0] if mutant_candidates else safe_mutant_name
+            wt_path_label = wt_candidates[0] if wt_candidates else ""
+            title_text = f"Mutant: {mutant_label}"
+            if (wt_path_label):
+                title_text += f" | WT: {wt_path_label}"
+            if (replica_id):
+                title_text += f" | Replica: {replica_id}"
+
+            result_image_items.append({
+                "src": image_path_to_src(image_path),
+                "mutant": mutant_label,
+                "wt_path": wt_path_label,
+                "replica_id": replica_id,
+                "filename": image_path_obj.name,
+                "title": title_text,
+            })
+        except Exception as exc:
+            _LOGGER.warning("Failed to load result image %s: %s", image_path, exc)
+            continue
+    return result_image_items
+
+def _collect_result_images(experiment: Experiment, max_count: Optional[int] = MAX_RESULT_IMAGE_COUNT) -> List[str]:
+    """Backward-compatible image list (base64 src only)."""
+    return [
+        item.get("src", "")
+        for item in _collect_result_image_items(experiment=experiment, max_count=max_count)
+        if item.get("src")
+    ]
 
 #region Experiment Response Body and Handlers.
 
@@ -471,13 +742,10 @@ class IndexApi(Resource):
                 message=f"The experiment instance '{experiment_id}' is {StatusCode.status_text_mapper[experiment.status]}, which is unable to be deleted.")
             return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
         else:
-            OpenAIAssistant.delete_thread(
-                openai_secret_key=user.openai_secret_key, 
-                thread_id=experiment.current_thread_id
-            )
-            OpenAIAssistant.delete_threads(
-                openai_secret_key=user.openai_secret_key, 
-                thread_id_list=experiment.thread_id_list
+            openai_client_config = _get_openai_client_config(user)
+            _ = experiment.clear_chat_threads(
+                openai_secret_key=openai_client_config.get("api_key"),
+                openai_base_url=openai_client_config.get("base_url"),
             )
             experiment.clear_folder(remove_folder=True)
             db.experiments.delete_one({"id": experiment.id})
@@ -527,6 +795,8 @@ class ExperimentApi(Resource):
         replica_id = request.form.get("replica_id", 0)
         trajectory_file = request.files.get("trajectory", None)
         topology_file = request.files.get("topology", None)
+        equil_plot_files = request.files.getlist("equil_plots")
+        equil_assessment_file = request.files.get("equil_assessment", None)
         store_only = request.args.get("store_only", "").strip().lower() in ("1", "true", "yes")
 
         if (mutant_name is None or trajectory_file is None or topology_file is None):
@@ -546,12 +816,60 @@ class ExperimentApi(Resource):
         trajectory_file.stream.seek(0)
         topology_file.stream.seek(0)
 
+        saved_plot_relpaths: List[str] = []
+        saved_assessment_relpath = None
+        plot_dir = path.join(
+            experiment.directory,
+            "plots",
+            "equilibration",
+            safe_mutant_name,
+            f"replica_{safe_replica_id}",
+        )
+        if (equil_plot_files):
+            fs.safe_mkdir(plot_dir)
+            for plot_file in equil_plot_files:
+                if (plot_file is None):
+                    continue
+                raw_filename = str(plot_file.filename or "").strip()
+                if (not raw_filename):
+                    continue
+                safe_plot_filename = re.sub(r"[^A-Za-z0-9_.-]+", "_", path.basename(raw_filename))
+                if (not safe_plot_filename):
+                    continue
+                plot_save_path = path.join(plot_dir, safe_plot_filename)
+                plot_file.save(plot_save_path)
+                saved_plot_relpaths.append(path.relpath(plot_save_path, experiment.directory))
+                try:
+                    plot_file.stream.seek(0)
+                except Exception:
+                    pass
+
+        if (equil_assessment_file is not None):
+            raw_assessment_filename = str(equil_assessment_file.filename or "").strip()
+            safe_assessment_filename = re.sub(
+                r"[^A-Za-z0-9_.-]+",
+                "_",
+                path.basename(raw_assessment_filename) if raw_assessment_filename else "equil_assessment.json",
+            )
+            if (not safe_assessment_filename.lower().endswith(".json")):
+                safe_assessment_filename = f"{safe_assessment_filename}.json"
+            fs.safe_mkdir(plot_dir)
+            assessment_save_path = path.join(plot_dir, safe_assessment_filename)
+            equil_assessment_file.save(assessment_save_path)
+            saved_assessment_relpath = path.relpath(assessment_save_path, experiment.directory)
+            try:
+                equil_assessment_file.stream.seek(0)
+            except Exception:
+                pass
+
         if (store_only):
             response_info = ExperimentBehaviourResponseInfo(
                 experiment=experiment,
                 user=user,
-                message="Trajectory and topology files are stored.",
+                message="Trajectory, topology, and equilibration plot files are stored.",
                 is_successful=True,
+                stored_plot_files=saved_plot_relpaths,
+                stored_equilibration_assessment=saved_assessment_relpath,
             )
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
 
@@ -771,23 +1089,63 @@ class ResultApi(Resource):
         
         experiment_results = Result.get_experiment_results(experiment_id=experiment_id)
 
-        # result_images = [image_path_to_src(path) for path in PLHD_RESULT_IMG_PATHS]
-        result_images = []  # Set `result_images` to empty list.
+        image_limit = MAX_RESULT_IMAGE_COUNT
+        image_limit_query = request.args.get("image_limit", None)
+        if (image_limit_query is not None):
+            try:
+                parsed_limit = int(str(image_limit_query).strip())
+                if (parsed_limit <= 0):
+                    image_limit = None
+                else:
+                    image_limit = parsed_limit
+            except Exception:
+                image_limit = MAX_RESULT_IMAGE_COUNT
 
-        if (not experiment.result_interpretation):
-            _ = AssistantsApi.get_scientific_question(user=user, experiment=experiment)
-            result_explainer = ResultExplainerAssistant(
-                openai_secret_key=user.openai_secret_key, 
-                conversation_mode=False,
-                experiment=experiment
-            )
-            is_valid, status, experiment.result_interpretation = result_explainer.ask_gpt()
-            experiment.update_attributes({"result_interpretation": experiment.result_interpretation})
+        result_image_items = _collect_result_image_items(experiment=experiment, max_count=image_limit)
+        result_images = [item.get("src", "") for item in result_image_items if item.get("src")]
+
+        result_interpretation_pending = _is_result_explainer_locked_by_other_worker(experiment.id)
+        if (not experiment.result_interpretation) and (not result_interpretation_pending):
+            openai_client_config = _get_openai_client_config(user)
+            if _mark_result_explainer_inflight(experiment_id=experiment.id):
+                if _acquire_result_explainer_process_lock(experiment_id=experiment.id):
+                    _LOGGER.info(
+                        "Starting async ResultExplainer generation. experiment_id=%s",
+                        experiment.id,
+                    )
+                    try:
+                        flask_app = current_app._get_current_object()
+                        worker = threading.Thread(
+                            target=_run_result_explainer_in_background,
+                            args=(experiment.id, openai_client_config, flask_app),
+                            daemon=True,
+                        )
+                        worker.start()
+                    except Exception as exc:
+                        _LOGGER.exception(
+                            "Failed to start async ResultExplainer thread. experiment_id=%s, error=%s",
+                            experiment.id,
+                            exc,
+                        )
+                        _release_result_explainer_process_lock(experiment_id=experiment.id)
+                        _unmark_result_explainer_inflight(experiment_id=experiment.id)
+                else:
+                    _unmark_result_explainer_inflight(experiment_id=experiment.id)
+            result_interpretation_pending = _is_result_explainer_locked_by_other_worker(experiment.id)
         
         _ensure_raw_results_csv(experiment)
         downloadable_files_dict = dict()
         for arcname in _collect_downloadable_files(experiment).keys():
             downloadable_files_dict[arcname] = fs.get_file_ext(arcname)
+
+        result_interpretation_status = "ready"
+        result_interpretation_message = "Result interpretation is ready."
+        if (result_interpretation_pending):
+            result_interpretation_status = "pending"
+            result_interpretation_message = RESULT_EXPLAINER_PENDING_MESSAGE
+        elif (not experiment.result_interpretation):
+            result_interpretation_status = "unavailable"
+            result_interpretation_message = "Result interpretation is not available yet."
 
         response_info = ExperimentBehaviourResponseInfo(
             experiment=experiment,
@@ -796,7 +1154,12 @@ class ResultApi(Resource):
             is_successful=(True if experiment_results else False),
             experiment_results=experiment_results,
             result_images=result_images,
+            result_image_items=result_image_items,
+            image_limit_applied=image_limit,
             result_interpretation=experiment.result_interpretation,
+            result_interpretation_pending=result_interpretation_pending,
+            result_interpretation_status=result_interpretation_status,
+            result_interpretation_message=result_interpretation_message,
             downloadable_files=downloadable_files_dict,
         )
         return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
@@ -1053,11 +1416,13 @@ class MutationApi(Resource):
         mutation_request = request.form.get("mutation_request")
 
         instructions = open(path.join(BASEDIR, "prompts", "mutant_planner-v1.txt")).read()
-        service = OpenAIAssistant(user.openai_secret_key, 
+        openai_client_config = _get_openai_client_config(user)
+        service = build_openai_agent(openai_client_config.get("api_key"), 
             assistant_name="Mutant Planner", 
             instructions=instructions, 
-            model="gpt-4o", 
-            conversation_mode=False
+            model=openai_client_config.get("model") or MODEL_VERSION,
+            base_url=openai_client_config.get("base_url"),
+            conversation_mode=False,
         )
         is_openai_key_valid, status_code, response_content = service.ask_gpt(prompt=mutation_request)
 
@@ -1177,27 +1542,70 @@ class MutationApi(Resource):
                 return Response(response=response_info.serialize(), status=415, mimetype=JSONIFY_MIMETYPE)
 
 #region OpenAI Assistants
-from services import OpenAIChat, OpenAIAssistant
+from services import OpenAIChat, OpenAIAssistant, build_openai_agent
 from .agents import QuestionAnalyzerAssistant, QuestionSummarizerAssistant, AGENT_MAPPER, DefinedAgent
 
 class AssistantsApi(Resource):
     """Route: `/<experiment_id>/assistants`"""
 
     @classmethod
-    def get_scientific_question(cls, user: User, experiment: Experiment):
+    def get_scientific_question(
+        cls,
+        user: User,
+        experiment: Experiment,
+        openai_client_config: Optional[Dict[str, Any]] = None,
+    ):
         """Get the scientific question from the experiment instance.
         
         Args:
             user (User): The user instance.
             experiment (Experiment): The experiment instance.
         """
-        is_successful, messages = OpenAIAssistant.get_thread_messages(
-            openai_secret_key=user.openai_secret_key, 
-            thread_id=(experiment.thread_id_list[0] if experiment.thread_id_list else experiment.current_thread_id)
-        )
-        if (is_successful):
+        if (openai_client_config is None):
+            openai_client_config = _get_openai_client_config(user)
+        openai_secret_key = openai_client_config.get("api_key")
+        openai_base_url = openai_client_config.get("base_url")
+
+        # Prefer local full Question Analyzer transcript (assistant_type=0) across
+        # multiple responses. In Responses fallback mode, each round may have a
+        # different response_id, so querying only one session_id can truncate
+        # context and cause under-informed summaries.
+        local_qa_messages = list()
+        for message in experiment.chat_messages:
+            if (message.get("assistant_type") != 0):
+                continue
+            role = message.get("role", None)
+            if (role not in ("user", "assistant")):
+                continue
+            local_qa_messages.append({
+                "role": role,
+                "text_value": message.get("text_value", str()),
+            })
+
+        question_analyzer_session_id = experiment.get_question_analyzer_session_id(runtime=OPENAI_RUNTIME)
+        messages = local_qa_messages if local_qa_messages else experiment.get_messages_by_session_id(question_analyzer_session_id)
+        is_successful = bool(messages)
+
+        if ((not messages) and question_analyzer_session_id):
+            is_successful, messages = OpenAIAssistant.get_thread_messages(
+                openai_secret_key=openai_secret_key,
+                base_url=openai_base_url,
+                thread_id=question_analyzer_session_id,
+            )
+
+        if (is_successful and messages):
+            _LOGGER.info(
+                "Question summarizer payload prepared. experiment_id=%s, qa_messages=%s, source=%s",
+                experiment.id,
+                len(messages),
+                ("local_assistant_type_0" if local_qa_messages else "session_or_remote"),
+            )
             question_summarizer = QuestionSummarizerAssistant(
-                openai_secret_key=user.openai_secret_key, conversation_mode=False, experiment=experiment
+                openai_secret_key=openai_secret_key,
+                model=openai_client_config.get("model"),
+                base_url=openai_base_url,
+                conversation_mode=False,
+                experiment=experiment,
             )
             is_valid, status_code, experiment.scientific_question = question_summarizer.ask_gpt(
                 prompt=dumps(messages)
@@ -1205,8 +1613,11 @@ class AssistantsApi(Resource):
             experiment.update_attributes(mapper={
                 "scientific_question": experiment.scientific_question
             })
-        else:
-            pass
+        elif (not experiment.scientific_question):
+            experiment.scientific_question = experiment.get_latest_assistant_output(assistant_type=0)
+            experiment.update_attributes(mapper={
+                "scientific_question": experiment.scientific_question
+            })
         return experiment.scientific_question
 
     @login_required
@@ -1228,19 +1639,21 @@ class AssistantsApi(Resource):
         if (experiment.chat_messages):
             assistant_messages = experiment.chat_messages
         else:
-            # _LOGGER.info(f"Fetching thread ({experiment.current_thread_id}) messages now.")
-            is_successful, assistant_messages = OpenAIAssistant.get_thread_messages(
-                openai_secret_key=user.openai_secret_key,
-                thread_id=experiment.current_thread_id,
-                limit=50
-            )
-            if (is_successful):
-                if (not experiment.thread_id_list):
-                    experiment.append_thread_id_list(experiment.current_thread_id)
-                # _LOGGER.info(f"Replacing the chat_messages {experiment.chat_messages} with value {assistant_messages}.")
-                experiment.update_attributes(mapper={
-                    "chat_messages": assistant_messages
-                })
+            openai_client_config = _get_openai_client_config(user)
+            session_id = experiment.get_primary_session_id(runtime=OPENAI_RUNTIME)
+            if (session_id):
+                is_successful, assistant_messages = OpenAIAssistant.get_thread_messages(
+                    openai_secret_key=openai_client_config.get("api_key"),
+                    base_url=openai_client_config.get("base_url"),
+                    thread_id=session_id,
+                    limit=50
+                )
+                if (is_successful):
+                    experiment.append_session_id(new_session_id=session_id, runtime=OPENAI_RUNTIME)
+                    # _LOGGER.info(f"Replacing the chat_messages {experiment.chat_messages} with value {assistant_messages}.")
+                    experiment.update_attributes(mapper={
+                        "chat_messages": assistant_messages
+                    })
 
         # for i in range(len(assistant_messages)):
         #     message = assistant_messages[i]
@@ -1272,11 +1685,15 @@ class AssistantsApi(Resource):
             return forbidden_response(user, experiment)
         
         user_prompt = request.form.get("prompt", str())
+        openai_client_config = _get_openai_client_config(user)
+        _set_openai_assistants_request_timeout(openai_client_config)
         current_assistant_class = AGENT_MAPPER[experiment.current_assistant_type % len(AGENT_MAPPER)]
         # print([current_assistant_class])
         current_assistant: DefinedAgent = current_assistant_class(
-            openai_secret_key=user.openai_secret_key, 
-            thread_id=experiment.current_thread_id, 
+            openai_secret_key=openai_client_config.get("api_key"),
+            model=openai_client_config.get("model"),
+            base_url=openai_client_config.get("base_url"),
+            thread_id=experiment.get_primary_session_id(runtime=OPENAI_RUNTIME),
             conversation_mode=True,
             experiment=experiment,
         )
@@ -1291,10 +1708,21 @@ class AssistantsApi(Resource):
         processed_response_content = current_assistant.post_process(response_content, experiment.summon_next_agent)
         
         # Append the chat message records.
-        if (experiment.current_thread_id not in experiment.thread_id_list):
-            experiment.append_thread_id_list(new_thread_id=current_assistant.thread.id)
-        experiment.append_chat_messages(role="user", text_value=user_prompt)
-        experiment.append_chat_messages(role="assistant", text_value=processed_response_content)
+        assistant_thread = current_assistant.thread
+        assistant_session_id = getattr(assistant_thread, "id", None)
+        experiment.append_session_id(new_session_id=assistant_session_id, runtime=OPENAI_RUNTIME)
+        experiment.append_chat_messages(
+            role="user",
+            text_value=user_prompt,
+            assistant_type=experiment.current_assistant_type,
+            session_id=assistant_session_id,
+        )
+        experiment.append_chat_messages(
+            role="assistant",
+            text_value=processed_response_content,
+            assistant_type=experiment.current_assistant_type,
+            session_id=assistant_session_id,
+        )
 
         # configuration_updated, updated_attributes = experiment.parse_agent_response_content(response_content=processed_response_content)
 
@@ -1339,41 +1767,85 @@ class AssistantsApi(Resource):
         current_assistant_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
         if (issubclass(current_assistant_class, OpenAIAssistant)):
             completion_message = current_assistant_class.completion_message
-        
-        # Update scientific question if needed.
-        _ = self.get_scientific_question(user=user, experiment=experiment)
 
+        openai_client_config = _get_openai_client_config(user)
+        _set_openai_assistants_request_timeout(openai_client_config)
+
+        # Update scientific question if needed.
+        _ = self.get_scientific_question(
+            user=user,
+            experiment=experiment,
+            openai_client_config=openai_client_config,
+        )
+
+        target_assistant_type = experiment.current_assistant_type + 1
+        response_content = "Please press the **Next** button to proceed your experiment configuration."
+
+        if (target_assistant_type < len(AGENT_MAPPER)): # If there's next agent, correspond with OpenAI.
+            current_assistant_class = AGENT_MAPPER.get(target_assistant_type % len(AGENT_MAPPER))
+            current_assistant: DefinedAgent = current_assistant_class(
+                openai_secret_key=openai_client_config.get("api_key"),
+                model=openai_client_config.get("model"),
+                base_url=openai_client_config.get("base_url"),
+                conversation_mode=True,
+                experiment=experiment,
+            )
+
+            # Use the summary information of the question analyzer.
+            question_analyzer_summary = experiment.get_latest_assistant_output(assistant_type=0)
+            if (not question_analyzer_summary):
+                question_analyzer_session_id = experiment.get_question_analyzer_session_id(runtime=OPENAI_RUNTIME)
+                if (question_analyzer_session_id):
+                    is_successful, question_analyzer_summary = OpenAIAssistant.get_thread_summary(
+                        openai_secret_key=openai_client_config.get("api_key"),
+                        base_url=openai_client_config.get("base_url"),
+                        thread_id=question_analyzer_session_id,
+                    )
+            starting_message = current_assistant.pre_process(input_prompt=question_analyzer_summary)
+            is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=starting_message)
+            if (status_code != 200):
+                response_info = ExperimentBehaviourResponseInfo(
+                    experiment, user,
+                    is_successful=False,
+                    message=response_content,
+                    response_content=response_content,
+                    require_pdb_file=experiment.requires_pdb_upload,
+                    # Keep the confirm button if next-agent call fails.
+                    confirm_button=experiment.summon_next_agent,
+                    configuration_stages=experiment.configuration_stages,
+                )
+                return Response(response=response_info.serialize(), status=status_code, mimetype=JSONIFY_MIMETYPE)
+
+            # _LOGGER.info("Message received after changing agent.")
+            response_content = current_assistant.post_process(response_content, False)
+            assistant_thread = current_assistant.thread
+            assistant_session_id = getattr(assistant_thread, "id", None)
+            experiment.append_session_id(new_session_id=assistant_session_id, runtime=OPENAI_RUNTIME)
+            if (starting_message):
+                experiment.append_chat_messages(
+                    role="user",
+                    text_value=starting_message,
+                    assistant_type=target_assistant_type,
+                    session_id=assistant_session_id,
+                )
+            experiment.append_chat_messages(
+                role="assistant",
+                text_value=response_content,
+                assistant_type=target_assistant_type,
+                session_id=assistant_session_id,
+            )  # Only the response from the assistant is recorded.
+            _ = is_openai_key_valid
+
+        # Persist state transition only after the next step has completed successfully.
         updated_attrs, blocked_attrs, nonexistent_attrs, message = experiment.update_attributes(
             mapper={
-                "current_assistant_type": experiment.current_assistant_type + 1,
+                "current_assistant_type": target_assistant_type,
                 "summon_next_agent": False,
             },
         )
-
+        _ = blocked_attrs
+        _ = nonexistent_attrs
         if (updated_attrs):
-            # Set the value for the last agent completion.
-            response_content = "Please press the **Next** button to proceed your experiment configuration."
-            configuration_updated = False
-            updated_attributes_from_response = list()
-
-            if (experiment.current_assistant_type < len(AGENT_MAPPER)): # If there's next agent, correspond with OpenAI.
-                current_assistant_class = AGENT_MAPPER.get(experiment.current_assistant_type % len(AGENT_MAPPER))
-                current_assistant: DefinedAgent = current_assistant_class(
-                    openai_secret_key=user.openai_secret_key, 
-                    conversation_mode=True,
-                    experiment=experiment,
-                )
-
-                # Use the summary information of the question analyzer.
-                is_successful, question_analyzer_summary = OpenAIAssistant.get_thread_summary(openai_secret_key=user.openai_secret_key, thread_id=(experiment.thread_id_list[0] if experiment.thread_id_list else experiment.current_thread_id))
-                starting_message = current_assistant.pre_process(input_prompt=question_analyzer_summary)
-                is_openai_key_valid, status_code, response_content = current_assistant.ask_gpt(prompt=starting_message)
-                if (status_code == 200):
-                    # _LOGGER.info("Message received after changing agent.")
-                    response_content = current_assistant.post_process(response_content, experiment.summon_next_agent)
-                    experiment.append_thread_id_list(current_assistant.thread.id)
-                    experiment.append_chat_messages(role="assistant", text_value=response_content)  # Only the response from the assistant is recorded.
-                # configuration_updated, updated_attributes_from_response = experiment.parse_agent_response_content(response_content=response_content)
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
                 is_successful=True,
@@ -1382,8 +1854,6 @@ class AssistantsApi(Resource):
                 response_content=response_content,
                 require_pdb_file=experiment.requires_pdb_upload,
                 confirm_button=experiment.summon_next_agent,
-                # configuration_updated=configuration_updated,
-                # updated_attributes=(updated_attrs+updated_attributes_from_response),
                 configuration_stages=experiment.configuration_stages,
             )
             return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
@@ -1413,7 +1883,11 @@ class AssistantsApi(Resource):
         if (user is None or experiment.user_id != user.id):
             return forbidden_response(user, experiment)
 
-        is_successful = experiment.clear_chat_threads(user.openai_secret_key)
+        openai_client_config = _get_openai_client_config(user)
+        is_successful = experiment.clear_chat_threads(
+            openai_secret_key=openai_client_config.get("api_key"),
+            openai_base_url=openai_client_config.get("base_url"),
+        )
         if (is_successful):
             response_info = ExperimentBehaviourResponseInfo(
                 experiment, user,
@@ -1670,6 +2144,97 @@ class SlurmDeployApi(Resource):
                 user=user,
                 is_successful=False,
                 message="Failed to build manual MD package.",
+            )
+            return Response(response=response_info.serialize(), status=500, mimetype=JSONIFY_MIMETYPE)
+
+        return send_file(
+            deploy_pack_io,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=zip_name,
+        )
+
+class SlurmAccreDeployApi(Resource):
+    """Route: `/<experiment_id>/deploy/accre`."""
+
+    @login_required
+    def get(self, experiment_id: str):
+        """Download an ACCRE-compatible submission package."""
+        try:
+            import uwsgi
+            if MANUAL_MD_DEPLOY_TIMEOUT > 0:
+                uwsgi.set_user_harakiri(int(MANUAL_MD_DEPLOY_TIMEOUT))
+        except Exception:
+            pass
+
+        user: User = current_user
+        experiment = Experiment.get(experiment_id)
+
+        if (experiment is None):
+            return notfound_response(user, experiment_id)
+        if (experiment.user_id != user.id):
+            return forbidden_response(user, experiment)
+        if (experiment.type == experiment.GROUP_TYPE):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                is_successful=False,
+                message="Group experiment export is not supported yet.",
+            )
+            return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
+        if (not experiment.has_pdb_file):
+            return no_pdb_response(user, experiment)
+
+        try:
+            slurm_request, entry_script_content, files, env_vars = experiment.build_slurm_submission_payload()
+            deploy_pack_io = BytesIO()
+            with ZipFile(deploy_pack_io, "w") as deploy_pack_zip:
+                deploy_pack_zip.writestr(
+                    SLURM_MD_JOB_ENTRY_SCRIPT,
+                    entry_script_content,
+                    compress_type=ZIP_DEFLATED,
+                )
+                for file_path in files:
+                    if (not file_path) or (not path.isfile(file_path)):
+                        raise FileNotFoundError(f"Submission file not found: {file_path}")
+                    deploy_pack_zip.write(
+                        filename=file_path,
+                        arcname=path.join("input", path.basename(file_path)),
+                        compress_type=ZIP_DEFLATED,
+                    )
+
+                env_lines = [
+                    "# Environment variables exported by md_entry_script.sh",
+                    '# NOTE: `file_dir` is evaluated at runtime on the compute node.',
+                ]
+                for key, value in env_vars.items():
+                    if (key == "file_dir"):
+                        env_lines.append(f"export {key}={value}")
+                    else:
+                        escaped_value = str(value).replace("\\", "\\\\").replace('"', '\\"')
+                        env_lines.append(f'export {key}="{escaped_value}"')
+                env_lines.append("")
+                deploy_pack_zip.writestr(
+                    "submission/environment_variables.env",
+                    "\n".join(env_lines),
+                    compress_type=ZIP_DEFLATED,
+                )
+                deploy_pack_zip.writestr(
+                    "submission/slurm_request.json",
+                    dumps(loads(slurm_request.serialize()), ensure_ascii=False, indent=2),
+                    compress_type=ZIP_DEFLATED,
+                )
+
+            deploy_pack_io.seek(0)
+            zip_prefix = re.sub(r'[\\/:"*?<>|]', "", experiment.name)
+            zip_name = f"{zip_prefix} ACCRE Run Pack.zip"
+        except Exception as exc:
+            _LOGGER.error(f"Failed to build ACCRE deploy package: {exc}")
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=experiment,
+                user=user,
+                is_successful=False,
+                message="Failed to build ACCRE deploy package.",
             )
             return Response(response=response_info.serialize(), status=500, mimetype=JSONIFY_MIMETYPE)
 

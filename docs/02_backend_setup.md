@@ -20,6 +20,20 @@ This document provides instructions for setting up and running the Flask backend
     bash flask-server/enzyhtp_env_config.sh --path ~/bin/EnzyHTP
     ```
 
+### OpenAI SDK Version
+
+The backend runtime supports both legacy Assistants API and Responses API paths.  
+Use the OpenAI SDK version declared in `flask-server/environment.yml` (`openai==2.29.0`).
+
+You can verify the installed version:
+
+```bash
+python - <<'PY'
+import openai
+print(openai.__version__)
+PY
+```
+
 ### Database
 
 The application uses MongoDB. For local development, you can install it following the official documentation or use the containerized deployment method described in the [Deployment documentation](./06_deployment.md).
@@ -45,6 +59,39 @@ For production, the backend is run as a containerized service using Docker Compo
 
 -   **`config.py`**: This file contains the runtime configurations for the Flask server.
 -   **`context.py`**: This file declares the `SQLAlchemy` database instance, the `LoginManager` for authentication, and the SSL context.
+
+### OpenAI Runtime Switch
+
+Set `OPENAI_RUNTIME` to choose backend OpenAI runtime:
+
+- `assistants`: legacy Assistants/Threads path (compatibility fallback)
+- `responses`: new Responses/Conversations path (recommended)
+
+Important defaults:
+
+- `flask-server/config.py` fallback default: `assistants`
+- `.env.example` and `docker-compose.yml` default: `responses`
+
+In normal deployment, configure this in `.env` only; no `docker-compose.yml` change is required.
+
+Quick runtime check:
+
+```bash
+cd flask-server
+python dev-tools/check_openai_runtime.py
+```
+
+### Session Field Migration Script
+
+For existing databases with thread-only historical records, run:
+
+```bash
+cd flask-server
+python dev-tools/migrate_thread_to_conversation.py --dry-run
+python dev-tools/migrate_thread_to_conversation.py --apply
+```
+
+This script is idempotent and safe to re-run.
 
 ### SSL Certificates
 

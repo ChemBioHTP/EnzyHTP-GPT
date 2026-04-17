@@ -17,7 +17,7 @@ from string import Template
 from flask_login import UserMixin
 from flask_jwt_extended import create_access_token
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Union, Tuple, Callable, Literal
+from typing import Any, Dict, List, Union, Tuple, Callable, Literal, Optional
 from json import loads, dumps
 from plum import dispatch
 from werkzeug.datastructures import FileStorage, ImmutableMultiDict
@@ -38,6 +38,7 @@ from config import (
     WORKSHEET_MUTATION_COLUMN_NAME,
     APP_HOST,
     JSONIFY_MIMETYPE,
+    OPENAI_RUNTIME,
 
     # Experiment.
     EXPERIMENT_FILE_DIRECTORY,
@@ -129,6 +130,9 @@ class Experiment():
         self.current_assistant_type = kwargs.get("current_assistant_type", 0)  # 0: Question Analyzer; 1: Metrics Planner; 2: Mutant Planner.
         self.thread_id_list: List[str] = kwargs.get("thread_id_list", list())
         self.current_thread_id = kwargs.get("current_thread_id", str())
+        self.conversation_id_list: List[str] = kwargs.get("conversation_id_list", list())
+        self.current_conversation_id = kwargs.get("current_conversation_id", str())
+        self.openai_runtime = kwargs.get("openai_runtime", OPENAI_RUNTIME)
         self.chat_messages: List[Dict[str, str]] = kwargs.get("chat_messages", list())
         self.summon_next_agent = kwargs.get("summon_next_agent", False)
         self.summon_upload_pdb = kwargs.get("summon_upload_pdb", kwargs.get("summon_upload_box", False))
@@ -453,7 +457,7 @@ class Experiment():
                 is_updated = True
                 if (self.pdb_filepath and path.isfile(self.pdb_filepath)):
                     fs.safe_rm(self.pdb_filepath) # Delete existing file.
-                self.pdb_filename = pdb_file.filename
+                self.pdb_filename = path.basename(pdb_file.filename)
                 self.summon_upload_pdb = False
                 pdb_file.save(self.pdb_filepath)
                 message = f"The PDB file of the experiment {self.id} is updated. " + message
@@ -486,7 +490,7 @@ class Experiment():
                 if (self.pdb_filepath):
                     fs.safe_rm(self.pdb_filepath)
                 self.type = self.GROUP_TYPE
-                self.pdb_filename = pdb_file.filename
+                self.pdb_filename = path.basename(pdb_file.filename)
                 self.summon_upload_pdb = False
                 self.sub_experiment_ids = list()
                 for i, pdb_filepath in enumerate(pdb_filepaths):
@@ -963,27 +967,144 @@ class Experiment():
         # _LOGGER.info(f"Current threads (after appending): {self.thread_id_list}")
         return
 
-    def append_chat_messages(self, role: Literal["user", "assistant"], text_value: str):
+    def append_conversation_id_list(self, new_conversation_id: str):
+        """Append new conversation ID and update the current conversation pointer."""
+        if (new_conversation_id and (new_conversation_id not in self.conversation_id_list)):
+            conversation_id_list = self.conversation_id_list
+            conversation_id_list.append(new_conversation_id)
+            self.update_attributes(mapper={
+                "conversation_id_list": conversation_id_list,
+                "current_conversation_id": new_conversation_id,
+            })
+        return
+
+    @staticmethod
+    def normalize_runtime(runtime: str = None) -> str:
+        if (runtime in ("assistants", "responses")):
+            return runtime
+        return OPENAI_RUNTIME
+
+    def append_session_id(self, new_session_id: str, runtime: str = None):
+        """Append session ID according to runtime and keep compatibility fields updated."""
+        runtime = self.normalize_runtime(runtime)
+        if (not new_session_id):
+            return
+        if (runtime == "responses"):
+            self.append_conversation_id_list(new_session_id)
+        self.append_thread_id_list(new_session_id)
+        self.update_attributes(mapper={
+            "openai_runtime": runtime,
+        })
+        return
+
+    def get_primary_session_id(self, runtime: str = None) -> str | None:
+        """Return the primary session ID used by current runtime."""
+        runtime = self.normalize_runtime(runtime)
+        if (runtime == "responses"):
+            if (self.current_conversation_id):
+                return self.current_conversation_id
+            if (self.conversation_id_list):
+                return self.conversation_id_list[-1]
+            if (self.current_thread_id):
+                return self.current_thread_id
+            if (self.thread_id_list):
+                return self.thread_id_list[-1]
+            return None
+        if (self.current_thread_id):
+            return self.current_thread_id
+        if (self.thread_id_list):
+            return self.thread_id_list[-1]
+        if (self.current_conversation_id):
+            return self.current_conversation_id
+        if (self.conversation_id_list):
+            return self.conversation_id_list[-1]
+        return None
+
+    def get_question_analyzer_session_id(self, runtime: str = None) -> str | None:
+        """Return the session ID that contains QuestionAnalyzer outputs."""
+        runtime = self.normalize_runtime(runtime)
+        for message in reversed(self.chat_messages):
+            if (
+                message.get("role") == "assistant"
+                and message.get("assistant_type") == 0
+                and message.get("session_id")
+            ):
+                return message.get("session_id")
+        if (runtime == "responses"):
+            if (self.conversation_id_list):
+                return self.conversation_id_list[0]
+            if (self.thread_id_list):
+                return self.thread_id_list[0]
+            return self.current_conversation_id or self.current_thread_id or None
+        if (self.thread_id_list):
+            return self.thread_id_list[0]
+        if (self.conversation_id_list):
+            return self.conversation_id_list[0]
+        return self.current_thread_id or self.current_conversation_id or None
+
+    def get_latest_assistant_output(self, assistant_type: int = None) -> str:
+        """Get latest assistant output from local chat records."""
+        for message in reversed(self.chat_messages):
+            if (message.get("role") != "assistant"):
+                continue
+            if (assistant_type is not None and message.get("assistant_type") != assistant_type):
+                continue
+            text_value = message.get("text_value", str())
+            if (text_value):
+                return text_value
+        return str()
+
+    def get_messages_by_session_id(self, session_id: str) -> List[Dict[str, str]]:
+        """Get role/text messages from local records by session ID."""
+        if (not session_id):
+            return list()
+        messages = list()
+        for message in self.chat_messages:
+            if (message.get("session_id") != session_id):
+                continue
+            role = message.get("role", None)
+            text_value = message.get("text_value", str())
+            if (role in ("user", "assistant")):
+                messages.append({
+                    "role": role,
+                    "text_value": text_value,
+                })
+        return messages
+
+    def append_chat_messages(
+        self,
+        role: Literal["user", "assistant"],
+        text_value: str,
+        assistant_type: int = None,
+        session_id: str = None,
+    ):
         """Append new chat message to the experiment.
         
         Args:
             role (Literal["user", "assistant"]): Determine if the message is from the `user` or the `assistant`.
             text_value (str): The message content.
+            assistant_type (int, optional): The assistant stage index (0/1/2).
+            session_id (str, optional): The runtime session ID.
         """
         # _LOGGER.info("Appending chat messages.")
         # _LOGGER.info(f"Current messages: {self.chat_messages}")
         chat_messages = self.chat_messages
-        chat_messages.append({
+        message = {
             "role": role,
             "text_value": text_value,
-        })
+        }
+        if (assistant_type is not None):
+            message["assistant_type"] = assistant_type
+        if (session_id):
+            message["session_id"] = session_id
+        chat_messages.append(message)
         self.update_attributes(mapper={
             "chat_messages": chat_messages,
         })
         # _LOGGER.info(f"Current messages (after appending): {self.chat_messages}")
         return
     
-    def clear_chat_threads(self, openai_secret_key: str):
+    def clear_chat_threads(self, openai_secret_key: str, openai_base_url: str = None):
         """Clear the `chat_messages` and `thread_id_list` of current experiment.
         
         Args:
@@ -992,19 +1113,34 @@ class Experiment():
         Returns:
             is_successful (bool): Indidate if the threads are all deleted.
         """
-        is_successful = OpenAIAssistant.delete_thread(
-            openai_secret_key=openai_secret_key, 
-            thread_id=self.current_thread_id
+        session_id_list = list()
+        for session_id in [
+            self.current_thread_id,
+            self.current_conversation_id,
+            *self.thread_id_list,
+            *self.conversation_id_list,
+        ]:
+            if (session_id and session_id not in session_id_list):
+                session_id_list.append(session_id)
+
+        is_successful, deleted_session_ids = OpenAIAssistant.delete_threads(
+            openai_secret_key=openai_secret_key,
+            thread_id_list=session_id_list,
+            base_url=openai_base_url,
         )
-        is_successful, deleted_thread_ids = OpenAIAssistant.delete_threads(
-            openai_secret_key=openai_secret_key, 
-            thread_id=self.thread_id_list
-        )
+        if (not is_successful):
+            failed_session_ids = [session_id for session_id in session_id_list if session_id not in deleted_session_ids]
+            _LOGGER.warning(
+                f"Failed to delete some OpenAI sessions for experiment {self.id}: {failed_session_ids}"
+            )
         self.update_attributes(
             mapper={
                 "current_assistant_type": 0,
                 "current_thread_id": None,
-                "thread_id_list": list()
+                "thread_id_list": list(),
+                "current_conversation_id": None,
+                "conversation_id_list": list(),
+                "chat_messages": list(),
             }
         )
         return is_successful
@@ -1015,6 +1151,63 @@ class Experiment():
 
     # This region has some miners for group experiment. 
     # If one subordinate succeeds, it will return success, which is unable to tell internal failure.
+
+    def build_slurm_submission_payload(
+        self,
+        access_token: Optional[str] = None,
+    ) -> Tuple[SlurmJobRequest, str, List[str], Dict[str, str]]:
+        """Build exactly the payload/files used for ACCRE Slurm submission."""
+        if (self.type == self.GROUP_TYPE):
+            raise ValueError("Group experiment does not have a single direct submission payload.")
+
+        slurm_request = SlurmJobRequest()
+        normalized_pdb_filename = path.basename(self.pdb_filename) if self.pdb_filename else str()
+        normalized_pdb_filepath = path.join(self.directory, normalized_pdb_filename) if normalized_pdb_filename else str()
+        if normalized_pdb_filepath and path.isfile(normalized_pdb_filepath):
+            submitted_pdb_filepath = normalized_pdb_filepath
+        else:
+            submitted_pdb_filepath = self.pdb_filepath
+
+        if (not access_token):
+            access_token = create_access_token(identity=self.user_id, expires_delta=TOKEN_EXPIRES_DELTA)
+
+        metrics_str = dumps(self.metrics)
+        constraints_str = dumps(self.constraints)
+        md_length_str = str(self.md_length)
+
+        entry_script_substitutions = {
+            "slurm_user": SLURM_USER,
+            "username": User.get(self.user_id).username,
+            "app_host": APP_HOST,
+            "experiment_id": self.id,
+            "pdb_filename": normalized_pdb_filename,
+            "metrics": metrics_str,
+            "access_token": access_token,
+            "mutation_pattern": self.mutation_pattern,
+            "constraints_str": constraints_str,
+            "md_length": md_length_str,
+        }
+        entry_script_content = Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute(entry_script_substitutions)
+
+        files = [
+            SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH,
+            SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
+            submitted_pdb_filepath,
+        ]
+
+        env_vars = {
+            "USER": SLURM_USER,
+            "file_dir": '$(cd "$(dirname "$0")/input";pwd)',
+            "app_host": APP_HOST,
+            "access_token": access_token,
+            "experiment_id": self.id,
+            "pdb_filename": normalized_pdb_filename,
+            "metrics": metrics_str,
+            "mutation_pattern": self.mutation_pattern,
+            "constraints_str": constraints_str,
+            "md_length": md_length_str,
+        }
+        return slurm_request, entry_script_content, files, env_vars
 
     def post_slurm_job(self) -> Tuple[bool, int, str]:
         """Posts a SLURM job to the server for execution.
@@ -1051,27 +1244,7 @@ class Experiment():
                     "progress": self.progress,
                 }
             )
-            slurm_request = SlurmJobRequest()
-
-            entry_script_content = Template(SLURM_MD_JOB_ENTRY_SCRIPT_CONTENT).safe_substitute({
-                "slurm_user": SLURM_USER,
-                "username": User.get(self.user_id).username,
-                "app_host": APP_HOST,
-                "experiment_id": self.id,
-                "pdb_filename": self.pdb_filename,
-                "metrics": dumps(self.metrics),
-                "access_token": create_access_token(identity=self.user_id, expires_delta=TOKEN_EXPIRES_DELTA),
-                "mutation_pattern": self.mutation_pattern,
-                "constraints_str": dumps(self.constraints),
-                "md_length": self.md_length
-            })
-
-            files = [
-                # md_entry_script_path,
-                SLURM_MD_JOB_MAIN_SCRIPT_FILEPATH,
-                SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH,
-                self.pdb_filepath,
-            ]
+            slurm_request, entry_script_content, files, _ = self.build_slurm_submission_payload()
             status, message, job_uuid = SlurmJobData.post(
                 slurm_request=slurm_request, file_list=files,
                 # entry_script_filename=md_entry_script_path,

@@ -15,13 +15,14 @@ Three OpenAI Assistant Agents:
 # Here put the import lib.
 from os import path
 import re
+from pathlib import Path
 from string import Template
 from json import load, loads, dumps
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 from datetime import datetime
 
-from config import BASEDIR
+from config import BASEDIR, OPENAI_MODEL_VERSION
 from services import OpenAIAssistant
 
 from .agent_tool_functions import TOOL_FUNCTION_MAPPER
@@ -34,8 +35,13 @@ from enzy_htp.structure import Residue
 from enzy_htp.mutation.mutation_pattern import decode_position_pattern
 
 PROMPTS_DIRECTORY = path.join(BASEDIR, "prompts")
-# MODEL_VERSION = "gpt-4o"
-MODEL_VERSION = "gpt-4o-2024-11-20"
+MODEL_VERSION = OPENAI_MODEL_VERSION
+EQUILIBRATION_METHOD_LABEL = "Chodera automated equilibration detection scheme (PMCID: PMC4945107)"
+SIMULATION_ENGINE_LABEL = "Amber"
+DEFAULT_TEMPERATURE_K = 300
+DEFAULT_EQUILIBRATION_LENGTH_NS = 1.0
+DEFAULT_FORCE_FIELD_LABEL = "ff14SB+GAFF"
+DEFAULT_SOLVENT_MODEL_LABEL = "TIP3P"
 
 class QuestionAnalyzerAssistant(OpenAIAssistant):
     """The agent acting as a Question Analyzer."""
@@ -43,7 +49,15 @@ class QuestionAnalyzerAssistant(OpenAIAssistant):
     experiment: Experiment
     completion_message: str = "Question Confirmed!"
 
-    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
+    def __init__(
+        self,
+        openai_secret_key: str,
+        thread_id: str = str(),
+        conversation_mode: bool = False,
+        experiment: Experiment = None,
+        model: str = MODEL_VERSION,
+        base_url: str = None,
+    ) -> None:
         """
         Initializes the QuestionAnalyzerAssistant agent with the OpenAI API key.
 
@@ -70,7 +84,8 @@ class QuestionAnalyzerAssistant(OpenAIAssistant):
         super().__init__(openai_secret_key, 
             assistant_name="Question Analyzer", 
             instructions=instructions, 
-            model=MODEL_VERSION,
+            model=model,
+            base_url=base_url,
             tools=tools,
             tool_function_mapper=TOOL_FUNCTION_MAPPER,
             thread_id=thread_id,
@@ -86,7 +101,15 @@ class MetricsPlannerAssistant(OpenAIAssistant):
     experiment: Experiment
     completion_message: str = "Computational Details Confirmed!"
 
-    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
+    def __init__(
+        self,
+        openai_secret_key: str,
+        thread_id: str = str(),
+        conversation_mode: bool = False,
+        experiment: Experiment = None,
+        model: str = MODEL_VERSION,
+        base_url: str = None,
+    ) -> None:
         """
         Initializes the MetricsPlannerAssistant agent with the OpenAI API key.
 
@@ -118,7 +141,8 @@ class MetricsPlannerAssistant(OpenAIAssistant):
         super().__init__(openai_secret_key, 
             assistant_name="Metrics Planner", 
             instructions=instructions, 
-            model=MODEL_VERSION,
+            model=model,
+            base_url=base_url,
             tools=tools,
             tool_function_mapper=TOOL_FUNCTION_MAPPER,
             thread_id=thread_id,
@@ -202,7 +226,15 @@ class MutantPlannerAssistant(OpenAIAssistant):
     experiment: Experiment
     completion_message: str = "Experiment has been set up successfully!"
 
-    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
+    def __init__(
+        self,
+        openai_secret_key: str,
+        thread_id: str = str(),
+        conversation_mode: bool = False,
+        experiment: Experiment = None,
+        model: str = MODEL_VERSION,
+        base_url: str = None,
+    ) -> None:
         """
         Initializes the MutantPlannerAssistant agent with the OpenAI API key.
 
@@ -228,7 +260,8 @@ class MutantPlannerAssistant(OpenAIAssistant):
         super().__init__(openai_secret_key, 
             assistant_name="Mutant Planner", 
             instructions=instructions, 
-            model=MODEL_VERSION,
+            model=model,
+            base_url=base_url,
             tools=tools,
             tool_function_mapper=TOOL_FUNCTION_MAPPER,
             thread_id=thread_id,
@@ -280,7 +313,12 @@ class MutantPlannerAssistant(OpenAIAssistant):
         if (pattern_results):
             mutation_pattern = pattern_results[0]
             self.experiment.update_mutation_pattern(mutation_pattern=mutation_pattern)
-            mutation_explainer_agent = MutationPatternExplainer(openai_secret_key=self.client.api_key, experiment=self.experiment)
+            mutation_explainer_agent = MutationPatternExplainer(
+                openai_secret_key=self.client.api_key,
+                experiment=self.experiment,
+                model=self.model,
+                base_url=str(self.client.base_url),
+            )
             is_valid, status_code, mutation_explanation = mutation_explainer_agent.ask_gpt(mutation_pattern)
             processed_response_content = f"{response_content}\n{mutation_explanation}"
             processed_response_content = f"Please confirm the mutations you want:\n```txt\n{mutation_pattern}\n```\n{mutation_explanation}"
@@ -310,7 +348,15 @@ class MutationPatternExplainer(OpenAIAssistant):
     
     experiment: Experiment
 
-    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
+    def __init__(
+        self,
+        openai_secret_key: str,
+        thread_id: str = str(),
+        conversation_mode: bool = False,
+        experiment: Experiment = None,
+        model: str = MODEL_VERSION,
+        base_url: str = None,
+    ) -> None:
         """
         Initializes the MutantPlannerAssistant agent with the OpenAI API key.
 
@@ -328,7 +374,8 @@ class MutationPatternExplainer(OpenAIAssistant):
         super().__init__(openai_secret_key, 
             assistant_name="Mutation Pattern Explainer", 
             instructions=instructions, 
-            model=MODEL_VERSION,
+            model=model,
+            base_url=base_url,
             tools=tools,
             tool_function_mapper=TOOL_FUNCTION_MAPPER,
             thread_id=thread_id,
@@ -350,8 +397,207 @@ class ResultExplainerAssistant(OpenAIAssistant):
     results: List[dict]
     metadata: dict
     downloadables: List[dict]
+    DOWNLOADABLE_SUMMARY_ROOTS: Tuple[str, ...] = ("plots/equilibration", "trajectories")
 
-    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
+    def _iter_experiment_result_directories(self) -> List[str]:
+        if (not self.experiment):
+            return list()
+        directories: List[str] = [self.experiment.directory]
+        if (self.experiment.type == Experiment.GROUP_TYPE):
+            for sub_experiment in self.experiment.subordinate_experiments:
+                if (sub_experiment and sub_experiment.directory):
+                    directories.append(sub_experiment.directory)
+        # Deduplicate while preserving order.
+        seen = set()
+        unique_directories: List[str] = []
+        for directory in directories:
+            if (not directory) or (directory in seen):
+                continue
+            seen.add(directory)
+            unique_directories.append(directory)
+        return unique_directories
+
+    @staticmethod
+    def _median(values: List[float]) -> Optional[float]:
+        if (not values):
+            return None
+        sorted_values = sorted(values)
+        length = len(sorted_values)
+        mid = length // 2
+        if (length % 2 == 1):
+            return float(sorted_values[mid])
+        return float((sorted_values[mid - 1] + sorted_values[mid]) / 2.0)
+
+    def _collect_equilibration_assessment_records(self) -> List[dict]:
+        records: List[dict] = []
+        for experiment_dir in self._iter_experiment_result_directories():
+            equilibration_dir = path.join(experiment_dir, "plots", "equilibration")
+            if (not path.isdir(equilibration_dir)):
+                continue
+            for json_path in sorted(Path(equilibration_dir).rglob("*equil_assessment*.json")):
+                if (not json_path.is_file()):
+                    continue
+                try:
+                    with open(json_path, "r", encoding="utf-8") as fobj:
+                        record = load(fobj)
+                    if (isinstance(record, dict)):
+                        records.append(record)
+                except Exception as exc:
+                    _LOGGER.warning("Failed to load equilibration assessment file %s: %s", json_path, exc)
+                    continue
+        return records
+
+    def _build_equilibration_metadata(self) -> Dict[str, Any]:
+        records = self._collect_equilibration_assessment_records()
+        if (not records):
+            return {
+                "equilibration_method": EQUILIBRATION_METHOD_LABEL,
+                "equilibration_assessment": "No automated equilibration assessment was found in uploaded ACCRE artifacts.",
+                "equilibration_summary": {
+                    "n_replica_assessments": 0,
+                    "n_equilibrated_replicas": 0,
+                    "series_status_counts": {},
+                },
+            }
+
+        n_replica_assessments = len(records)
+        n_equilibrated_replicas = sum(1 for record in records if record.get("overall_status") == "equilibrated")
+        series_status_counts: Dict[str, Dict[str, int]] = dict()
+        for record in records:
+            series_mapper = record.get("series", {})
+            if (not isinstance(series_mapper, dict)):
+                continue
+            for series_key, series_info in series_mapper.items():
+                if (not isinstance(series_info, dict)):
+                    continue
+                status = str(series_info.get("status", "unknown"))
+                series_counts = series_status_counts.setdefault(series_key, dict())
+                series_counts[status] = series_counts.get(status, 0) + 1
+
+        assessment_sentence = (
+            f"{n_equilibrated_replicas}/{n_replica_assessments} replica assessments were marked equilibrated "
+            f"by {EQUILIBRATION_METHOD_LABEL}."
+        )
+
+        return {
+            "equilibration_method": EQUILIBRATION_METHOD_LABEL,
+            "equilibration_assessment": assessment_sentence,
+            "equilibration_summary": {
+                "n_replica_assessments": n_replica_assessments,
+                "n_equilibrated_replicas": n_equilibrated_replicas,
+                "series_status_counts": series_status_counts,
+            },
+        }
+
+    def _count_variants(self) -> int:
+        variant_keys = set()
+        for result_item in self.results:
+            if (not isinstance(result_item, dict)):
+                continue
+            wt_path = str(result_item.get("wt_path", ""))
+            mutant = str(result_item.get("mutant", "WT"))
+            variant_keys.add((wt_path, mutant))
+        return len(variant_keys)
+
+    def _estimate_replicas_per_variant(self, n_variants: int, equilibration_summary: Dict[str, Any]) -> Optional[int]:
+        if (not self.experiment):
+            return None
+
+        raw_results = Result.get_experiment_raw_results(experiment_id=self.experiment.id)
+        replicas_by_variant: Dict[Tuple[str, str], set] = dict()
+        for raw_result in raw_results:
+            if (not isinstance(raw_result, dict)):
+                continue
+            wt_path = str(raw_result.get("pdb_filename", ""))
+            mutant = str(raw_result.get("mutant", "WT"))
+            key = (wt_path, mutant)
+            replica_set = replicas_by_variant.setdefault(key, set())
+            replica_id = raw_result.get("replica_id", None)
+            if (replica_id is not None) and (str(replica_id) != ""):
+                replica_set.add(str(replica_id))
+
+        replica_counts = [len(replica_ids) for replica_ids in replicas_by_variant.values() if replica_ids]
+        if (replica_counts):
+            median_count = self._median([float(count) for count in replica_counts])
+            if (median_count is not None):
+                return max(1, int(round(median_count)))
+
+        n_replica_assessments = equilibration_summary.get("n_replica_assessments", 0)
+        if (
+            isinstance(n_replica_assessments, int)
+            and (n_replica_assessments > 0)
+            and (n_variants > 0)
+        ):
+            return max(1, int(round(n_replica_assessments / n_variants)))
+        return None
+
+    @staticmethod
+    def _summarize_files_by_basename(file_paths: List[str]) -> List[Dict[str, Union[str, int]]]:
+        basename_counts: Dict[str, int] = dict()
+        for relpath in file_paths:
+            basename = path.basename(str(relpath))
+            if (not basename):
+                continue
+            basename_counts[basename] = basename_counts.get(basename, 0) + 1
+        return [
+            {
+                "filename": filename,
+                "count": count,
+            }
+            for filename, count in sorted(basename_counts.items(), key=lambda item: item[0])
+        ]
+
+    def _build_downloadables_payload(self, file_paths: List[str]) -> List[dict]:
+        summary_buckets: Dict[str, List[str]] = {
+            root: list() for root in self.DOWNLOADABLE_SUMMARY_ROOTS
+        }
+        direct_entries: List[dict] = list()
+
+        for raw_file_path in file_paths:
+            relpath = str(raw_file_path).replace("\\", "/")
+            matched_root = None
+            for root in self.DOWNLOADABLE_SUMMARY_ROOTS:
+                if (relpath == root) or relpath.startswith(f"{root}/"):
+                    matched_root = root
+                    break
+            if matched_root:
+                summary_buckets[matched_root].append(relpath)
+                continue
+            direct_entries.append(
+                {
+                    "file_type": fs.get_file_ext(relpath),
+                    "filename": relpath,
+                }
+            )
+
+        summary_entries: List[dict] = list()
+        for root in self.DOWNLOADABLE_SUMMARY_ROOTS:
+            matched_files = summary_buckets.get(root, list())
+            if (not matched_files):
+                continue
+            filename_summaries = self._summarize_files_by_basename(matched_files)
+            summary_entries.append(
+                {
+                    "file_type": "summary",
+                    "filename": root,
+                    "summary_type": "filename_count",
+                    "total_files": len(matched_files),
+                    "unique_filenames": len(filename_summaries),
+                    "files": filename_summaries,
+                }
+            )
+
+        return direct_entries + summary_entries
+
+    def __init__(
+        self,
+        openai_secret_key: str,
+        thread_id: str = str(),
+        conversation_mode: bool = False,
+        experiment: Experiment = None,
+        model: str = MODEL_VERSION,
+        base_url: str = None,
+    ) -> None:
         """
         Initializes the MutantPlannerAssistant agent with the OpenAI API key.
 
@@ -364,7 +610,7 @@ class ResultExplainerAssistant(OpenAIAssistant):
         self.experiment = experiment
         instructions = str()
         tools = list()
-        with open(path.join(PROMPTS_DIRECTORY, "result_explainer.txt")) as fobj:
+        with open(path.join(PROMPTS_DIRECTORY, "result_explainer-v2.txt")) as fobj:
             instructions = fobj.read()
         with open(path.join(PROMPTS_DIRECTORY, "result_explainer_functions.json")) as json_fobj:
             tool_functions: List[dict] = load(json_fobj)
@@ -377,7 +623,8 @@ class ResultExplainerAssistant(OpenAIAssistant):
         super().__init__(openai_secret_key, 
             assistant_name="Result Explainer", 
             instructions=instructions, 
-            model=MODEL_VERSION,
+            model=model,
+            base_url=base_url,
             tools=tools,
             tool_function_mapper=TOOL_FUNCTION_MAPPER,
             thread_id=thread_id,
@@ -414,17 +661,26 @@ class ResultExplainerAssistant(OpenAIAssistant):
                 else:
                     pass
                 continue
-        self.downloadables = [
-            {
-                "file_type": fs.get_file_ext(file_path),
-                "filename": file_path,
-            } for file_path in experiment.downloadable_files
-        ]
+        self.downloadables = self._build_downloadables_payload(experiment.downloadable_files)
+        equilibration_metadata = self._build_equilibration_metadata()
+        equilibration_summary = equilibration_metadata.get("equilibration_summary", {})
+        n_variants = self._count_variants()
+        n_replicas_per_variant = self._estimate_replicas_per_variant(
+            n_variants=n_variants,
+            equilibration_summary=equilibration_summary if isinstance(equilibration_summary, dict) else {},
+        )
+
         self.metadata = {
-            "simulation_engine": "Amber",
-            "temperature_K": 300,
+            "simulation_engine": SIMULATION_ENGINE_LABEL,
+            "temperature_K": DEFAULT_TEMPERATURE_K,
             "md_production_length_in_ns": experiment.md_length if experiment else None,
             "date": str(datetime.now()),
+            "n_variants": n_variants,
+            "n_replicas_per_variant": n_replicas_per_variant,
+            "equilibration_length_in_ns": DEFAULT_EQUILIBRATION_LENGTH_NS,
+            "force_field": DEFAULT_FORCE_FIELD_LABEL,
+            "solvent_model": DEFAULT_SOLVENT_MODEL_LABEL,
+            **equilibration_metadata,
         }
         return
     
@@ -457,7 +713,15 @@ class QuestionSummarizerAssistant(OpenAIAssistant):
     
     experiment: Experiment
 
-    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False, experiment: Experiment = None) -> None:
+    def __init__(
+        self,
+        openai_secret_key: str,
+        thread_id: str = str(),
+        conversation_mode: bool = False,
+        experiment: Experiment = None,
+        model: str = MODEL_VERSION,
+        base_url: str = None,
+    ) -> None:
         """
         Initializes the MutantPlannerAssistant agent with the OpenAI API key.
 
@@ -483,7 +747,8 @@ class QuestionSummarizerAssistant(OpenAIAssistant):
         super().__init__(openai_secret_key, 
             assistant_name="Question Summarizer", 
             instructions=instructions, 
-            model=MODEL_VERSION,
+            model=model,
+            base_url=base_url,
             tools=tools,
             tool_function_mapper=TOOL_FUNCTION_MAPPER,
             thread_id=thread_id,
@@ -499,7 +764,14 @@ class TimezoneConsultantAssistant(OpenAIAssistant):
     The agent is for test use only.
     """
 
-    def __init__(self, openai_secret_key: str, thread_id: str = str(), conversation_mode: bool = False) -> None:
+    def __init__(
+        self,
+        openai_secret_key: str,
+        thread_id: str = str(),
+        conversation_mode: bool = False,
+        model: str = MODEL_VERSION,
+        base_url: str = None,
+    ) -> None:
         """
         Initializes the MutantPlannerAssistant agent with the OpenAI API key.
 
@@ -514,7 +786,8 @@ class TimezoneConsultantAssistant(OpenAIAssistant):
         super().__init__(openai_secret_key, 
             assistant_name="Time Zone Consultant", 
             instructions=instructions, 
-            model=MODEL_VERSION,
+            model=model,
+            base_url=base_url,
             thread_id=thread_id,
             conversation_mode=conversation_mode,
         )

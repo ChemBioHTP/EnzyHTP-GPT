@@ -86,7 +86,7 @@ SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH = os.path.join(BASEDIR, "templates", "sl
 
 MAX_MUTANT_COUNT = 6
 
-DEFAULT_MD_LENGTH = 0.05  # MD Production Timespan in ns.
+DEFAULT_MD_LENGTH = 50.0  # MD Production Timespan in ns.
 MANUAL_MD_DEPLOY_TIMEOUT = int(os.environ.get("MANUAL_MD_DEPLOY_TIMEOUT", "600"))
 
 # Run MD by Yourself.
@@ -102,6 +102,48 @@ TOKEN_EXPIRES_DELTA = timedelta(days=5)
 
 # OpenAI Service
 DEFAULT_OPENAI_API_KEY = "5111321231135666"
+OPENAI_RUNTIME_CANDIDATES = {"assistants", "responses"}
+OPENAI_RUNTIME = os.environ.get("OPENAI_RUNTIME", "assistants").strip().lower()
+if (OPENAI_RUNTIME not in OPENAI_RUNTIME_CANDIDATES):
+    OPENAI_RUNTIME = "assistants"
+
+OPENAI_PROVIDER_CANDIDATES = {"openai", "fireworks"}
+OPENAI_DEFAULT_PROVIDER = os.environ.get("OPENAI_DEFAULT_PROVIDER", "openai").strip().lower()
+if (OPENAI_DEFAULT_PROVIDER not in OPENAI_PROVIDER_CANDIDATES):
+    OPENAI_DEFAULT_PROVIDER = "openai"
+
+OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "").strip()
+_OPENAI_FIREWORKS_BASE_URL = os.environ.get("OPENAI_FIREWORKS_BASE_URL", "").strip()
+OPENAI_FIREWORKS_BASE_URL = _OPENAI_FIREWORKS_BASE_URL or "https://api.fireworks.ai/inference/v1"
+OPENAI_FIREWORKS_API_KEY = os.environ.get("OPENAI_FIREWORKS_API_KEY", "").strip()
+
+_OPENAI_MODEL_VERSION = os.environ.get("OPENAI_MODEL_VERSION", "").strip()
+OPENAI_MODEL_VERSION = _OPENAI_MODEL_VERSION or "gpt-4o-2024-11-20"
+_OPENAI_FIREWORKS_MODEL_VERSION = os.environ.get("OPENAI_FIREWORKS_MODEL_VERSION", "").strip()
+OPENAI_FIREWORKS_MODEL_VERSION = _OPENAI_FIREWORKS_MODEL_VERSION or "accounts/fireworks/models/kimi-k2p5"
+OPENAI_PROVIDER_DEFAULT_MODELS = {
+    "openai": OPENAI_MODEL_VERSION,
+    "fireworks": OPENAI_FIREWORKS_MODEL_VERSION,
+}
+
+_OPENAI_KEY_VALIDATION_MODEL = os.environ.get("OPENAI_KEY_VALIDATION_MODEL", "").strip()
+OPENAI_KEY_VALIDATION_MODEL = _OPENAI_KEY_VALIDATION_MODEL or OPENAI_MODEL_VERSION
+
+_OPENAI_RESPONSES_STRICT_CONVERSATIONS = os.environ.get(
+    "OPENAI_RESPONSES_STRICT_CONVERSATIONS",
+    "false",
+).strip().lower()
+OPENAI_RESPONSES_STRICT_CONVERSATIONS = (
+    _OPENAI_RESPONSES_STRICT_CONVERSATIONS in {"1", "true", "yes", "on"}
+)
+
+# Request-level assistant timeout controls (seconds).
+# Default requests follow uWSGI harakiri (see uwsgi.ini), while Fireworks can be
+# substantially slower and may require a larger per-request budget.
+OPENAI_ASSISTANTS_REQUEST_TIMEOUT = int(os.environ.get("OPENAI_ASSISTANTS_REQUEST_TIMEOUT", "180"))
+OPENAI_ASSISTANTS_FIREWORKS_REQUEST_TIMEOUT = int(
+    os.environ.get("OPENAI_ASSISTANTS_FIREWORKS_REQUEST_TIMEOUT", "480")
+)
 
 # Placeholder Result Images
 # PLHD_RESULT_IMG_DIR = os.path.join(BASEDIR, "templates", "result_images")

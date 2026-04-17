@@ -39,6 +39,15 @@
     </div>
     <div v-show="currentStep === 1" class="flex width100">
       <div class="chart-content">
+        <a-flex justify="end" class="download-row">
+          <a-button
+            size="large"
+            :loading="downloading"
+            @click="handleExportAccrePack"
+          >
+            Export ACCRE run package
+          </a-button>
+        </a-flex>
         <div class="message" v-if="model.workflowTip">
           <a-flex justify="space-between">
             <div>
@@ -78,10 +87,12 @@ import { ExclamationCircleFilled, CloseOutlined } from "@ant-design/icons-vue";
 import Chart from "@/views/experiment/components/chart.vue";
 import VerticalStepper from "@/components/VerticalStepper.vue";
 import NodeList from "@/views/experiment/components/nodeList.vue";
-// import { useRoute } from "vue-router";
+import { useRoute } from "vue-router";
 import MutationGenerrated from "@/views/experiment/components/mutationGenerrated.vue";
 import WorkFlowConfig from "@/views/experiment/components/workFlowConfig.vue";
-// const route = useRoute();
+import { deployAccre } from "@/api/experiment";
+import { downloadFile } from "@/utils/common";
+const route = useRoute();
 
 const props = defineProps({
   messageList: {
@@ -113,6 +124,7 @@ const stpes = reactive([
   },
 ]);
 const currentStep = ref(0);
+const downloading = ref(false);
 const model = reactive({
   // messageList: [],
 	// node: [],
@@ -120,6 +132,18 @@ const model = reactive({
   chartTip: true,
   workflowTip: true,
 });
+
+const handleExportAccrePack = () => {
+  if (downloading.value) return;
+  downloading.value = true;
+  deployAccre(route.query.id)
+    .then(res => {
+      downloadFile(res, "accre-run-pack.zip");
+    })
+    .finally(() => {
+      downloading.value = false;
+    });
+};
 
 
 onMounted(() => {
@@ -162,6 +186,10 @@ onMounted(() => {
 
     .description {
       margin-top: 15px;
+    }
+
+    .download-row {
+      margin-bottom: 12px;
     }
   }
 
