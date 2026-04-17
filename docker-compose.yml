@@ -29,6 +29,7 @@ services:
     # If your Flask needs a DB connection string, you can pass it in here through environment variables (example)
     environment:
       - TZ=US/Central
+      - SECRET_KEY=${SECRET_KEY}
       - MONGO_URI=${MONGO_URI:-mongodb://mongo:27017/enzyhtp_gpt}
       - OPENAI_RUNTIME=${OPENAI_RUNTIME:-responses}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
