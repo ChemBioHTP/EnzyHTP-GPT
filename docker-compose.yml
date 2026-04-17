@@ -29,7 +29,15 @@ services:
     # If your Flask needs a DB connection string, you can pass it in here through environment variables (example)
     environment:
       - TZ=US/Central
+      - SECRET_KEY=${SECRET_KEY}
       - MONGO_URI=${MONGO_URI:-mongodb://mongo:27017/enzyhtp_gpt}
+      - OPENAI_RUNTIME=${OPENAI_RUNTIME:-responses}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - OPENAI_DEFAULT_PROVIDER=${OPENAI_DEFAULT_PROVIDER:-openai}
+      - OPENAI_FIREWORKS_BASE_URL=${OPENAI_FIREWORKS_BASE_URL:-}
+      - OPENAI_FIREWORKS_API_KEY=${OPENAI_FIREWORKS_API_KEY:-}
+      - OPENAI_MODEL_VERSION=${OPENAI_MODEL_VERSION:-}
+      - OPENAI_KEY_VALIDATION_MODEL=${OPENAI_KEY_VALIDATION_MODEL:-}
       # Other environment variables you read in flask-server/server.py or config.py can also be added here
     volumes:
       # Code hot update/reflection (same as your original docker run)

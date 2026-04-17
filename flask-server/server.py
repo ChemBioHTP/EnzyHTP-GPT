@@ -11,6 +11,18 @@ api = Api(app=app)
 import config
 app.config.from_object(config)
 
+try:
+    import openai
+    openai_version = getattr(openai, "__version__", "unknown")
+except Exception:
+    openai_version = "unavailable"
+
+app.logger.info(
+    "OpenAI runtime initialized. runtime=%s sdk_version=%s",
+    getattr(config, "OPENAI_RUNTIME", "assistants"),
+    openai_version,
+)
+
 from context import mongo, login_manager, jwt, mail, ssl_context, scheduler
 login_manager.login_message_category = "info"  # Set login message category to info.
 

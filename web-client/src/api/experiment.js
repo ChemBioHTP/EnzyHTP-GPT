@@ -76,6 +76,14 @@ export const deploy = (experiment_id, params = {}, config = {}) => {
   );
 };
 
+export const deployAccre = (experiment_id, params = {}, config = {}) => {
+  return axios.get(
+    `/api/experiment/${experiment_id}/deploy/accre`,
+    params,
+    { responseType: "blob", ...config }
+  );
+};
+
 export const downloadable = (experiment_id, params = {}, config = {}) => { 
   return axios.get(
     `/api/experiment/${experiment_id}/downloadable`,

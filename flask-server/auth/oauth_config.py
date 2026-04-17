@@ -12,6 +12,7 @@
 from oauthlib.oauth2 import WebApplicationClient
 from requests import get
 import os
+from typing import Dict
 
 __basedir = os.path.join(os.getcwd())
 
@@ -35,17 +36,34 @@ DISCOVERY_URL['GOOGLE'] = (
 oauth_client_dict = dict()
 provider_cfg_dict = dict()
 
-def get_google_provider_cfg() -> str:
-    get_response = get(DISCOVERY_URL['GOOGLE'])
-    if get_response.status_code == 200:
-        google_provider_cfg = get_response.json()
+def get_google_provider_cfg(timeout: int = 5) -> Dict:
+    try:
+        get_response = get(DISCOVERY_URL['GOOGLE'], timeout=timeout)
+        if (get_response.status_code == 200):
+            provider_cfg = get_response.json()
+            if (isinstance(provider_cfg, dict)):
+                return provider_cfg
+    except Exception:
+        pass
+    return dict()
+
+
+def get_provider_cfg(oauth_vendor: str, force_refresh: bool = False) -> Dict:
+    vendor_name = oauth_vendor.upper()
+    if (vendor_name not in DISCOVERY_URL):
+        return dict()
+
+    cached_cfg = provider_cfg_dict.get(vendor_name, dict())
+    if (cached_cfg and not force_refresh):
+        return cached_cfg
+
+    if (vendor_name == "GOOGLE"):
+        provider_cfg_dict[vendor_name] = get_google_provider_cfg()
     else:
-        google_provider_cfg = '\{\}'
-    return google_provider_cfg
+        provider_cfg_dict[vendor_name] = dict()
+    return provider_cfg_dict.get(vendor_name, dict())
 
 oauth_client_dict['GOOGLE'] = WebApplicationClient(CLIENT_ID['GOOGLE'])
-
-provider_cfg_dict['GOOGLE'] = get_google_provider_cfg()
-# google_provider_cfg = get_google_provider_cfg()
+provider_cfg_dict['GOOGLE'] = dict()
 
 # Reference: https://realpython.com/flask-google-login/

@@ -19,6 +19,8 @@ from requests import post
 from random import choice
 from string import Template
 from os import getcwd, path
+import logging
+from flask import current_app, has_app_context
 
 import uuid
 import jwt
@@ -27,10 +29,25 @@ import jwt
 from context import mongo, mail
 from config import (
     MAIL_PASSWORD_RESET_HTML_TEMPLATE,
+    OPENAI_BASE_URL,
+    OPENAI_DEFAULT_PROVIDER,
+    OPENAI_FIREWORKS_API_KEY,
+    OPENAI_FIREWORKS_BASE_URL,
+    OPENAI_MODEL_VERSION,
+    OPENAI_PROVIDER_DEFAULT_MODELS,
+    OPENAI_PROVIDER_CANDIDATES,
 )
 from services import OpenAIChat
 
 db = mongo.db
+LOGGER = logging.getLogger(__name__)
+
+
+def _log_info(payload: dict) -> None:
+    if (has_app_context()):
+        current_app.logger.info(payload)
+        return
+    LOGGER.info(payload)
 
 # class User(db.Model, UserMixin):
 class User(UserMixin):
@@ -71,6 +88,35 @@ class User(UserMixin):
             return True
         else:
             return False
+
+    @classmethod
+    def _normalize_openai_provider(cls, provider: str) -> str:
+        provider_name = (provider or OPENAI_DEFAULT_PROVIDER).strip().lower()
+        if (provider_name in OPENAI_PROVIDER_CANDIDATES):
+            return provider_name
+        return OPENAI_DEFAULT_PROVIDER
+
+    @classmethod
+    def _parse_bool_value(cls, value, default: bool = False) -> bool:
+        if (isinstance(value, bool)):
+            return value
+        if (value is None):
+            return default
+        if (isinstance(value, str)):
+            normalized = value.strip().lower()
+            if (normalized in ("1", "true", "yes", "on")):
+                return True
+            if (normalized in ("0", "false", "no", "off")):
+                return False
+        return bool(value)
+
+    @classmethod
+    def _get_default_model_for_provider(cls, provider: str) -> str:
+        provider_name = cls._normalize_openai_provider(provider)
+        default_model = OPENAI_PROVIDER_DEFAULT_MODELS.get(provider_name, OPENAI_MODEL_VERSION)
+        if (isinstance(default_model, str)):
+            default_model = default_model.strip()
+        return default_model or OPENAI_MODEL_VERSION
 
     @classmethod
     def __generate_password_hash(cls, password_plaintext: str) -> str:
@@ -139,6 +185,18 @@ class User(UserMixin):
         self.id = kwargs.get("id", str(uuid.uuid4()))
         self.registered_on = kwargs.get("registered_on", datetime.now())
         self.openai_secret_key = kwargs.get("openai_secret_key", None)
+        self.openai_provider = self._normalize_openai_provider(kwargs.get("openai_provider", OPENAI_DEFAULT_PROVIDER))
+        default_openai_model = self._get_default_model_for_provider(self.openai_provider)
+        self.openai_model = kwargs.get("openai_model", default_openai_model)
+        if (isinstance(self.openai_model, str)):
+            self.openai_model = self.openai_model.strip()
+        if (not self.openai_model):
+            self.openai_model = default_openai_model
+        default_use_custom_key = (self.openai_provider == "openai")
+        self.use_custom_openai_secret_key = self._parse_bool_value(
+            kwargs.get("use_custom_openai_secret_key", default_use_custom_key),
+            default=default_use_custom_key,
+        )
         self.is_active = kwargs.get("is_active", True)
         return
     
@@ -185,7 +243,58 @@ class User(UserMixin):
         """
         return self.id
 
-    def get_openai_secret_key_status(self) -> Tuple[bool, int, str]:
+    def get_openai_client_config(
+        self,
+        provider: str = None,
+        model: str = None,
+        openai_secret_key: str = None,
+        use_custom_openai_secret_key: bool = None,
+    ) -> dict:
+        resolved_provider = self._normalize_openai_provider(provider if provider is not None else self.openai_provider)
+        default_model = self._get_default_model_for_provider(resolved_provider)
+        if (model is not None):
+            model_candidate = model
+        elif (resolved_provider == self._normalize_openai_provider(self.openai_provider)):
+            model_candidate = self.openai_model
+        else:
+            model_candidate = default_model
+        resolved_model = model_candidate or default_model
+        resolved_model = resolved_model.strip() if isinstance(resolved_model, str) else default_model
+        if (not resolved_model):
+            resolved_model = default_model
+
+        if (resolved_provider == "fireworks"):
+            use_custom = self._parse_bool_value(
+                use_custom_openai_secret_key
+                if use_custom_openai_secret_key is not None
+                else self.use_custom_openai_secret_key,
+                default=False,
+            )
+            effective_api_key = (
+                openai_secret_key if (use_custom and openai_secret_key is not None)
+                else (self.openai_secret_key if use_custom else OPENAI_FIREWORKS_API_KEY)
+            )
+            base_url = OPENAI_FIREWORKS_BASE_URL or OPENAI_BASE_URL or None
+        else:
+            use_custom = True
+            effective_api_key = openai_secret_key if (openai_secret_key is not None) else self.openai_secret_key
+            base_url = OPENAI_BASE_URL or None
+
+        return {
+            "provider": resolved_provider,
+            "model": resolved_model,
+            "api_key": effective_api_key,
+            "base_url": base_url,
+            "use_custom_openai_secret_key": use_custom,
+        }
+
+    def get_openai_secret_key_status(
+        self,
+        provider: str = None,
+        model: str = None,
+        openai_secret_key: str = None,
+        use_custom_openai_secret_key: bool = None,
+    ) -> Tuple[bool, int, str]:
         """Verify by sending a prompt to ChatGPT and check its response code.
         - If the OpenAI Secret Key is valid?
         - If the account has sufficient credit?        
@@ -195,7 +304,41 @@ class User(UserMixin):
             status_code (int): The HTTP status code from the API response.
             response_content (str): The response message to describe the status.
         """
-        service = OpenAIChat(self.openai_secret_key, max_tokens=30)
+        openai_client_config = self.get_openai_client_config(
+            provider=provider,
+            model=model if model is not None else (
+                self.openai_model
+                or self._get_default_model_for_provider(
+                    provider if (provider is not None) else self.openai_provider
+                )
+            ),
+            openai_secret_key=openai_secret_key,
+            use_custom_openai_secret_key=use_custom_openai_secret_key,
+        )
+        effective_api_key = openai_client_config.get("api_key")
+        log_payload = {
+            "event": "openai_key_validation.request",
+            "provider": openai_client_config.get("provider"),
+            "model": openai_client_config.get("model"),
+            "base_url": openai_client_config.get("base_url") or "https://api.openai.com/v1",
+            "use_custom_openai_secret_key": openai_client_config.get("use_custom_openai_secret_key"),
+            "has_api_key": bool(effective_api_key),
+            "api_key_suffix": (str(effective_api_key)[-6:] if effective_api_key else None),
+        }
+        _log_info(log_payload)
+        if (not effective_api_key):
+            if (
+                openai_client_config.get("provider") == "fireworks"
+                and not openai_client_config.get("use_custom_openai_secret_key")
+            ):
+                return False, 500, "Fireworks default API Key is not configured on the server."
+            return False, 400, "API Key is required for the selected provider."
+        service = OpenAIChat(
+            effective_api_key,
+            model=openai_client_config.get("model"),
+            base_url=openai_client_config.get("base_url"),
+            max_tokens=30,
+        )
         return service.ask_gpt("Please say an emotional welcome speech, no less than 8 words, to welcome me to ChatGPT, and add punctuation at the end.")
 
     @property
@@ -209,10 +352,10 @@ class User(UserMixin):
     @property
     def has_openai_secret_key(self) -> bool:
         '''Does the user have OpenAI Secret Key?'''
-        if self.openai_secret_key:
+        openai_client_config = self.get_openai_client_config()
+        if (openai_client_config.get("api_key")):
             return True
-        else:
-            return False
+        return False
     
     def as_dict(self) -> dict:
         """Serialize the current instance to a dictionary."""

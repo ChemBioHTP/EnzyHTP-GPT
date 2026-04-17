@@ -3,18 +3,20 @@ import { onMounted, reactive, ref, watch } from "vue";
 import { ArrowRightOutlined } from "@ant-design/icons-vue";
 import VerticalStepper from "@/components/VerticalStepper.vue";
 import HeadInfo from "./components/headInfo.vue";
-import { getExperimentDetail, getMutations, slurm } from "@/api/experiment";
+import { getExperimentDetail, getMutations, slurm, deployAccre } from "@/api/experiment";
 import { useRoute, useRouter } from "vue-router";
 import { useExperimentStore } from "@/stores/experiment";
 import MutationGenerrated from "./components/mutationGenerrated.vue";
 import WorkFlowConfig from "./components/workFlowConfig.vue";
 import { CheckCircleFilled, LoadingOutlined } from "@ant-design/icons-vue";
+import { downloadFile } from "@/utils/common";
 const experimentStore = useExperimentStore();
 const route = useRoute();
 const router = useRouter();
 const experiment = ref({});
 const spinning = ref(false);
 const loading = ref(false);
+const downloading = ref(false);
 const model = reactive({
     mutations: [],
 })
@@ -99,6 +101,18 @@ const handleCreate = () => {
     }
 };
 
+const handleExportAccrePack = () => {
+    if (downloading.value) return;
+    downloading.value = true;
+    deployAccre(route.query.id)
+        .then(res => {
+            downloadFile(res, "accre-run-pack.zip");
+        })
+        .finally(() => {
+            downloading.value = false;
+        });
+};
+
 
 const runOption = ref([
     { title: "Let Our System Handle It", description: "Ideal if you don't have a service or prefer convenience. May take longer." },
@@ -145,6 +159,18 @@ onMounted(() => {
                     <a-button type="primary" ghost size="large" style="width: 74px;" @click="handleBack">
                         <a-flex class="button-content" justify="space-between" align="center">
                             <span>Back</span>
+                        </a-flex>
+                    </a-button>
+
+                    <a-button
+                      size="large"
+                      style="width: 240px;"
+                      class="ml10"
+                      :loading="downloading"
+                      @click="handleExportAccrePack"
+                    >
+                        <a-flex class="button-content" justify="space-between" align="center">
+                            <span>Export ACCRE run package</span>
                         </a-flex>
                     </a-button>
 
