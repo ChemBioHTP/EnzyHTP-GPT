@@ -84,7 +84,7 @@ SLURM_ANALYSIS_JOB_ENTRY_CONTENT = open(os.path.join(BASEDIR, "templates", "slur
 SLURM_ANALYSIS_JOB_MAIN_SCRIPT = "analysis_main_script.py"
 SLURM_ANALYSIS_JOB_MAIN_SCRIPT_FILEPATH = os.path.join(BASEDIR, "templates", "slurm_run", SLURM_ANALYSIS_JOB_MAIN_SCRIPT)
 
-MAX_MUTANT_COUNT = 6
+MAX_MUTANT_COUNT = 99999
 
 DEFAULT_MD_LENGTH = 50.0  # MD Production Timespan in ns.
 MANUAL_MD_DEPLOY_TIMEOUT = int(os.environ.get("MANUAL_MD_DEPLOY_TIMEOUT", "600"))

@@ -170,7 +170,7 @@ onMounted(() => {
                       @click="handleExportAccrePack"
                     >
                         <a-flex class="button-content" justify="space-between" align="center">
-                            <span>Export ACCRE run package</span>
+                            <span>Export Reproducibility package</span>
                         </a-flex>
                     </a-button>
 

@@ -86,6 +86,70 @@ _RESULT_EXPLAINER_INFLIGHT_LOCK = threading.Lock()
 _RESULT_EXPLAINER_INFLIGHT_EXPERIMENTS: set[str] = set()
 _RESULT_EXPLAINER_LOCK_HANDLES: Dict[str, Any] = dict()
 RESULT_EXPLAINER_LOCK_DIR = "/tmp/enzyhtp_result_explainer_locks"
+PRIVACY_DATA_PLACEHOLDER = "<!privacy_data_removed>"
+SENSITIVE_ENV_EXPORT_KEYS = {
+    "USER",
+    "app_host",
+    "access_token",
+    "experiment_id",
+    "username",
+    "slurm_user",
+}
+SENSITIVE_SLURM_REQUEST_KEYS = {
+    "account",
+    "partition",
+    "job_name",
+    "mail_user",
+    "qos",
+    "constraint",
+    "gres",
+    "nodelist",
+    "exclude",
+}
+
+
+def _redact_entry_script_content(entry_script_content: str) -> str:
+    if (not entry_script_content):
+        return entry_script_content
+    redacted_content = str(entry_script_content)
+    redacted_content = re.sub(
+        r"(?m)^#SBATCH --job-name=.*$",
+        f"#SBATCH --job-name={PRIVACY_DATA_PLACEHOLDER}",
+        redacted_content,
+    )
+    redacted_content = re.sub(
+        r"(?m)^#SBATCH --account=.*$",
+        f"#SBATCH --account={PRIVACY_DATA_PLACEHOLDER}",
+        redacted_content,
+    )
+    redacted_content = re.sub(
+        r"(?m)^#SBATCH --partition=.*$",
+        f"#SBATCH --partition={PRIVACY_DATA_PLACEHOLDER}",
+        redacted_content,
+    )
+    for env_key in SENSITIVE_ENV_EXPORT_KEYS:
+        redacted_content = re.sub(
+            rf"(?m)^export {re.escape(env_key)}=.*$",
+            f'export {env_key}="{PRIVACY_DATA_PLACEHOLDER}"',
+            redacted_content,
+        )
+    return redacted_content
+
+
+def _redact_env_exports(env_vars: Dict[str, str]) -> Dict[str, str]:
+    redacted_env_vars = dict(env_vars or {})
+    for key in list(redacted_env_vars.keys()):
+        if (key in SENSITIVE_ENV_EXPORT_KEYS):
+            redacted_env_vars[key] = PRIVACY_DATA_PLACEHOLDER
+    return redacted_env_vars
+
+
+def _redact_slurm_request_payload(slurm_request: "SlurmJobRequest") -> Dict[str, Any]:
+    request_dict = loads(slurm_request.serialize())
+    for key in SENSITIVE_SLURM_REQUEST_KEYS:
+        if (key in request_dict):
+            request_dict[key] = PRIVACY_DATA_PLACEHOLDER
+    return request_dict
 
 
 def _get_openai_client_config(user: User) -> dict:
@@ -2186,12 +2250,18 @@ class SlurmAccreDeployApi(Resource):
             return no_pdb_response(user, experiment)
 
         try:
-            slurm_request, entry_script_content, files, env_vars = experiment.build_slurm_submission_payload()
+            slurm_request, entry_script_content, files, env_vars = experiment.build_slurm_submission_payload(
+                access_token=PRIVACY_DATA_PLACEHOLDER
+            )
+            redacted_entry_script_content = _redact_entry_script_content(entry_script_content)
+            redacted_env_vars = _redact_env_exports(env_vars)
+            redacted_slurm_request_payload = _redact_slurm_request_payload(slurm_request)
+
             deploy_pack_io = BytesIO()
             with ZipFile(deploy_pack_io, "w") as deploy_pack_zip:
                 deploy_pack_zip.writestr(
                     SLURM_MD_JOB_ENTRY_SCRIPT,
-                    entry_script_content,
+                    redacted_entry_script_content,
                     compress_type=ZIP_DEFLATED,
                 )
                 for file_path in files:
@@ -2207,7 +2277,7 @@ class SlurmAccreDeployApi(Resource):
                     "# Environment variables exported by md_entry_script.sh",
                     '# NOTE: `file_dir` is evaluated at runtime on the compute node.',
                 ]
-                for key, value in env_vars.items():
+                for key, value in redacted_env_vars.items():
                     if (key == "file_dir"):
                         env_lines.append(f"export {key}={value}")
                     else:
@@ -2221,13 +2291,13 @@ class SlurmAccreDeployApi(Resource):
                 )
                 deploy_pack_zip.writestr(
                     "submission/slurm_request.json",
-                    dumps(loads(slurm_request.serialize()), ensure_ascii=False, indent=2),
+                    dumps(redacted_slurm_request_payload, ensure_ascii=False, indent=2),
                     compress_type=ZIP_DEFLATED,
                 )
 
             deploy_pack_io.seek(0)
             zip_prefix = re.sub(r'[\\/:"*?<>|]', "", experiment.name)
-            zip_name = f"{zip_prefix} ACCRE Run Pack.zip"
+            zip_name = f"{zip_prefix} Reproducibility Pack.zip"
         except Exception as exc:
             _LOGGER.error(f"Failed to build ACCRE deploy package: {exc}")
             response_info = ExperimentBehaviourResponseInfo(
