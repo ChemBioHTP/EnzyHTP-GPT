@@ -45,7 +45,7 @@
             :loading="downloading"
             @click="handleExportAccrePack"
           >
-            Export ACCRE run package
+            Export Reproducibility package
           </a-button>
         </a-flex>
         <div class="message" v-if="model.workflowTip">

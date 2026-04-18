@@ -2297,7 +2297,7 @@ class SlurmAccreDeployApi(Resource):
 
             deploy_pack_io.seek(0)
             zip_prefix = re.sub(r'[\\/:"*?<>|]', "", experiment.name)
-            zip_name = f"{zip_prefix} ACCRE Run Pack.zip"
+            zip_name = f"{zip_prefix} Reproducibility Pack.zip"
         except Exception as exc:
             _LOGGER.error(f"Failed to build ACCRE deploy package: {exc}")
             response_info = ExperimentBehaviourResponseInfo(
