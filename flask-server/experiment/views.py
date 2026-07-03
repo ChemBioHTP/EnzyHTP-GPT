@@ -102,6 +102,14 @@ THIRD_PARTY_SOFTWARE_CATALOG = {
 THIRD_PARTY_BACKEND_REQUIREMENTS = {
     SYSTEM_MANAGED_BACKEND_KEY: ["amber_pmemd"],
 }
+THIRD_PARTY_AUTHORIZATION_PENDING_STATUS = "pending_review"
+THIRD_PARTY_AUTHORIZATION_VERIFIED_STATUS = "verified"
+THIRD_PARTY_AUTHORIZATION_REJECTED_STATUS = "rejected"
+THIRD_PARTY_REVIEWABLE_STATUSES = {
+    THIRD_PARTY_AUTHORIZATION_PENDING_STATUS,
+    THIRD_PARTY_AUTHORIZATION_VERIFIED_STATUS,
+    THIRD_PARTY_AUTHORIZATION_REJECTED_STATUS,
+}
 
 
 def _get_required_third_party_software(backend: str = SYSTEM_MANAGED_BACKEND_KEY) -> List[Dict[str, str]]:
@@ -121,7 +129,7 @@ def _get_verified_third_party_authorizations(user: User) -> Dict[str, dict]:
     return {
         software_key: record
         for software_key, record in authorizations.items()
-        if (isinstance(record, dict) and record.get("status") == "verified")
+        if (isinstance(record, dict) and record.get("status") == THIRD_PARTY_AUTHORIZATION_VERIFIED_STATUS)
     }
 
 
@@ -159,6 +167,49 @@ def _get_missing_third_party_software(user: User, backend: str = SYSTEM_MANAGED_
     ]
 
 
+def _get_third_party_authorization_review_items(status_filter: str = THIRD_PARTY_AUTHORIZATION_PENDING_STATUS) -> List[dict]:
+    review_items = []
+    for user_record in db.users.find({}, {"id": 1, "email": 1, "username": 1, THIRD_PARTY_AUTHORIZATIONS_FIELD: 1}):
+        authorizations = user_record.get(THIRD_PARTY_AUTHORIZATIONS_FIELD, {})
+        if (not isinstance(authorizations, dict)):
+            continue
+        for software_key, authorization in authorizations.items():
+            if (not isinstance(authorization, dict)):
+                continue
+            authorization_status = authorization.get("status")
+            if (status_filter and authorization_status != status_filter):
+                continue
+            documentation = authorization.get("documentation", {})
+            documentation_metadata = {}
+            if (isinstance(documentation, dict)):
+                documentation_metadata = {
+                    "original_filename": documentation.get("original_filename"),
+                    "stored_filename": documentation.get("stored_filename"),
+                    "uploaded_at": documentation.get("uploaded_at"),
+                    "download_url": (
+                        f"/api/experiment/third-party-software/authorization/review/document"
+                        f"?user_id={user_record.get('id')}&software_key={software_key}"
+                    ),
+                }
+            review_item = {
+                "user_id": user_record.get("id"),
+                "email": user_record.get("email"),
+                "username": user_record.get("username"),
+                "software_key": software_key,
+                "software_label": authorization.get("software_label"),
+                "backend": authorization.get("backend"),
+                "status": authorization_status,
+                "confirmed": authorization.get("confirmed"),
+                "submitted_at": authorization.get("submitted_at"),
+                "reviewed_at": authorization.get("reviewed_at"),
+                "reviewed_by": authorization.get("reviewed_by"),
+                "review_note": authorization.get("review_note"),
+                "documentation": documentation_metadata,
+            }
+            review_items.append(review_item)
+    return review_items
+
+
 def _third_party_authorization_required_response(
     user: User,
     experiment: Experiment,
@@ -174,6 +225,7 @@ def _third_party_authorization_required_response(
         backend=backend,
         required_software=_get_required_third_party_software(backend),
         missing_software=_get_missing_third_party_software(user, backend),
+        authorizations=_serialize_third_party_authorizations(user),
     )
     return Response(response=response_info.serialize(), status=403, mimetype=JSONIFY_MIMETYPE)
 
@@ -2169,7 +2221,7 @@ class ThirdPartySoftwareAuthorizationApi(Resource):
         stored_filepath = path.join(user_authorization_dir, stored_filename)
         documentation.save(stored_filepath)
 
-        verified_at = datetime.now().isoformat()
+        submitted_at = datetime.now().isoformat()
         authorizations = getattr(user, THIRD_PARTY_AUTHORIZATIONS_FIELD, {})
         if (not isinstance(authorizations, dict)):
             authorizations = {}
@@ -2178,16 +2230,19 @@ class ThirdPartySoftwareAuthorizationApi(Resource):
             "original_filename": original_filename,
             "stored_filename": stored_filename,
             "stored_path": stored_filepath,
-            "uploaded_at": verified_at,
+            "uploaded_at": submitted_at,
         }
         for software in required_software:
             authorizations[software["key"]] = {
                 "software_key": software["key"],
                 "software_label": software["label"],
                 "backend": backend,
-                "status": "verified",
+                "status": THIRD_PARTY_AUTHORIZATION_PENDING_STATUS,
                 "confirmed": True,
-                "verified_at": verified_at,
+                "submitted_at": submitted_at,
+                "reviewed_at": None,
+                "reviewed_by": None,
+                "review_note": None,
                 "documentation": document_record,
             }
 
@@ -2201,7 +2256,7 @@ class ThirdPartySoftwareAuthorizationApi(Resource):
             experiment=None,
             user=user,
             is_successful=True,
-            message="Third-party software authorization submitted for verification.",
+            message="Third-party software authorization submitted and is pending review.",
             is_authenticated=True,
             backend=backend,
             required_software=required_software,
@@ -2209,6 +2264,176 @@ class ThirdPartySoftwareAuthorizationApi(Resource):
             authorizations=_serialize_third_party_authorizations(user),
         )
         return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
+
+
+class ThirdPartySoftwareAuthorizationReviewApi(Resource):
+    """Route: `/third-party-software/authorization/review`."""
+
+    @login_required
+    def get(self):
+        """List third-party software authorization records for admin review."""
+        user: User = current_user
+        if (not user.admin):
+            return notadmin_handler(user=user)
+
+        status_filter = request.args.get("status", THIRD_PARTY_AUTHORIZATION_PENDING_STATUS)
+        if (status_filter == "all"):
+            status_filter = None
+        elif (status_filter not in THIRD_PARTY_REVIEWABLE_STATUSES):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=None,
+                user=user,
+                is_successful=False,
+                message=(
+                    f"Unsupported status `{status_filter}`. "
+                    f"Use one of {', '.join(sorted(THIRD_PARTY_REVIEWABLE_STATUSES))}, or all."
+                ),
+                is_authenticated=True,
+            )
+            return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
+
+        review_items = _get_third_party_authorization_review_items(status_filter=status_filter)
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=None,
+            user=user,
+            is_successful=True,
+            message="Third-party software authorization review records fetched.",
+            is_authenticated=True,
+            status=status_filter or "all",
+            review_items=review_items,
+        )
+        return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
+
+    @login_required
+    def put(self):
+        """Approve or reject a third-party software authorization record."""
+        user: User = current_user
+        if (not user.admin):
+            return notadmin_handler(user=user)
+
+        request_json = request.get_json(silent=True)
+        form_data = {}
+        if (isinstance(request_json, dict)):
+            form_data.update(request_json)
+        for key, value in request.form.items():
+            form_data[key] = value
+
+        target_user_id = form_data.get("user_id")
+        software_key = form_data.get("software_key")
+        review_status = form_data.get("status")
+        review_note = form_data.get("review_note", "")
+
+        if (not target_user_id or not software_key):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=None,
+                user=user,
+                is_successful=False,
+                message="Both user_id and software_key are required.",
+                is_authenticated=True,
+            )
+            return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
+
+        if (review_status not in {THIRD_PARTY_AUTHORIZATION_VERIFIED_STATUS, THIRD_PARTY_AUTHORIZATION_REJECTED_STATUS}):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=None,
+                user=user,
+                is_successful=False,
+                message="Review status must be either verified or rejected.",
+                is_authenticated=True,
+            )
+            return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
+
+        target_user = User.get(target_user_id)
+        if (target_user is None):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=None,
+                user=user,
+                is_successful=False,
+                message=f"Unable to find user `{target_user_id}`.",
+                is_authenticated=True,
+            )
+            return Response(response=response_info.serialize(), status=404, mimetype=JSONIFY_MIMETYPE)
+
+        authorizations = getattr(target_user, THIRD_PARTY_AUTHORIZATIONS_FIELD, {})
+        if ((not isinstance(authorizations, dict)) or software_key not in authorizations):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=None,
+                user=user,
+                is_successful=False,
+                message=f"Unable to find authorization `{software_key}` for user `{target_user_id}`.",
+                is_authenticated=True,
+            )
+            return Response(response=response_info.serialize(), status=404, mimetype=JSONIFY_MIMETYPE)
+
+        reviewed_at = datetime.now().isoformat()
+        authorization_update = {
+            f"{THIRD_PARTY_AUTHORIZATIONS_FIELD}.{software_key}.status": review_status,
+            f"{THIRD_PARTY_AUTHORIZATIONS_FIELD}.{software_key}.reviewed_at": reviewed_at,
+            f"{THIRD_PARTY_AUTHORIZATIONS_FIELD}.{software_key}.reviewed_by": user.id,
+            f"{THIRD_PARTY_AUTHORIZATIONS_FIELD}.{software_key}.review_note": review_note,
+        }
+        db.users.update_one({"id": target_user_id}, {"$set": authorization_update})
+
+        refreshed_target_user = User.get(target_user_id)
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=None,
+            user=user,
+            is_successful=True,
+            message=(
+                f"Authorization `{software_key}` for user `{target_user_id}` "
+                f"was marked as {review_status}."
+            ),
+            is_authenticated=True,
+            target_user_id=target_user_id,
+            software_key=software_key,
+            reviewed_status=review_status,
+            authorizations=_serialize_third_party_authorizations(refreshed_target_user),
+        )
+        return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
+
+
+class ThirdPartySoftwareAuthorizationDocumentApi(Resource):
+    """Route: `/third-party-software/authorization/review/document`."""
+
+    @login_required
+    def get(self):
+        """Download a submitted authorization document for admin review."""
+        user: User = current_user
+        if (not user.admin):
+            return notadmin_handler(user=user)
+
+        target_user_id = request.args.get("user_id")
+        software_key = request.args.get("software_key")
+        target_user = User.get(target_user_id)
+        if (target_user is None):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=None,
+                user=user,
+                is_successful=False,
+                message=f"Unable to find user `{target_user_id}`.",
+                is_authenticated=True,
+            )
+            return Response(response=response_info.serialize(), status=404, mimetype=JSONIFY_MIMETYPE)
+
+        authorizations = getattr(target_user, THIRD_PARTY_AUTHORIZATIONS_FIELD, {})
+        authorization = authorizations.get(software_key, {}) if isinstance(authorizations, dict) else {}
+        documentation = authorization.get("documentation", {}) if isinstance(authorization, dict) else {}
+        stored_filepath = documentation.get("stored_path") if isinstance(documentation, dict) else None
+        if ((not stored_filepath) or (not path.isfile(stored_filepath))):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=None,
+                user=user,
+                is_successful=False,
+                message="Authorization documentation file is not available.",
+                is_authenticated=True,
+            )
+            return Response(response=response_info.serialize(), status=404, mimetype=JSONIFY_MIMETYPE)
+
+        return send_file(
+            stored_filepath,
+            as_attachment=True,
+            download_name=documentation.get("original_filename") or path.basename(stored_filepath),
+        )
 
 
 class SlurmCorrespondenceApi(Resource):

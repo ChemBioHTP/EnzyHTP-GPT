@@ -41,6 +41,8 @@ const authorizationForm = reactive({
     fileList: [],
     requiredSoftware: [],
     missingSoftware: [],
+    authorizations: {},
+    reviewNote: "",
 });
 const steps = reactive([
     {
@@ -104,6 +106,25 @@ const handleStep = (index) => {
 const syncAuthorizationModalState = (res) => {
     authorizationForm.requiredSoftware = res.required_software || [];
     authorizationForm.missingSoftware = res.missing_software || authorizationForm.requiredSoftware;
+    authorizationForm.authorizations = res.authorizations || {};
+    authorizationForm.reviewNote = "";
+    const rejectedAuthorization = authorizationForm.missingSoftware
+        .map(software => authorizationForm.authorizations[software.key])
+        .find(authorization => authorization?.status === "rejected");
+    if (rejectedAuthorization?.review_note) {
+        authorizationForm.reviewNote = rejectedAuthorization.review_note;
+    }
+};
+
+const getBlockingAuthorizationStatus = () => {
+    const missingSoftware = authorizationForm.missingSoftware || [];
+    for (const software of missingSoftware) {
+        const authorization = authorizationForm.authorizations[software.key];
+        if (authorization?.status) {
+            return authorization.status;
+        }
+    }
+    return missingSoftware.length ? "missing" : "verified";
 };
 
 const openAuthorizationModal = (res = {}) => {
@@ -120,6 +141,13 @@ const submitSlurmJob = () => {
     slurm(route.query.id)
         .then(res => {
             if (res.requires_third_party_software_authorization) {
+                syncAuthorizationModalState(res);
+                const blockingStatus = getBlockingAuthorizationStatus();
+                if (blockingStatus === "pending_review") {
+                    openRun.value = false;
+                    message.info("Your third-party software authorization is pending admin review.");
+                    return;
+                }
                 openAuthorizationModal(res);
                 return;
             }
@@ -140,6 +168,12 @@ const handleSystemManagedRun = () => {
         .then(res => {
             syncAuthorizationModalState(res);
             if ((res.missing_software || []).length > 0) {
+                const blockingStatus = getBlockingAuthorizationStatus();
+                if (blockingStatus === "pending_review") {
+                    openRun.value = false;
+                    message.info("Your third-party software authorization is pending admin review.");
+                    return;
+                }
                 openAuthorizationModal(res);
                 return;
             }
@@ -190,10 +224,9 @@ const handleAuthorizationSubmit = () => {
     authorizationForm.submitting = true;
     submitThirdPartySoftwareAuthorization(formData)
         .then(res => {
-            if (res.is_successful && !(res.missing_software || []).length) {
+            if (res.is_successful) {
                 message.success(res.message);
                 openThirdPartyAuthorization.value = false;
-                submitSlurmJob();
                 return;
             }
             syncAuthorizationModalState(res);
@@ -339,6 +372,13 @@ onMounted(() => {
                 Please upload documentation showing that your use is covered by the applicable license or authorization.
                 Do not upload license keys, passwords, download credentials, or unredacted confidential agreements.
             </p>
+            <a-alert
+              v-if="authorizationForm.reviewNote"
+              type="error"
+              show-icon
+              :message="`Previous submission rejected: ${authorizationForm.reviewNote}`"
+              class="review-note"
+            />
 
             <div class="software-section">
                 <div class="section-title">Selected backend software:</div>
@@ -509,6 +549,10 @@ onMounted(() => {
                 margin: 0;
                 padding-left: 20px;
             }
+        }
+
+        .review-note {
+            margin: 16px 0;
         }
 
         .authorization-confirmation {
