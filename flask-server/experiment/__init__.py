@@ -14,6 +14,7 @@ experiment_api.add_resource(views.DownloadableFileApi, "/<experiment_id>/downloa
 experiment_api.add_resource(views.PdbFilesApi, "/<experiment_id>/pdb_files")
 experiment_api.add_resource(views.PdbFileApi, "/<experiment_id>/pdb_file")
 experiment_api.add_resource(views.MutationApi, "/<experiment_id>/mutations")
+experiment_api.add_resource(views.ThirdPartySoftwareAuthorizationApi, "/third-party-software/authorization")
 experiment_api.add_resource(views.SlurmCorrespondenceApi, "/<experiment_id>/slurm")
 experiment_api.add_resource(views.SlurmTokenApi, "/slurm/token")
 experiment_api.add_resource(views.SlurmDeployApi, "/<experiment_id>/deploy")

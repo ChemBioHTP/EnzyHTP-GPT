@@ -197,6 +197,9 @@ class User(UserMixin):
             kwargs.get("use_custom_openai_secret_key", default_use_custom_key),
             default=default_use_custom_key,
         )
+        self.third_party_software_authorizations = kwargs.get("third_party_software_authorizations", {})
+        if (not isinstance(self.third_party_software_authorizations, dict)):
+            self.third_party_software_authorizations = {}
         self.is_active = kwargs.get("is_active", True)
         return
     

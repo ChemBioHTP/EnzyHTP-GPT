@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from string import Template
 from datetime import datetime
 from werkzeug.datastructures import ImmutableMultiDict
+from werkzeug.utils import secure_filename
 
 # Here put local imports.
 from .models import Experiment, Result
@@ -46,6 +47,7 @@ from config import (
     TOKEN_EXPIRES_DELTA,
     WORKSHEET_MUTATION_COLUMN_NAME,
     APP_HOST,
+    FILE_SYSTEM_FOLDER,
     JSONIFY_MIMETYPE,
     OPENAI_RUNTIME,
 
@@ -77,6 +79,103 @@ from enzy_htp.core import (
 )
 
 db = mongo.db
+
+SYSTEM_MANAGED_BACKEND_KEY = "system_slurm"
+THIRD_PARTY_AUTHORIZATIONS_FIELD = "third_party_software_authorizations"
+THIRD_PARTY_SOFTWARE_AUTHORIZATION_FOLDER = path.join(FILE_SYSTEM_FOLDER, "third_party_software_authorizations")
+THIRD_PARTY_AUTHORIZATION_ALLOWED_EXTENSIONS = {
+    ".pdf",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".txt",
+    ".doc",
+    ".docx",
+}
+THIRD_PARTY_SOFTWARE_CATALOG = {
+    "amber_pmemd": {
+        "key": "amber_pmemd",
+        "label": "Amber/pmemd",
+        "description": "Amber molecular dynamics engine using pmemd.",
+    },
+}
+THIRD_PARTY_BACKEND_REQUIREMENTS = {
+    SYSTEM_MANAGED_BACKEND_KEY: ["amber_pmemd"],
+}
+
+
+def _get_required_third_party_software(backend: str = SYSTEM_MANAGED_BACKEND_KEY) -> List[Dict[str, str]]:
+    backend_key = (backend or SYSTEM_MANAGED_BACKEND_KEY).strip()
+    required_keys = THIRD_PARTY_BACKEND_REQUIREMENTS.get(backend_key, [])
+    return [
+        THIRD_PARTY_SOFTWARE_CATALOG[software_key]
+        for software_key in required_keys
+        if (software_key in THIRD_PARTY_SOFTWARE_CATALOG)
+    ]
+
+
+def _get_verified_third_party_authorizations(user: User) -> Dict[str, dict]:
+    authorizations = getattr(user, THIRD_PARTY_AUTHORIZATIONS_FIELD, {})
+    if (not isinstance(authorizations, dict)):
+        return {}
+    return {
+        software_key: record
+        for software_key, record in authorizations.items()
+        if (isinstance(record, dict) and record.get("status") == "verified")
+    }
+
+
+def _serialize_third_party_authorizations(user: User) -> Dict[str, dict]:
+    authorizations = getattr(user, THIRD_PARTY_AUTHORIZATIONS_FIELD, {})
+    if (not isinstance(authorizations, dict)):
+        return {}
+
+    serialized_authorizations = {}
+    for software_key, record in authorizations.items():
+        if (not isinstance(record, dict)):
+            continue
+        serialized_record = {
+            key: value
+            for key, value in record.items()
+            if (key != "documentation")
+        }
+        documentation = record.get("documentation", {})
+        if (isinstance(documentation, dict)):
+            serialized_record["documentation"] = {
+                "original_filename": documentation.get("original_filename"),
+                "stored_filename": documentation.get("stored_filename"),
+                "uploaded_at": documentation.get("uploaded_at"),
+            }
+        serialized_authorizations[software_key] = serialized_record
+    return serialized_authorizations
+
+
+def _get_missing_third_party_software(user: User, backend: str = SYSTEM_MANAGED_BACKEND_KEY) -> List[Dict[str, str]]:
+    verified_authorizations = _get_verified_third_party_authorizations(user)
+    return [
+        software
+        for software in _get_required_third_party_software(backend)
+        if (software.get("key") not in verified_authorizations)
+    ]
+
+
+def _third_party_authorization_required_response(
+    user: User,
+    experiment: Experiment,
+    backend: str = SYSTEM_MANAGED_BACKEND_KEY,
+) -> Response:
+    response_info = ExperimentBehaviourResponseInfo(
+        experiment=experiment,
+        user=user,
+        is_successful=False,
+        message="Third-party software authorization is required before submitting this job.",
+        is_authenticated=True,
+        requires_third_party_software_authorization=True,
+        backend=backend,
+        required_software=_get_required_third_party_software(backend),
+        missing_software=_get_missing_third_party_software(user, backend),
+    )
+    return Response(response=response_info.serialize(), status=403, mimetype=JSONIFY_MIMETYPE)
 
 RAW_RESULTS_FILENAME = "raw_results.csv"
 RESULT_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
@@ -1978,6 +2077,140 @@ from zipfile import ZipFile, ZIP_DEFLATED
 
 from services import SlurmJobRequest, SlurmJobData
 
+class ThirdPartySoftwareAuthorizationApi(Resource):
+    """Route: `/third-party-software/authorization`."""
+
+    @login_required
+    def get(self):
+        """Return third-party software authorization requirements for a backend."""
+        user: User = current_user
+        backend = request.args.get("backend", SYSTEM_MANAGED_BACKEND_KEY)
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=None,
+            user=user,
+            is_successful=True,
+            message="Third-party software authorization status fetched.",
+            is_authenticated=True,
+            backend=backend,
+            required_software=_get_required_third_party_software(backend),
+            missing_software=_get_missing_third_party_software(user, backend),
+            authorizations=_serialize_third_party_authorizations(user),
+        )
+        return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
+
+    @login_required
+    def post(self):
+        """Store a user's authorization confirmation and supporting documentation."""
+        user: User = current_user
+        backend = request.form.get("backend", SYSTEM_MANAGED_BACKEND_KEY)
+        confirmed = User._parse_bool_value(request.form.get("confirmed"), default=False)  # pylint: disable=protected-access
+        required_software = _get_required_third_party_software(backend)
+
+        if (not required_software):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=None,
+                user=user,
+                is_successful=True,
+                message="No third-party software authorization is required for the selected backend.",
+                is_authenticated=True,
+                backend=backend,
+                required_software=[],
+                missing_software=[],
+            )
+            return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
+
+        if (not confirmed):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=None,
+                user=user,
+                is_successful=False,
+                message="You must confirm that you are authorized to use the selected third-party software.",
+                is_authenticated=True,
+                backend=backend,
+                required_software=required_software,
+            )
+            return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
+
+        documentation = request.files.get("documentation", None)
+        if ((documentation is None) or (not documentation.filename)):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=None,
+                user=user,
+                is_successful=False,
+                message="Please upload authorization documentation before submitting for verification.",
+                is_authenticated=True,
+                backend=backend,
+                required_software=required_software,
+            )
+            return Response(response=response_info.serialize(), status=400, mimetype=JSONIFY_MIMETYPE)
+
+        original_filename = documentation.filename
+        safe_filename = secure_filename(original_filename)
+        file_ext = path.splitext(safe_filename)[1].lower()
+        if (file_ext not in THIRD_PARTY_AUTHORIZATION_ALLOWED_EXTENSIONS):
+            response_info = ExperimentBehaviourResponseInfo(
+                experiment=None,
+                user=user,
+                is_successful=False,
+                message=(
+                    f"{file_ext or 'The uploaded file'} is not supported. "
+                    "Please upload PDF, image, text, Word, or redacted documentation files."
+                ),
+                is_authenticated=True,
+                backend=backend,
+                required_software=required_software,
+            )
+            return Response(response=response_info.serialize(), status=415, mimetype=JSONIFY_MIMETYPE)
+
+        user_authorization_dir = path.join(THIRD_PARTY_SOFTWARE_AUTHORIZATION_FOLDER, user.id)
+        os.makedirs(user_authorization_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
+        stored_filename = f"{timestamp}_{safe_filename}"
+        stored_filepath = path.join(user_authorization_dir, stored_filename)
+        documentation.save(stored_filepath)
+
+        verified_at = datetime.now().isoformat()
+        authorizations = getattr(user, THIRD_PARTY_AUTHORIZATIONS_FIELD, {})
+        if (not isinstance(authorizations, dict)):
+            authorizations = {}
+
+        document_record = {
+            "original_filename": original_filename,
+            "stored_filename": stored_filename,
+            "stored_path": stored_filepath,
+            "uploaded_at": verified_at,
+        }
+        for software in required_software:
+            authorizations[software["key"]] = {
+                "software_key": software["key"],
+                "software_label": software["label"],
+                "backend": backend,
+                "status": "verified",
+                "confirmed": True,
+                "verified_at": verified_at,
+                "documentation": document_record,
+            }
+
+        db.users.update_one(
+            {"id": user.id},
+            {"$set": {THIRD_PARTY_AUTHORIZATIONS_FIELD: authorizations}},
+        )
+        setattr(user, THIRD_PARTY_AUTHORIZATIONS_FIELD, authorizations)
+
+        response_info = ExperimentBehaviourResponseInfo(
+            experiment=None,
+            user=user,
+            is_successful=True,
+            message="Third-party software authorization submitted for verification.",
+            is_authenticated=True,
+            backend=backend,
+            required_software=required_software,
+            missing_software=_get_missing_third_party_software(user, backend),
+            authorizations=_serialize_third_party_authorizations(user),
+        )
+        return Response(response=response_info.serialize(), status=200, mimetype=JSONIFY_MIMETYPE)
+
+
 class SlurmCorrespondenceApi(Resource):
     """Route: `/<experiment_id>/slurm`."""
 
@@ -2062,6 +2295,9 @@ class SlurmCorrespondenceApi(Resource):
             return notfound_response(user, experiment_id)
         if (experiment.user_id != user.id):
             return forbidden_response(user, experiment)
+
+        if (_get_missing_third_party_software(user, SYSTEM_MANAGED_BACKEND_KEY)):
+            return _third_party_authorization_required_response(user, experiment, SYSTEM_MANAGED_BACKEND_KEY)
         
         if not experiment.has_pdb_file:
             return no_pdb_response(user, experiment)

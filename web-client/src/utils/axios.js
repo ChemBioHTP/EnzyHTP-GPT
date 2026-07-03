@@ -31,7 +31,11 @@ instance.interceptors.request.use(
     // console.log(config);
     config.headers["Authorization"] = getToken() || "";
 
-    config.headers["Content-Type"] = "application/x-www-form-urlencoded";
+    if (config.data instanceof FormData) {
+      config.headers["Content-Type"] = "multipart/form-data";
+    } else {
+      config.headers["Content-Type"] = "application/x-www-form-urlencoded";
+    }
 
     if (config.method === "get") {
       // 添加时间戳参数，防止浏览器（IE）对get请求的缓存

@@ -1,9 +1,17 @@
 <script setup>
 import { onMounted, reactive, ref, watch } from "vue";
-import { ArrowRightOutlined } from "@ant-design/icons-vue";
+import { ArrowRightOutlined, InboxOutlined } from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
 import VerticalStepper from "@/components/VerticalStepper.vue";
 import HeadInfo from "./components/headInfo.vue";
-import { getExperimentDetail, getMutations, slurm, deployAccre } from "@/api/experiment";
+import {
+    getExperimentDetail,
+    getMutations,
+    slurm,
+    deployAccre,
+    getThirdPartySoftwareAuthorization,
+    submitThirdPartySoftwareAuthorization,
+} from "@/api/experiment";
 import { useRoute, useRouter } from "vue-router";
 import { useExperimentStore } from "@/stores/experiment";
 import MutationGenerrated from "./components/mutationGenerrated.vue";
@@ -23,7 +31,17 @@ const model = reactive({
 
 const seleceIndex = ref(0);
 const openRun = ref(false);
+const openThirdPartyAuthorization = ref(false);
 const currentStep = ref(1);
+const SYSTEM_MANAGED_BACKEND_KEY = "system_slurm";
+const authorizationForm = reactive({
+    loading: false,
+    submitting: false,
+    confirmed: false,
+    fileList: [],
+    requiredSoftware: [],
+    missingSoftware: [],
+});
 const steps = reactive([
     {
         title: "Set-up",
@@ -83,22 +101,106 @@ const handleStep = (index) => {
     }
 }
 
-const handleCreate = () => {
-    if (seleceIndex.value == 0) {
-        if (loading.value) return;
-        loading.value = true;
-        slurm(route.query.id).then(res => {
-            loading.value = false;
+const syncAuthorizationModalState = (res) => {
+    authorizationForm.requiredSoftware = res.required_software || [];
+    authorizationForm.missingSoftware = res.missing_software || authorizationForm.requiredSoftware;
+};
+
+const openAuthorizationModal = (res = {}) => {
+    syncAuthorizationModalState(res);
+    authorizationForm.confirmed = false;
+    authorizationForm.fileList = [];
+    openRun.value = false;
+    openThirdPartyAuthorization.value = true;
+};
+
+const submitSlurmJob = () => {
+    if (loading.value) return;
+    loading.value = true;
+    slurm(route.query.id)
+        .then(res => {
+            if (res.requires_third_party_software_authorization) {
+                openAuthorizationModal(res);
+                return;
+            }
             if (res.is_successful) {
                 router.push({ path: "/result", query: { id: route.query.id, type: "Results" } })
             }
             console.log(res);
         })
+        .finally(() => {
+            loading.value = false;
+        });
+};
+
+const handleSystemManagedRun = () => {
+    if (loading.value || authorizationForm.loading) return;
+    authorizationForm.loading = true;
+    getThirdPartySoftwareAuthorization({ backend: SYSTEM_MANAGED_BACKEND_KEY })
+        .then(res => {
+            syncAuthorizationModalState(res);
+            if ((res.missing_software || []).length > 0) {
+                openAuthorizationModal(res);
+                return;
+            }
+            submitSlurmJob();
+        })
+        .finally(() => {
+            authorizationForm.loading = false;
+        });
+};
+
+const handleCreate = () => {
+    if (seleceIndex.value == 0) {
+        handleSystemManagedRun();
     } else {
         // 
         openRun.value = false;
         router.push({ path: "/download", query: { id: route.query.id } })
     }
+};
+
+const beforeAuthorizationUpload = file => {
+    authorizationForm.fileList = [file];
+    return false;
+};
+
+const removeAuthorizationUpload = () => {
+    authorizationForm.fileList = [];
+};
+
+const handleAuthorizationSubmit = () => {
+    if (authorizationForm.submitting) return;
+    if (!authorizationForm.confirmed) {
+        message.error("Please confirm that you are authorized to use the selected third-party software.");
+        return;
+    }
+    if (!authorizationForm.fileList.length) {
+        message.error("Please upload authorization documentation.");
+        return;
+    }
+
+    const selectedFile = authorizationForm.fileList[0];
+    const documentation = selectedFile.originFileObj || selectedFile;
+    const formData = new FormData();
+    formData.append("backend", SYSTEM_MANAGED_BACKEND_KEY);
+    formData.append("confirmed", "true");
+    formData.append("documentation", documentation);
+
+    authorizationForm.submitting = true;
+    submitThirdPartySoftwareAuthorization(formData)
+        .then(res => {
+            if (res.is_successful && !(res.missing_software || []).length) {
+                message.success(res.message);
+                openThirdPartyAuthorization.value = false;
+                submitSlurmJob();
+                return;
+            }
+            syncAuthorizationModalState(res);
+        })
+        .finally(() => {
+            authorizationForm.submitting = false;
+        });
 };
 
 const handleExportAccrePack = () => {
@@ -190,6 +292,7 @@ onMounted(() => {
             <p>Please select one of the options below based on your preference and resources:</p>
             <a-flex class="select-wrap" gap="middle">
                 <div :class="['item', index == seleceIndex ? 'selected' : '']" @click="handleSelect(index)"
+                    :key="item.title"
                     v-for="(item, index) in runOption">
                     <a-flex justify="space-between" align="center">
                         <div>{{ item.title }}</div>
@@ -207,14 +310,78 @@ onMounted(() => {
             <a-form-item>
                 <a-flex class="btn-group">
                     <div @click="openRun = false" class="btn">Cancel</div>
-                    <a-button type="primary" size="large" :disabled="disabled" @click="handleCreate" class="btn">
+                    <a-button type="primary" size="large" :disabled="loading || authorizationForm.loading" @click="handleCreate" class="btn">
                         <a-flex class="button-content" justify="space-between" align="center">
                             <span>{{ seleceIndex == 0 ? 'Run experiment' : 'Next' }}</span>
-                            <LoadingOutlined v-if="loading" class="ml20" />
+                            <LoadingOutlined v-if="loading || authorizationForm.loading" class="ml20" />
                         </a-flex>
                     </a-button>
                 </a-flex>
             </a-form-item>
+        </div>
+    </a-modal>
+    <a-modal
+      v-model:open="openThirdPartyAuthorization"
+      destroyOnClose
+      title="Third-Party Software Authorization Required"
+      :footer="null"
+      width="720px"
+      wrapClassName="third-party-authorization-modal"
+      @cancel="openThirdPartyAuthorization = false"
+    >
+        <div class="authorization-content">
+            <p>
+                You selected a backend that may invoke third-party scientific software subject to independent license
+                terms. To use this backend, you must confirm that you, your institution, or your organization holds all
+                licenses, permissions, or authorizations required for the selected software and for this submitted job.
+            </p>
+            <p>
+                Please upload documentation showing that your use is covered by the applicable license or authorization.
+                Do not upload license keys, passwords, download credentials, or unredacted confidential agreements.
+            </p>
+
+            <div class="software-section">
+                <div class="section-title">Selected backend software:</div>
+                <ul class="software-list">
+                    <li v-for="software in authorizationForm.requiredSoftware" :key="software.key">
+                        {{ software.label }}
+                    </li>
+                </ul>
+            </div>
+
+            <a-upload-dragger
+              v-model:file-list="authorizationForm.fileList"
+              name="documentation"
+              :multiple="false"
+              :max-count="1"
+              :before-upload="beforeAuthorizationUpload"
+              @remove="removeAuthorizationUpload"
+              accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx"
+            >
+                <p class="ant-upload-drag-icon">
+                    <InboxOutlined />
+                </p>
+                <p class="ant-upload-text">Upload authorization documentation</p>
+                <p class="ant-upload-hint">PDF, image, text, Word, or redacted documentation files are supported.</p>
+            </a-upload-dragger>
+
+            <a-checkbox v-model:checked="authorizationForm.confirmed" class="authorization-confirmation">
+                I confirm that I am authorized to use the selected third-party software for this submitted job. I further
+                confirm that this use is consistent with all applicable license terms, including restrictions on
+                commercial use, redistribution, third-party services, remote access, and unauthorized users.
+            </a-checkbox>
+
+            <a-flex class="authorization-actions" justify="end" gap="middle">
+                <a-button size="large" @click="openThirdPartyAuthorization = false">Cancel</a-button>
+                <a-button
+                  type="primary"
+                  size="large"
+                  :loading="authorizationForm.submitting"
+                  @click="handleAuthorizationSubmit"
+                >
+                    Submit for Verification
+                </a-button>
+            </a-flex>
         </div>
     </a-modal>
 </template>
@@ -317,6 +484,43 @@ onMounted(() => {
             }
         }
 
+    }
+}
+
+:deep(.third-party-authorization-modal) {
+    .authorization-content {
+        color: #161616;
+        font-size: 14px;
+        line-height: 1.55;
+
+        p {
+            margin-bottom: 14px;
+        }
+
+        .software-section {
+            margin: 18px 0;
+
+            .section-title {
+                font-weight: 600;
+                margin-bottom: 8px;
+            }
+
+            .software-list {
+                margin: 0;
+                padding-left: 20px;
+            }
+        }
+
+        .authorization-confirmation {
+            display: flex;
+            align-items: flex-start;
+            margin-top: 20px;
+            line-height: 1.5;
+        }
+
+        .authorization-actions {
+            margin-top: 28px;
+        }
     }
 }
 </style>

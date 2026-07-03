@@ -68,6 +68,14 @@ export const slurm = (experiment_id,data) => {
   return axios.post(`/api/experiment/${experiment_id}/slurm`, data);
 };
 
+export const getThirdPartySoftwareAuthorization = (data = {}) => {
+  return axios.get("/api/experiment/third-party-software/authorization", data);
+};
+
+export const submitThirdPartySoftwareAuthorization = data => {
+  return axios.post("/api/experiment/third-party-software/authorization", data);
+};
+
 export const deploy = (experiment_id, params = {}, config = {}) => { 
   return axios.get(
     `/api/experiment/${experiment_id}/deploy`,
