@@ -70,7 +70,7 @@ MAIL_PASSWORD_RESET_HTML_TEMPLATE = open(os.path.join(BASEDIR, "templates", "pas
 # Vanderbilt ACCRE Slurm
 SLURM_HOST = "https://ssam.accre.vanderbilt.edu"
 SLURM_API_URL = f"{SLURM_HOST}/api/slurm"
-SLURM_USER = "yanglab_enzyhtp_app"
+SLURM_USER = "resom32"
 SLURM_ACCOUNT = "yang_lab"
 SLURM_PARTITION = "batch"
 
