@@ -21,7 +21,9 @@ DEVELOPMENT = "development"
 ENV = os.environ.get("FLASK_ENV", DEVELOPMENT)
 DEBUG = os.environ.get("DEBUG", True)
 APP_HOST = os.environ.get("APP_HOST", "localhost")
-SECRET_KEY = os.environ.get("SECRET_KEY", "91-310120-MA1H") # A custom value but mandatory.
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable must be set.")
 MAX_CONTENT_LENGTH = 2 * 1000**3
 
 # Enable Non-ASCII Characters.
@@ -60,9 +62,11 @@ MAIL_SERVER = "smtp.gmail.com"
 MAIL_PORT = 465
 MAIL_USE_SSL = True
 MAIL_USE_TLS = False
-MAIL_USERNAME = "website.enzyhtp@gmail.com"
-MAIL_DEFAULT_SENDER = ("EnzyHTP Web Application", "website.enzyhtp@gmail.com")
-MAIL_PASSWORD = "ymyiwgzhxxpnlqcg"
+MAIL_USERNAME = "mutexagpt@gmail.com"
+MAIL_DEFAULT_SENDER = ("MutexaGPT Web Application", "mutexagpt@gmail.com")
+MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
+if not MAIL_PASSWORD:
+    raise RuntimeError("MAIL_PASSWORD environment variable must be set.")
 # https://mailtrap.io/blog/python-send-email-gmail/
 
 MAIL_PASSWORD_RESET_HTML_TEMPLATE = open(os.path.join(BASEDIR, "templates", "password_reset_email.html")).read()

@@ -30,6 +30,7 @@ services:
     environment:
       - TZ=US/Central
       - SECRET_KEY=${SECRET_KEY}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
       - MONGO_URI=${MONGO_URI:-mongodb://mongo:27017/enzyhtp_gpt}
       - OPENAI_RUNTIME=${OPENAI_RUNTIME:-responses}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
