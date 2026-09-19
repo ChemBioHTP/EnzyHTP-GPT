@@ -75,8 +75,8 @@ Each message may include:
 
 The application interacts with the Vanderbilt ACCRE SLURM cluster via its API. To authenticate, you need to obtain a token from `https://ssam.accre.vanderbilt.edu/`.
 
--   **Username:** `yanglab_enzyhtp_app`
--   **Password:** `defuse/graffiti/doorbell/jubilance/managing/coastland`
+-   **Username:** `not_real_username`
+-   **Password:** `ask_admin_not_real_password`
 
 Once logged in, create a token in the `Token` tab and use the following API endpoints to manage it in the application:
 
